@@ -1,11 +1,11 @@
 {
-  "name": "Controle de Contas",
-  "short_name": "Contas",
+  "name": "flux · Controle de Contas",
+  "short_name": "flux",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#1E1E1E",
+  "theme_color": "#1E1E1E",
   "icons": [
     {
       "src": "icone-192.png",
