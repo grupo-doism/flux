@@ -3131,11 +3131,11 @@ function vRede(){
 }
 function vEquipeRede(){
   const eq=[...S.redeEquipe].sort((a,b)=>(a.papel||"").localeCompare(b.papel||"")||(a.nome||"").localeCompare(b.nome||""));
-  return header("Equipe da rede","Acessos da franqueadora: masters da rede e observadores.",`<button class="btn" data-act="nova-conta-rede" data-papel="bpo">+ BPO financeiro</button><button class="btn" data-act="nova-conta-rede" data-papel="observador">+ Observador</button><button class="btn pri" data-act="nova-conta-rede" data-papel="master_rede">+ Master da rede</button>`)
+  return header("Equipe da rede","Acessos da franqueadora: masters da rede, observadores e BPO financeiro. Clique em Editar para mudar dados ou perfil de um membro.",`<button class="btn" data-act="nova-conta-rede" data-papel="bpo">+ BPO financeiro</button><button class="btn" data-act="nova-conta-rede" data-papel="observador">+ Observador</button><button class="btn pri" data-act="nova-conta-rede" data-papel="master_rede">+ Master da rede</button>`)
    + `<div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>Login</th><th>E-mail de recuperação</th><th>Perfil</th><th>Situação</th><th></th></tr></thead><tbody>
    ${eq.map(c=>`<tr><td><div class="desc">${esc(c.nome||"")}${c.id===S.me.id?' <span class="note">(você)</span>':""}</div>${c.empresa?`<div class="meta">${esc(c.empresa)}</div>`:""}</td><td class="num">${esc(c.login?fmtDoc(c.login):"—")}</td><td>${esc(c.email||"")}</td>
      <td><span class="pill ${c.papel==="master_rede"?"st-pago":"st-info"}">${esc(PAPEIS[c.papel]||c.papel)}</span></td><td>${c.ativo===false?'<span class="pill st-vencido">desativado</span>':'<span class="note">ativo</span>'}</td>
-     <td class="r">${c.id!==S.me.id?`<button class="icon-btn" data-act="rede-senha" data-id="${c.id}">Nova senha</button><button class="icon-btn" data-act="rede-ativo" data-id="${c.id}" data-v="${c.ativo===false?1:0}">${c.ativo===false?"Reativar":"Desativar"}</button>`:""}</td></tr>`).join("")}
+     <td class="r" style="white-space:nowrap">${c.id!==S.me.id?`<button class="btn sm" data-act="rede-editar" data-id="${c.id}">Editar</button><button class="icon-btn" data-act="rede-senha" data-id="${c.id}">Nova senha</button><button class="icon-btn" data-act="rede-ativo" data-id="${c.id}" data-v="${c.ativo===false?1:0}">${c.ativo===false?"Reativar":"Desativar"}</button>`:""}</td></tr>`).join("")}
    </tbody></table></div>
    <div class="grid g2e" style="margin-top:16px"><div class="panel"><h2>Master da rede</h2><p class="note" style="margin:0">Vê todos os franqueados e o painel consolidado, cadastra e suspende franqueados, edita a matriz e pede autorização (chamado) para qualquer outra alteração.</p></div>
    <div class="panel"><h2>Observador</h2><p class="note" style="margin:0">Entra em todos os franqueados só para ler as telas e ajudar o franqueado a interpretar os dados. Não edita, não exclui e não vê o painel consolidado da rede.</p></div>
@@ -3258,6 +3258,27 @@ function novoFranqModal(){
       const b=e.submitter; b.disabled=true; b.textContent="Cadastrando…";
       try{ const r=await chamar("criarFranqueado",{nome:$("#nfNome").value.trim()||mz.razao,matriz:mz}); credenciais(`Franqueado cadastrado — ${mz.razao}`,r); }
       catch(ex){ err.textContent=ex.message; b.disabled=false; b.textContent="Cadastrar franqueado"; } }); },"all");
+}
+function editarContaRedeModal(c){
+  const DESC={master_rede:"Vê todos os franqueados e o painel da rede, cadastra franqueados e atende chamados.",observador:"Entra em todos os franqueados só para ler. Não edita nem exclui nada.",bpo:"Lança e edita tudo nos franqueados atribuídos a ele (em Franqueados → coluna BPO)."};
+  const nBpo=S.tenants.filter(t=>t.bpoUid===c.id).length;
+  openModal(`<h2>Editar acesso — ${esc(c.nome||"")}</h2><form id="fEr" class="fcol" novalidate>
+    <div class="row"><div class="field"><label for="erN">Nome</label><input id="erN" value="${esc(c.nome||"")}"></div><div class="field"><label for="erT">Telefone</label><input id="erT" value="${esc(c.telefone||"")}"></div></div>
+    <div class="field"><label for="erE">E-mail (recuperação de senha)</label><input id="erE" type="email" value="${esc(c.email||"")}"></div>
+    <div class="field"><span class="flabel">Login</span><div class="note">${esc(c.login?fmtDoc(c.login):"—")} (não muda)</div></div>
+    <div class="field"><span class="flabel">Perfil</span><div class="esc-ops">${["master_rede","observador","bpo"].map(p=>`<label class="esc-op"><input type="radio" name="erP" value="${p}" ${c.papel===p?"checked":""}><span><b>${esc(PAPEIS[p])}</b><small>${DESC[p]}</small></span></label>`).join("")}</div></div>
+    ${c.papel==="bpo"&&nBpo?`<div class="banner lib-banner" style="margin:0" id="erAv" hidden>Este BPO atende <b>${nBpo} franqueado(s)</b>. Ao mudar o perfil, ele deixa de ser o BPO deles e esses franqueados voltam a editar tudo.</div>`:""}
+    <div class="err" id="erErr" role="alert"></div>
+    <div class="foot"><div></div><div><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn pri">Salvar alterações</button></div></div></form>`,false,()=>{
+    const av=$("#erAv"); document.querySelectorAll('input[name="erP"]').forEach(r=>r.addEventListener("change",()=>{ if(av) av.hidden=r.value==="bpo"||!r.checked; }));
+    $("#fEr").addEventListener("submit",async e=>{ e.preventDefault(); const err=$("#erErr"); err.textContent=""; const b=e.submitter;
+      const papel=(document.querySelector('input[name="erP"]:checked')||{}).value||c.papel;
+      const d={uid:c.id,nome:$("#erN").value.trim(),email:$("#erE").value.trim(),telefone:$("#erT").value.trim(),papel};
+      if(!d.nome){ err.textContent="Informe o nome."; return; } if(!/^\S+@\S+\.\S+$/.test(d.email)){ err.textContent="Informe um e-mail válido."; return; }
+      b.disabled=true;
+      try{ const r=await chamar("editarContaRede",d); closeModal(); await recarregarRede(); atualizarTabelas("tenants");
+        toast(papel!==c.papel?`Perfil alterado para ${PAPEIS[papel]}${r&&r.soltos?` — ${r.soltos} franqueado(s) liberado(s) do BPO`:""}`:"Dados atualizados"); }
+      catch(ex){ b.disabled=false; err.textContent=ex.message||"Não foi possível salvar."; } }); },"all");
 }
 function novaContaRedeModal(papel){
   openModal(`<h2>Novo ${esc(PAPEIS[papel])}</h2><form id="fCr" class="fcol" novalidate>
@@ -3814,6 +3835,7 @@ document.addEventListener("click",async e=>{
   if(act==="novo-franq"&&masterRede()){ novoFranqModal(); return; }
   if(act==="nova-conta-rede"&&masterRede()){ novaContaRedeModal(a.dataset.papel); return; }
   if(act==="rede-senha"&&masterRede()){ confirmBtn(a,"Confirmar",async()=>{ try{ const r=await chamar("novaSenhaTemp",{uid:id}); credenciais("Nova senha temporária",r); }catch(ex){ toast(ex.message); } }); return; }
+  if(act==="rede-editar"&&masterRede()){ const c=S.redeEquipe.find(x=>x.id===id); if(c) editarContaRedeModal(c); return; }
   if(act==="rede-ativo"&&masterRede()){ confirmBtn(a,"Confirmar",async()=>{ try{ await chamar("alterarContaRede",{uid:id,ativo:a.dataset.v==="1"}); toast("Acesso atualizado"); }catch(ex){ toast(ex.message); } }); return; }
   if(act==="novo-chamado"&&masterRede()){ novoChamadoModal(); return; }
   if(act==="tx-hist"){ histModal(id); return; }
