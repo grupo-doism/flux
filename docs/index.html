@@ -652,6 +652,7 @@ const pad = n => String(n).padStart(2,"0");
 const iso = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const HOJE = iso(new Date());
 const mkey = s => s ? s.slice(0,7) : "";
+ui.c.mes=mkey(HOJE); ui.c.mesBase=mkey(HOJE); ui.l.mes=mkey(HOJE);   // Contas e Lançamentos abrem no mês atual
 const addDays = (s,n)=>{ const d=new Date(s+"T12:00:00"); d.setDate(d.getDate()+n); return iso(d); };
 const addMonths = (k,n)=>{ let [y,m]=k.split("-").map(Number); m+=n; while(m>12){m-=12;y++} while(m<1){m+=12;y--} return y+"-"+pad(m); };
 const addMonthsDate = (s,n)=>{ const [y,m,d]=s.split("-").map(Number); const k=addMonths(y+"-"+pad(m),n); const [yy,mm]=k.split("-").map(Number); const last=new Date(yy,mm,0).getDate(); return k+"-"+pad(Math.min(d,last)); };
@@ -818,7 +819,7 @@ const VIEWS_T = [
   ["painel","Dashboard"],["receber","Contas a receber"],["pagar","Contas a pagar"],["fluxo","Fluxo de caixa"],["dre","DRE financeiro"],
   ["sep"],["cmv","Divisão de CMV"],["lancamentos","Lançamentos"],["fornecedores","Fornecedores"],["agenda","Agenda"],["lojas","Lojas"],["sep"],["chamados","Chamados"],["usuarios","Usuários"],["config","Configurações"]
 ];
-function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["chamadosrede","Chamados"],["rede","Franqueados"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Diário da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus franqueados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Franqueados"],["sep"],["meucad","Meu cadastro"]]); }
+function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["chamadosrede","Chamados"],["rede","Franqueados"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Histórico da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus franqueados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Franqueados"],["sep"],["meucad","Meu cadastro"]]); }
   const v=[]; if(S.tid) VIEWS_T.forEach(x=>{ if(["chamados","diario","usuarios"].includes(x[0])&&!(gestorFranq()||plat())) return; if(VIEW_MOD[x[0]]&&nivel(VIEW_MOD[x[0]])<1) return; if(x[0]==="sep"&&(!v.length||v[v.length-1][0]==="sep")) return; v.push(x); }); while(v.length&&v[v.length-1][0]==="sep") v.pop(); return v; }
 function renderNav(){
   const VIEWS=viewsOk(); const ladoT=plat()?"rede":"franq";
@@ -1046,6 +1047,15 @@ function periodoFiltro(k){
     ${ehPadrao?"":`<button class="btn sm" data-act="per-hoje" data-k="${k}" style="align-self:flex-end;margin-bottom:3px">${padrao==="ano"?"Voltar ao ano atual":"Voltar ao mês atual"}</button>`}`;
 }
 function dashPer(){ return perDe("dash"); }
+// ao abrir uma tela pelo menu, o período volta ao padrão: Dashboard e Contas no mês atual; Fluxo e DRE no ano atual
+function periodoPadrao(v){
+  if(v==="painel"&&ui.per) delete ui.per.dash;
+  if(v==="fluxo"&&ui.per) delete ui.per.fluxo;
+  if(v==="dre"&&ui.per) delete ui.per.dre;
+  if(v==="lancamentos"){ ui.l=ui.l||{tipo:"todos",q:""}; ui.l.mes=mkey(HOJE); ui.l.semLoja=false; }
+  if(v==="cmv"&&ui.per) delete ui.per.cmv;
+  if(v==="pagar"||v==="receber"){ ui.c=ui.c||{status:"todos",q:""}; ui.c.mes=mkey(HOJE); ui.c.mesBase=mkey(HOJE); }
+}
 function dashAnos(){ const cur=+mkey(HOJE).slice(0,4); let min=cur; S.lanc.forEach(l=>{ const y=+String(compOf(l)||"").slice(0,4); if(y&&y<min&&y>1990) min=y; }); const a=[]; for(let y=cur;y>=min;y--) a.push(String(y)); return a; }
 function fatPer(p,cc){
   if(p.modo==="mes"){ const ms=[]; for(let i=5;i>=0;i--) ms.push(addMonths(p.m,-i)); const serie=ms.map(k=>({k,v:fatMes(k,cc)})); const fat=serie[5].v, ant=serie[4].v;
@@ -3291,7 +3301,7 @@ function vEquipeRede(){
 function vDiarioRede(){
   const q=normTxt(ui.drq||"");
   const rows=S.redeDiario.filter(d=>!q||normTxt([d.acao,d.detalhe,d.nome].join(" ")).includes(q));
-  return header("Diário da rede","Ações da franqueadora fora das contas dos franqueados: logins, cadastros, suspensões e alterações de matriz. Cada franqueado também tem o próprio Diário.")
+  return header("Histórico da rede","Ações da franqueadora fora das contas dos franqueados: logins, cadastros, suspensões e alterações de matriz. Cada franqueado também tem o próprio Histórico (em Chamados → Histórico).")
    + `<div class="toolbar"><input type="search" id="drQ" placeholder="Buscar" value="${esc(ui.drq||"")}" style="min-width:260px"><span class="note">${rows.length} registro(s)</span></div>
    <div class="tbl-wrap"><table class="diario"><thead><tr><th>Data e hora</th><th>Quem</th><th>Ação</th><th>Detalhe</th></tr></thead><tbody>
    ${rows.map(d=>`<tr><td class="num" style="white-space:nowrap">${dtHora(d.quando)}</td><td>${esc(d.nome||"")}<div class="meta">${esc(PAPEIS[d.papel]||"")}</div></td><td><span class="tag dg-${esc(d.cat||"acesso")}">${esc(d.acao||"")}</span></td><td>${esc(d.detalhe||"")}</td></tr>`).join("")||'<tr><td colspan="4" class="empty">Sem registros.</td></tr>'}
@@ -3958,7 +3968,7 @@ function planoCatModal(id){
 
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
-  const nav=e.target.closest("[data-nav]"); if(nav){ if(nav.hasAttribute("data-close")) closeModal(); ui.view=nav.dataset.nav; saveUi(); render(); window.scrollTo(0,0); return; }
+  const nav=e.target.closest("[data-nav]"); if(nav){ if(nav.hasAttribute("data-close")) closeModal(); ui.view=nav.dataset.nav; periodoPadrao(ui.view); saveUi(); render(); window.scrollTo(0,0); return; }
   const f=e.target.closest("[data-f]"); if(f&&!$("#modalRoot").contains(f)){ const [g,k]=f.dataset.f.split("."); ui[g][k]=f.dataset.v; render(); return; }
   const a=e.target.closest("[data-act]"); if(!a) return;
   const id=a.dataset.id; const act=a.dataset.act;
