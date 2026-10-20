@@ -509,6 +509,7 @@ table.cmv input,table.cmv select{font:inherit;font-size:12.5px;padding:5px 7px;b
 table.cmv input:disabled,table.cmv select:disabled{background:transparent;border-color:transparent;color:var(--ink)}
 table.cmv td{vertical-align:top}table.cmv .cmv-calc{font-size:11px;margin-top:3px}table.cmv tr.cmv-ok{background:var(--accent-soft)}
 .cmv-modo button{padding:2px 9px;font-size:11.5px}
+table.cmv-prev{font-size:12px}table.cmv-prev td,table.cmv-prev th{padding:5px 8px}table.cmv-prev tr.err-row td{background:#FDECEA}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -1376,7 +1377,9 @@ function vCmv(){
         ? `<div class="pill st-pago">Lançado ${dBR(String(d.lancadoEm||"").slice(0,10))}</div>${ed?`<div style="margin-top:4px"><button class="btn sm" data-act="cmv-desfazer" data-id="${d.id}">Desfazer</button></div>`:""}`
         : ed?`<button class="btn sm pri" data-act="cmv-lancar" data-id="${d.id}" ${c.ok?"":"disabled"} title="${c.ok?"Lança a parte de cada loja em Contas a pagar":"Divida 100% do valor para liberar"}">Lançar em contas a pagar</button><div style="margin-top:4px"><button class="icon-btn" data-act="cmv-excluir" data-id="${d.id}" aria-label="Excluir">Excluir</button></div>`:""}</td>
     </tr>`; };
-  return header("Divisão de CMV","Divida uma compra de mercadorias entre as lojas e lance a parte de cada uma em Contas a pagar, na categoria Compra de mercadorias.", ed?`<button class="btn pri" data-act="cmv-nova">+ Nova compra</button>`:"")
+  const fechadas=rows.filter(d=>d.status!=="lancado"&&calcCmv(d).ok).length;
+  return header("Divisão de CMV","Divida uma compra de mercadorias entre as lojas e lance a parte de cada uma em Contas a pagar, na categoria Compra de mercadorias.",
+     `<button class="btn" data-act="cmv-modelo">Modelo de planilha</button>`+(ed?`<button class="btn" data-act="cmv-importar">Importar planilha</button><input type="file" id="cmvFile" accept=".xlsx,.xls,.csv" hidden>${fechadas?`<button class="btn" data-act="cmv-lancar-todas">Lançar todas as fechadas (${fechadas})</button>`:""}<button class="btn pri" data-act="cmv-nova">+ Nova compra</button>`:""))
    + banners()
    + `<div class="toolbar dash-per">${periodoFiltro("cmv")}</div>`
    + (!lj.length?'<div class="banner lib-banner">Cadastre ao menos uma loja ativa em Lojas para dividir compras.</div>':"")
@@ -1407,13 +1410,14 @@ async function lancarCmv(d,btn){
   try{
     let fid=null; const fn=String(d.fornecedor||"").trim();
     if(fn){ const ex=(typeof fornPorNome==="function")&&fornPorNome(fn); fid=ex?ex.id:(await criarForn({empresa:fn})).id; }
-    let numero=proxNumero(); const nLojas=Object.keys(c.out).length;
+    let numero=Math.max(proxNumero(),S._numReserva||0); const nLojas=Object.keys(c.out).length;
     for(const [lid,v] of Object.entries(c.out)){ if(!(v>0)) continue;
       const id=newId("lanc"); const pc=d.total?Math.round(v/d.total*10000)/100:0;
       await save("lanc",id,{tipo:"despesa",descricao:`${String(d.descricao||"").trim()||"Compra de mercadorias"} — ${cenNome(lid)} (${pctTxt(pc)}%)`,valor:v,categoria:"cmv_merc",centro:lid,
         dataLanc:d.data,venc:d.venc||d.data,competencia:d.data.slice(0,7),forma:d.forma||"Boleto",pago:null,fornecedorId:fid,parcela:"",numero:numero++,
         obs:`Divisão de CMV #${d.numero}: compra de ${fmt(d.total)} dividida entre ${nLojas} loja(s).`,divisaoId:d.id,criado:new Date().toISOString(),criadoPor:(S.me&&S.me.id)||null});
       ids.push(id); }
+    S._numReserva=numero;
     await salvarCmv(d,{status:"lancado",lancIds:ids,lancadoEm:new Date().toISOString(),fornecedorId:fid});
     diario("CMV dividido entre lojas",`Compra #${d.numero} (${d.descricao||"sem descrição"}): ${fmt(d.total)} → `+Object.entries(c.out).map(([l,v])=>`${cenNome(l)} ${fmt(v)}`).join(" · "),{cat:"lancamento"});
     atualizarTabelas("lancamentos","divisoes"); toast(`Lançado em ${ids.length} loja(s) — veja em Contas a pagar`);
@@ -1426,6 +1430,124 @@ async function desfazerCmv(d,btn){
   try{ for(const l of ls) await del("lanc",l.id); await salvarCmv(d,{status:"rascunho",lancIds:[],lancadoEm:null});
     diario("Divisão de CMV desfeita",`Compra #${d.numero}: ${ls.length} lançamento(s) removido(s) de Contas a pagar`,{cat:"lancamento"}); atualizarTabelas("lancamentos","divisoes"); toast("Lançamentos desfeitos — a compra voltou para edição"); }
   catch(e){ btn.disabled=false; }
+}
+/* ---------- Divisão de CMV: modelo de planilha e importação ---------- */
+const FORMAS_CMV=FORMAS_PAG;
+async function baixarModeloCmv(btn){
+  const txt0=btn.innerHTML; btn.disabled=true; btn.textContent="Gerando…";
+  try{
+    await loadLib(LIB_XLSX_ESTILO,()=>window.XLSX&&window.XLSX.utils&&window.XLSX.style_version); const X=window.XLSX;
+    const lj=lojasCmv(); const F="Arial", fino={style:"thin",color:{rgb:"D5DAE0"}}, borda={top:fino,bottom:fino,left:fino,right:fino};
+    const st={titulo:{font:{name:F,bold:true,sz:15,color:{rgb:"00BF63"}},fill:{fgColor:{rgb:"1E1E1E"}},alignment:{vertical:"center",indent:1}},
+      sub:{font:{name:F,sz:9,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"1E1E1E"}},alignment:{indent:1}},
+      dica:{font:{name:F,sz:9,color:{rgb:"333333"}},alignment:{wrapText:true,vertical:"top"}},
+      cab:{font:{name:F,bold:true,sz:10,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"1E1E1E"}},alignment:{horizontal:"center",vertical:"center",wrapText:true},border:borda},
+      cabLoja:{font:{name:F,bold:true,sz:10,color:{rgb:"1E1E1E"}},fill:{fgColor:{rgb:"00BF63"}},alignment:{horizontal:"center",vertical:"center",wrapText:true},border:borda},
+      cod:{font:{name:F,sz:7,color:{rgb:"999999"}},alignment:{horizontal:"center"}},
+      ex:{font:{name:F,sz:10,italic:true,color:{rgb:"888888"}},fill:{fgColor:{rgb:"F2F2F2"}},border:borda},
+      exN:{font:{name:F,sz:10,italic:true,color:{rgb:"888888"}},fill:{fgColor:{rgb:"F2F2F2"}},border:borda,numFmt:"#,##0.00"},
+      inp:{font:{name:F,sz:10,color:{rgb:"0000FF"}},fill:{fgColor:{rgb:"FFF6C9"}},border:borda},
+      inpD:{font:{name:F,sz:10,color:{rgb:"0000FF"}},fill:{fgColor:{rgb:"FFF6C9"}},border:borda,numFmt:"dd/mm/yyyy"},
+      inpN:{font:{name:F,sz:10,color:{rgb:"0000FF"}},fill:{fgColor:{rgb:"FFF6C9"}},border:borda,numFmt:"#,##0.00"},
+      res:{font:{name:F,sz:10,bold:true},border:borda,numFmt:"#,##0.00"}};
+    const COLS=["Data da compra","Descrição","Fornecedor","Vencimento","Forma de pagamento","Valor total (R$)","Divisão em (% ou R$)",...lj.map(l=>lojaNome(l)),"Restante"];
+    const nC=COLS.length, L=(c,r)=>X.utils.encode_cell({c,r});
+    const ws={}; const put=(r,c,v,s,t)=>{ ws[L(c,r)]={v,t:t||(typeof v==="number"?"n":"s"),s}; };
+    for(let c=0;c<nC;c++){ put(0,c,c===0?"flux · Divisão de CMV — modelo de importação":"",st.titulo); put(1,c,c===0?`Gerado em ${dBR(HOJE)} · ${lj.length} loja(s) ativa(s)`:"",st.sub); }
+    const dicas=["Como preencher: uma linha por compra, nas células amarelas. Datas no formato dd/mm/aaaa. Valores com vírgula (ex.: 1.250,00).",
+      `Forma de pagamento: ${FORMAS_CMV.join(", ")}. Divisão em: digite % (porcentagem de cada loja) ou R$ (valor de cada loja). Em %, a soma das lojas deve dar 100; em R$, deve dar o valor total.`,
+      "As linhas cinza começando com EXEMPLO são ignoradas na importação — pode apagá-las. Não altere a linha de cabeçalho nem a linha de códigos das lojas (logo abaixo dela)."];
+    dicas.forEach((t,i)=>{ for(let c=0;c<nC;c++) put(2+i,c,c===0?t:"",st.dica); });
+    const H=6; COLS.forEach((t,c)=>put(H,c,t,c>=7&&c<7+lj.length?st.cabLoja:st.cab));
+    COLS.forEach((t,c)=>put(H+1,c,c>=7&&c<7+lj.length?"id:"+lj[c-7].id:"",st.cod));
+    const hoje=new Date(HOJE+"T12:00:00");
+    const exs=[["EXEMPLO Atacadão semana 1","Atacadão",10000,"%",lj.map((l,i)=>i===lj.length-1?100-Math.floor(100/lj.length)*(lj.length-1):Math.floor(100/lj.length))],
+               ["EXEMPLO Distribuidora de bebidas","Bebidas SP",4800,"R$",lj.map((l,i)=>i===lj.length-1?4800-Math.floor(4800/lj.length)*(lj.length-1):Math.floor(4800/lj.length))]];
+    exs.forEach((e,k)=>{ const r=H+2+k; put(r,0,dBR(HOJE),st.ex); put(r,1,e[0],st.ex); put(r,2,e[1],st.ex); put(r,3,dBR(HOJE),st.ex); put(r,4,"Boleto",st.ex); put(r,5,e[2],st.exN); put(r,6,e[3],st.ex);
+      e[4].forEach((v,i)=>put(r,7+i,v,st.exN)); put(r,7+lj.length,0,st.exN); });
+    const N=40, r0=H+4;
+    for(let r=r0;r<r0+N;r++){ for(let c=0;c<7+lj.length;c++) put(r,c,"",c===0||c===3?st.inpD:c===5||c>=7?st.inpN:st.inp);
+      const ini=X.utils.encode_col(7), fim=X.utils.encode_col(6+lj.length), lin=r+1;
+      ws[L(7+lj.length,r)]={t:"n",f:`IF(F${lin}="","",IF(UPPER(G${lin})="R$",F${lin}-SUM(${ini}${lin}:${fim}${lin}),100-SUM(${ini}${lin}:${fim}${lin})))`,s:st.res}; }
+    ws["!ref"]=X.utils.encode_range({s:{c:0,r:0},e:{c:nC-1,r:r0+N-1}});
+    ws["!merges"]=[0,1,2,3,4].map(r=>({s:{r,c:0},e:{r,c:nC-1}}));
+    ws["!cols"]=[{wch:13},{wch:30},{wch:20},{wch:13},{wch:15},{wch:14},{wch:12},...lj.map(()=>({wch:14})),{wch:12}];
+    ws["!rows"]=[{hpt:26},{hpt:16},{hpt:28},{hpt:28},{hpt:28},{hpt:6},{hpt:30}];
+    ws["!freeze"]={xSplit:2,ySplit:H+2};
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Compras");
+    X.writeFile(wb,`Modelo-Divisao-de-CMV-flux.xlsx`); toast("Modelo baixado");
+  }catch(e){ toast("Não foi possível gerar o modelo: "+(e.message||"")); }
+  finally{ btn.disabled=false; btn.innerHTML=txt0; }
+}
+function dataPlan(v){ if(v==null||v==="") return null;
+  if(typeof v==="number"){ const d=new Date(Math.round((v-25569)*864e5)); return d.toISOString().slice(0,10); }
+  if(v instanceof Date) return v.toISOString().slice(0,10);
+  const t=String(v).trim(); let iso=null; let m=t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if(m){ const y=m[3].length===2?"20"+m[3]:m[3]; iso=`${y}-${pad(+m[2])}-${pad(+m[1])}`; } else { m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) iso=`${m[1]}-${m[2]}-${m[3]}`; }
+  if(!iso) return "invalida"; const d=new Date(iso+"T12:00:00Z"); return (!isNaN(d)&&d.toISOString().slice(0,10)===iso)?iso:"invalida"; }   // recusa 32/13 etc.
+function numPlan(v,cent){ if(v==null||v==="") return null; if(typeof v==="number") return cent?Math.round(v*100):v;
+  const t=String(v).replace(/[R$%\s]/g,""); const c=reaisCent(t); if(c==null||isNaN(c)) return NaN; return cent?c:c/100; }
+function lerPlanCmv(wb){
+  const X=window.XLSX; const lj=lojasCmv(); const linhas=[];
+  for(const nome of wb.SheetNames){
+    const rows=X.utils.sheet_to_json(wb.Sheets[nome],{header:1,raw:true,defval:null,blankrows:true});
+    const h=rows.findIndex(r=>r&&r.some(c=>/^valor\s*total/i.test(String(c||"").trim()))&&r.some(c=>/^descri/i.test(String(c||"").trim()))); if(h<0) continue;
+    const cab=rows[h].map(c=>String(c||"").trim()), cod=(rows[h+1]||[]).map(c=>String(c||"").trim());
+    const col=re=>cab.findIndex(c=>re.test(c));
+    const cD=col(/^data/i), cDe=col(/descri/i), cF=col(/fornec/i), cV=col(/venc/i), cFo=col(/forma/i), cT=col(/valor\s*total/i), cM=col(/divis/i);
+    const lojasCol=[]; cab.forEach((c,i)=>{ if(i<=Math.max(cT,cM)||/restante/i.test(c)||!c) return;
+      const idc=(cod[i]||"").startsWith("id:")?cod[i].slice(3):null; const l=(idc&&lojaBy(idc))||lj.find(x=>normTxt(lojaNome(x))===normTxt(c)||normTxt(x.codigo||"")===normTxt(c));
+      lojasCol.push({i,nome:c,loja:l||null}); });
+    const ini=(cod.some(c=>c.startsWith("id:")))?h+2:h+1;
+    for(let r=ini;r<rows.length;r++){ const row=rows[r]||[]; const desc=String(row[cDe]??"").trim(); const tot=numPlan(row[cT],true);
+      if(!desc&&(tot==null||tot===0)&&!row.some((v,i)=>i>=cT&&v!==null&&v!=="")) continue;
+      if(/^exemplo/i.test(desc)) continue;
+      const modoTxt=String(row[cM]??"%").trim().toUpperCase(); const modo=modoTxt.includes("R")?"valor":"pct";
+      const partes={}; const erros=[];
+      lojasCol.forEach(lc=>{ const v=row[lc.i]; if(v==null||v==="") return; let n=modo==="pct"?numPlan(v,false):numPlan(v,true);
+        if(isNaN(n)){ erros.push(`valor inválido em ${lc.nome}`); return; } if(!lc.loja){ if(n) erros.push(`loja "${lc.nome}" não encontrada`); return; } if(n>0) partes[lc.loja.id]=n; });
+      if(modo==="pct"){ const vs=Object.values(partes); const s=vs.reduce((a,x)=>a+x,0); if(vs.length&&s<=1.0001&&vs.every(x=>x<=1)) Object.keys(partes).forEach(k=>partes[k]=Math.round(partes[k]*10000)/100); }
+      const data=dataPlan(row[cD]), venc=dataPlan(row[cV])||data;
+      if(!data||data==="invalida") erros.push("data da compra inválida"); if(venc==="invalida") erros.push("vencimento inválido");
+      if(tot==null||isNaN(tot)||tot<=0) erros.push("valor total inválido");
+      const forma=FORMAS_CMV.find(f=>normTxt(f)===normTxt(String(row[cFo]??"")))||"Boleto";
+      const d={data,venc:venc==="invalida"?data:venc,descricao:desc,fornecedor:String(row[cF]??"").trim(),forma,modo,total:tot>0?tot:0,partes};
+      linhas.push({linha:r+1,aba:nome,d,erros,calc:erros.length?null:calcCmv(d)});
+    }
+  }
+  return linhas;
+}
+async function importarCmvArquivo(file){
+  try{
+    await loadLib(LIB_XLSX_ESTILO,()=>window.XLSX&&window.XLSX.utils); const X=window.XLSX;
+    const wb=X.read(await file.arrayBuffer(),{type:"array",cellDates:false});
+    const ls=lerPlanCmv(wb); if(!ls.length){ toast("Nenhuma compra encontrada na planilha. Use o modelo (botão Modelo de planilha)."); return; }
+    const lj=lojasCmv(); const ok=ls.filter(x=>!x.erros.length), fech=ok.filter(x=>x.calc.ok).length;
+    openModal(`<h2>Importar compras — prévia</h2>
+      <p class="note" style="margin-top:0">${ls.length} compra(s) na planilha · <b>${ok.length}</b> válida(s) · <b>${fech}</b> fechando 100%${ls.length-ok.length?` · <span class="neg">${ls.length-ok.length} com erro (não serão importadas)</span>`:""}.</p>
+      <div class="tbl-wrap" style="max-height:52vh;overflow:auto"><table class="cmv-prev"><thead><tr><th>Linha</th><th>Data</th><th>Descrição</th><th class="r">Total</th>${lj.map(l=>`<th class="r">${esc(lojaNome(l))}</th>`).join("")}<th>Situação</th></tr></thead><tbody>
+      ${ls.map(x=>`<tr class="${x.erros.length?"err-row":""}"><td class="num note">${x.linha}</td><td class="num">${x.d.data&&x.d.data!=="invalida"?dBR(x.d.data):"—"}</td><td>${esc(x.d.descricao||"")}${x.d.fornecedor?`<div class="meta">${esc(x.d.fornecedor)}</div>`:""}</td><td class="r num">${fmt(x.d.total)}</td>
+        ${lj.map(l=>`<td class="r num">${x.calc&&x.calc.out[l.id]?fmt(x.calc.out[l.id]):"—"}</td>`).join("")}
+        <td>${x.erros.length?`<span class="pill st-vencido">${esc(x.erros.join("; "))}</span>`:x.calc.ok?'<span class="pill st-pago">✓ fecha 100%</span>':`<span class="pill st-vence">falta ${esc(x.calc.txtResto)}</span>`}</td></tr>`).join("")}</tbody></table></div>
+      <label class="chkline" style="margin-top:10px"><input type="checkbox" id="impCmvLancar" ${fech?"checked":""} ${fech?"":"disabled"}> Lançar em Contas a pagar as compras que fecham 100% (as demais ficam na tela para você completar)</label>
+      <div class="foot"><div></div><div><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn pri" id="impCmvOk" ${ok.length?"":"disabled"}>Importar ${ok.length} compra(s)</button></div></div>`,true,()=>{
+      $("#impCmvOk").addEventListener("click",async e=>{ const b=e.currentTarget; b.disabled=true; const lancar=$("#impCmvLancar").checked;
+        let numero=(S.div||[]).reduce((a,x)=>Math.max(a,+x.numero||0),0)+1; const lote="imp_"+rid(); const criadas=[];
+        try{ for(const x of ok){ b.textContent=`Importando… ${criadas.length+1}/${ok.length}`; const id=newId("div");
+            const doc={...x.d,numero:numero++,status:"rascunho",importado:lote,criado:new Date().toISOString(),criadoPor:(S.me&&S.me.id)||null};
+            await save("div",id,doc); criadas.push({...doc,id}); }
+          let lancadas=0;
+          if(lancar){ for(const d of criadas){ if(!calcCmv(d).ok) continue; b.textContent=`Lançando… ${lancadas+1}`; await lancarCmv(d,{disabled:false}); lancadas++; } }
+          diario("Divisão de CMV importada",`${criadas.length} compra(s) importada(s) de planilha${lancadas?`, ${lancadas} lançada(s) em Contas a pagar`:""}`,{cat:"lancamento"});
+          closeModal(); atualizarTabelas("divisoes","lancamentos"); toast(`${criadas.length} compra(s) importada(s)${lancadas?` · ${lancadas} lançada(s)`:""}`);
+        }catch(ex){ b.disabled=false; b.textContent="Tentar de novo"; toast("Parou no meio: "+(ex.message||"")+` (${criadas.length} já importada(s))`); }
+      }); },"all");
+  }catch(e){ toast("Não foi possível ler a planilha: "+(e.message||"")); }
+}
+async function lancarTodasCmv(btn){
+  const P=perDe("cmv"); const ls=(S.div||[]).filter(d=>{ const m=String(d.data||"").slice(0,7); return m>=P.ini&&m<=P.fim&&d.status!=="lancado"&&calcCmv(d).ok; });
+  btn.disabled=true; let n=0; for(const d of ls){ btn.textContent=`Lançando… ${n+1}/${ls.length}`; await lancarCmv(d,{disabled:false}); n++; }
+  atualizarTabelas("divisoes","lancamentos"); toast(`${n} compra(s) lançada(s) em Contas a pagar`);
 }
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
@@ -3422,7 +3544,7 @@ async function baixarModelo(btn){
     await loadLib(LIB_XLSX_ESTILO,()=>window.XLSX&&window.XLSX.utils&&window.XLSX.style_version); const X=window.XLSX; const wb=X.utils.book_new();
     const F="Arial", fino={style:"thin",color:{rgb:"D5DAE0"}}, borda={top:fino,bottom:fino,left:fino,right:fino};
     const st={
-      titulo:{font:{name:F,bold:true,sz:14,color:{rgb:"38B6FF"}},fill:{fgColor:{rgb:"000000"}},alignment:{vertical:"center",indent:1}},
+      titulo:{font:{name:F,bold:true,sz:14,color:{rgb:"00BF63"}},fill:{fgColor:{rgb:"000000"}},alignment:{vertical:"center",indent:1}},
       rot:{font:{name:F,bold:true,sz:10}},
       input:{font:{name:F,bold:true,sz:12,color:{rgb:"0000FF"}},fill:{fgColor:{rgb:"FFF6C9"}},border:borda},
       cinzaPeq:{font:{name:F,sz:8,color:{rgb:"999999"}}},
@@ -3860,6 +3982,9 @@ document.addEventListener("click",async e=>{
     a.disabled=true; FB.sb.rpc("definir_perm_franqueado",{p_tid:S.tid,p_perm:perm}).then(({error})=>{ a.disabled=false; if(error) toast("Não foi possível salvar: "+msgErro(error)); else { atualizarTabelas("tenants","diario"); toast("Acesso do franqueado salvo"); } }); return; }
   if(act==="ver-ch"){ ui.view="chamados"; ui.chTab="conversa"; ui.chSel=id; render(); return; }
   if(act==="cmv-nova"&&isAdm()){ novaCmv(); return; }
+  if(act==="cmv-modelo"){ baixarModeloCmv(a); return; }
+  if(act==="cmv-importar"&&isAdm()){ const f=$("#cmvFile"); if(f){ f.value=""; f.click(); } return; }
+  if(act==="cmv-lancar-todas"&&isAdm()){ confirmBtn(a,"Confirmar: lançar todas",()=>lancarTodasCmv(a)); return; }
   if(act==="cmv-modo"&&isAdm()){ const d=(S.div||[]).find(x=>x.id===id); if(d&&d.status!=="lancado"&&(d.modo||"pct")!==a.dataset.v) salvarCmv(d,{modo:a.dataset.v,partes:{}}).then(()=>atualizarTabelas("divisoes")); return; }
   if(act==="cmv-lancar"&&isAdm()){ const d=(S.div||[]).find(x=>x.id===id); if(d) confirmBtn(a,"Confirmar lançamento",()=>lancarCmv(d,a)); return; }
   if(act==="cmv-desfazer"&&isAdm()){ const d=(S.div||[]).find(x=>x.id===id); if(d) confirmBtn(a,"Confirmar: desfazer",()=>desfazerCmv(d,a)); return; }
@@ -3939,6 +4064,7 @@ document.addEventListener("change",e=>{
   if(t.id==="tenSel"){ abrirTenant(t.value); return; }
   if(t.classList&&t.classList.contains("bpo-sel")&&masterRede()){ const tid=t.dataset.tid, v=t.value||null; t.disabled=true;
     FB.sb.rpc("definir_bpo",{p_tid:tid,p_bpo:v}).then(({error})=>{ t.disabled=false; if(error) toast("Não foi possível definir o BPO: "+msgErro(error)); else { atualizarTabelas("tenants"); toast(v?"BPO definido":"BPO removido"); } }); return; }
+  if(t.id==="cmvFile"&&t.files&&t.files[0]){ importarCmvArquivo(t.files[0]); return; }
   if(t.classList&&t.classList.contains("cmv-in")&&isAdm()){ const d=(S.div||[]).find(x=>x.id===t.dataset.id); if(d&&d.status!=="lancado") salvarCmv(d,lerCampoCmv(d,t.dataset.c,t.value)).then(()=>atualizarTabelas("divisoes")).catch(()=>{}); return; }
   if(t.dataset&&t.dataset.per){ const k=t.dataset.per, c=t.dataset.c; if(!t.value) return; ui.per=ui.per||{}; ui.per[k]={...(ui.per[k]||{}),modo:perDe(k).modo,[c]:t.value}; saveUi(); render(); if(k==="rede") carregarIndicadores(); return; }
   if(t.id==="rperMes"){ ui.rper={...(ui.rper||{}),modo:"mes",mes:t.value||mkey(HOJE)}; render(); carregarIndicadores(); return; }
