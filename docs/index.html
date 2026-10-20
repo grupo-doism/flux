@@ -510,6 +510,10 @@ table.cmv input:disabled,table.cmv select:disabled{background:transparent;border
 table.cmv td{vertical-align:top}table.cmv .cmv-calc{font-size:11px;margin-top:3px}table.cmv tr.cmv-ok{background:var(--accent-soft)}
 .cmv-modo button{padding:2px 9px;font-size:11.5px}
 table.cmv-prev{font-size:12px}table.cmv-prev td,table.cmv-prev th{padding:5px 8px}table.cmv-prev tr.err-row td{background:#FDECEA}
+th.sel-col,td.sel-col{width:34px;text-align:center;padding-left:10px!important;padding-right:4px!important}.sel-col input{width:17px;height:17px;accent-color:#00BF63;cursor:pointer}
+tr.sel-on td{background:var(--accent-soft)!important}
+.sel-barra{position:sticky;top:8px;z-index:5;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#1E1E1E;color:#fff;border-radius:12px;padding:10px 14px;margin:0 0 10px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.sel-barra .num{color:#00BF63;font-weight:800;font-size:15px}.sel-barra .btn.sm{background:transparent;color:#fff;border-color:#555}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -1117,6 +1121,7 @@ function mesStrip(sel){
 }
 function vContas(tipo){
   const f=ui.c; const rows=filtraContas(tipo); const rec=tipo==="receita";
+  ui.selC=ui.selC||{}; const abertasSel=rows.filter(l=>!l.pago&&!(l.valorPendente&&!l.valor));
   const tot=rows.reduce((a,l)=>a+l.valor,0);
   const totAb=rows.filter(l=>!l.pago).reduce((a,l)=>a+l.valor,0);
   const totVenc=rows.filter(l=>statusOf(l)==="vencido").reduce((a,l)=>a+l.valor,0);
@@ -1136,9 +1141,12 @@ function vContas(tipo){
         <input type="search" id="fcQ" placeholder="Buscar assunto, fornecedor, código, nº" value="${esc(f.q)}" style="min-width:240px">
         ${f.mes||f.q||f.status!=="todos"?'<button class="btn sm" data-act="clear-c">Limpar filtros</button>':''}
       </div>
+      ${(()=>{ const sel=abertasSel.filter(l=>ui.selC[l.id]); if(!sel.length||!isAdm()) return ""; const tot=sel.reduce((a,l)=>a+(l.valor||0),0);
+        return `<div class="sel-barra"><b>${sel.length} conta(s) selecionada(s)</b><span class="num">${fmt(tot)}</span><button class="btn pri" data-act="baixa-lote">${rec?"Receber selecionadas":"Pagar selecionadas"}</button><button class="btn sm" data-act="sel-limpar">Limpar seleção</button></div>`; })()}
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Pagamento</th><th>Assunto</th><th>Loja</th><th>Forma</th><th class="r">Valor</th><th>Status</th><th></th></tr></thead>
-        <tbody>${rows.length?rows.map(l=>{ const fo=fornBy(l.fornecedorId); return `<tr>
+        <thead><tr>${isAdm()?`<th class="sel-col"><input type="checkbox" id="selAllC" aria-label="Marcar todas as contas em aberto da lista" ${abertasSel.length&&abertasSel.every(l=>ui.selC[l.id])?"checked":""} ${abertasSel.length?"":"disabled"}></th>`:""}<th>Pagamento</th><th>Assunto</th><th>Loja</th><th>Forma</th><th class="r">Valor</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows.length?rows.map(l=>{ const fo=fornBy(l.fornecedorId); return `<tr class="${ui.selC[l.id]?"sel-on":""}">
+          ${isAdm()?`<td class="sel-col">${!l.pago&&!(l.valorPendente&&!l.valor)?`<input type="checkbox" class="sel-c" data-id="${l.id}" ${ui.selC[l.id]?"checked":""} aria-label="Selecionar ${esc(l.descricao)}">`:""}</td>`:""}
           <td class="num">${dBR(l.venc)}${l.pago?`<div class="meta">${rec?"recebido":"pago"} ${dShort(l.pago)}</div>`:""}</td>
           <td><div class="desc">${esc(l.descricao)}${recTag(l)}${exTag(l)}</div><div class="meta">${l.numero?"#"+l.numero+" · ":""}${esc(catBy(l.categoria)?.nome||"Sem categoria")}${fo?" · "+esc(fornNome(fo))+(fo.codigo?" ("+esc(fo.codigo)+")":""):""}</div></td>
           <td>${lojaTag(l.centro)}</td>
@@ -1146,8 +1154,8 @@ function vContas(tipo){
           <td class="r num ${rec?"tipo-r":"tipo-d"}">${valCell(l)}</td>
           <td>${l.pago&&isAdm()?`<button type="button" class="pill-btn" data-act="estornar" data-id="${l.id}" title="Clique para voltar para ${l.venc<HOJE?"Vencido":"Em aberto"}">${statusPill(l)}</button>`:statusPill(l)}</td>
           <td class="r" style="white-space:nowrap">${isAdm()?(l.pago?`<button class="btn sm" data-act="estornar" data-id="${l.id}" title="Desfaz o pagamento/recebimento">Voltar p/ em aberto</button>`:`<button class="btn sm" data-act="baixar" data-id="${l.id}">${rec?"Receber":"Pagar"}</button>`):""} <button class="icon-btn" data-act="edit-lanc" data-id="${l.id}">${isAdm()?"Editar":"Ver"}</button></td>
-        </tr>`; }).join(""):`<tr><td colspan="7" class="empty">Nenhuma conta ${rec?"a receber":"a pagar"} com esses filtros.</td></tr>`}</tbody>
-        <tfoot><tr><td colspan="4">${rows.length} lançamento(s)</td><td class="r num">${fmt(tot)}</td><td colspan="2"></td></tr></tfoot>
+        </tr>`; }).join(""):`<tr><td colspan="${isAdm()?8:7}" class="empty">Nenhuma conta ${rec?"a receber":"a pagar"} com esses filtros.</td></tr>`}</tbody>
+        <tfoot><tr><td colspan="${isAdm()?5:4}">${rows.length} lançamento(s)</td><td class="r num">${fmt(tot)}</td><td colspan="2"></td></tr></tfoot>
       </table></div>`
     + recPanel(tipo);
 }
@@ -1844,6 +1852,7 @@ function render(){
   if(S.mode==="loading"){ main.innerHTML=`<div class="empty" style="padding-top:20vh">Carregando dados…</div>`; return; }
   if(ui.view!=="taxas") taxasRasc=null;
   if(ui.view!=="chamados") ui._chEnt=null;
+  if(ui.view!==ui._selView){ ui.selC={}; ui._selView=ui.view; }
   { const pf=perDe("fluxo"); ui.f.ini=pf.ini; ui.f.n=mesesEntre(pf.ini,pf.fim); const pd=perDe("dre"); ui.d.ini=pd.ini; ui.d.fim=pd.fim; }
   if(ui.cc==="lojas"||ui.cc==="matriz") ui.cc="";
   const vok=viewsOk();
@@ -2140,6 +2149,22 @@ function lancForm(l,tipoDefault){
     }, isNew);
 }
 
+function baixaLote(rec){
+  const ls=Object.keys(ui.selC||{}).map(id=>S.lanc.find(l=>l.id===id)).filter(l=>l&&!l.pago); if(!ls.length){ toast("Nenhuma conta em aberto selecionada."); return; }
+  const tot=ls.reduce((a,l)=>a+(l.valor||0),0); const mostra=ls.slice(0,8);
+  openModal(`<h2>${rec?"Receber":"Pagar"} ${ls.length} conta(s) de uma vez</h2>
+    <div class="tbl-wrap" style="max-height:40vh;overflow:auto"><table><tbody>${mostra.map(l=>`<tr><td class="num">${dBR(l.venc)}</td><td>${esc(l.descricao)}<div class="meta">${esc(cenNome(l.centro)||"")}</div></td><td class="r num">${fmt(l.valor)}</td></tr>`).join("")}
+    ${ls.length>mostra.length?`<tr><td colspan="3" class="note">e mais ${ls.length-mostra.length} conta(s)…</td></tr>`:""}</tbody><tfoot><tr><td colspan="2">Total</td><td class="r num">${fmt(tot)}</td></tr></tfoot></table></div>
+    <form id="fBL" class="fcol" style="margin-top:10px"><div class="row"><div class="field"><label for="blData">Data da baixa (para todas)</label><input type="date" id="blData" value="${HOJE}"></div><div class="field"><span class="flabel">Valor</span><div class="note" style="padding-top:8px">O valor de cada conta, como está. Para juros ou desconto, use ${rec?"Receber":"Pagar"} na linha da conta.</div></div></div>
+      <div class="err" id="blErr" role="alert"></div>
+      <div class="foot"><div></div><div><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn pri">Confirmar ${rec?"recebimento":"pagamento"} de ${fmt(tot)}</button></div></div></form>`,false,()=>{
+    $("#fBL").addEventListener("submit",async e=>{ e.preventDefault(); const b=e.submitter; const dt=$("#blData").value; if(!dt){ $("#blErr").textContent="Informe a data da baixa."; return; }
+      b.disabled=true; let n=0;
+      try{ for(const l of ls){ b.textContent=`Registrando… ${n+1}/${ls.length}`; await save("lanc",l.id,{...l,pago:dt}); n++; }
+        diario(rec?"Recebimento em lote":"Pagamento em lote",`${n} conta(s) · ${fmt(tot)} · baixa em ${dBR(dt)}: `+ls.slice(0,10).map(l=>"#"+(l.numero||"")).join(", ")+(ls.length>10?"…":""),{cat:"lancamento"});
+        ui.selC={}; closeModal(); atualizarTabelas("lancamentos"); toast(`${n} conta(s) ${rec?"recebida(s)":"paga(s)"} — ${fmt(tot)}`);
+      }catch(ex){ b.disabled=false; b.textContent="Tentar de novo"; $("#blErr").textContent=`Parou no meio (${n} de ${ls.length} registradas). ${ex.message||""}`; } }); },"all");
+}
 function baixar(l){
   openModal(`<h2>${l.tipo==="receita"?"Registrar recebimento":"Registrar pagamento"}</h2>
     <p style="margin:0">${esc(l.descricao)} · <b class="num">${fmt(l.valor)}</b>${l.parcela?` · parcela ${esc(l.parcela)}`:""}</p>
@@ -4019,6 +4044,8 @@ document.addEventListener("click",async e=>{
   else if(act==="edit-lanc"){ const l=S.lanc.find(x=>x.id===id); if(l) lancForm(l); }
   else if(act==="baixar"&&isAdm()){ const l=S.lanc.find(x=>x.id===id); if(l) baixar(l); }
   else if(act==="estornar"&&isAdm()){ const l=S.lanc.find(x=>x.id===id); if(l){ const novo=l.venc<HOJE?"Vencido":"Em aberto"; confirmBtn(a,`Confirmar: voltar para ${novo}`,async()=>{ try{ await save("lanc",l.id,{...l,pago:null}); diario("Baixa desfeita",`#${l.numero||""} ${l.descricao} — ${l.tipo==="receita"?"recebido":"pago"} em ${dBR(l.pago)} → ${novo.toLowerCase()}`,{cat:"alteracao"}); toast(`Voltou para ${novo.toLowerCase()}`); }catch(ex){} }); } }
+  else if(act==="baixa-lote"&&isAdm()){ baixaLote(ui.view==="receber"); }
+  else if(act==="sel-limpar"){ ui.selC={}; render(); }
   else if(act==="clear-c"){ ui.c={status:"todos",mes:"",q:"",mesBase:ui.c.mesBase}; render(); }
   else if(act==="clear-l"){ ui.l={tipo:"todos",mes:"",q:""}; render(); }
   else if(act==="ms-sel"){ ui.c.mes=a.dataset.k; render(); }
@@ -4067,6 +4094,8 @@ document.addEventListener("change",e=>{
   if(t.id==="cmvFile"&&t.files&&t.files[0]){ importarCmvArquivo(t.files[0]); return; }
   if(t.classList&&t.classList.contains("cmv-in")&&isAdm()){ const d=(S.div||[]).find(x=>x.id===t.dataset.id); if(d&&d.status!=="lancado") salvarCmv(d,lerCampoCmv(d,t.dataset.c,t.value)).then(()=>atualizarTabelas("divisoes")).catch(()=>{}); return; }
   if(t.dataset&&t.dataset.per){ const k=t.dataset.per, c=t.dataset.c; if(!t.value) return; ui.per=ui.per||{}; ui.per[k]={...(ui.per[k]||{}),modo:perDe(k).modo,[c]:t.value}; saveUi(); render(); if(k==="rede") carregarIndicadores(); return; }
+  if(t.classList&&t.classList.contains("sel-c")){ ui.selC=ui.selC||{}; if(t.checked) ui.selC[t.dataset.id]=true; else delete ui.selC[t.dataset.id]; render(); return; }
+  if(t.id==="selAllC"){ ui.selC=ui.selC||{}; document.querySelectorAll(".sel-c").forEach(x=>{ if(t.checked) ui.selC[x.dataset.id]=true; else delete ui.selC[x.dataset.id]; }); render(); return; }
   if(t.id==="rperMes"){ ui.rper={...(ui.rper||{}),modo:"mes",mes:t.value||mkey(HOJE)}; render(); carregarIndicadores(); return; }
   if(t.id==="rperAno"){ ui.rper={...(ui.rper||{}),modo:"ano",ano:t.value}; render(); carregarIndicadores(); return; }
   if(t.id==="dashMes"){ ui.dash={...(ui.dash||{}),modo:"mes",mes:t.value||mkey(HOJE)}; render(); return; }
