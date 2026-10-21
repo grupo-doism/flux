@@ -3185,8 +3185,11 @@ async function diarioRede(acao,detalhe){
   try{ await FB.sb.from("rede_diario").insert({data:{acao,detalhe:detalhe||""}}); atualizarTabelas("rede_diario"); }catch(e){}
 }
 /* ---------- início e autenticação ---------- */
+// Configuração do Supabase embutida: o sistema funciona mesmo se o config.js faltar (a chave anon é pública por natureza).
+const MM_CONFIG_PADRAO={supabaseUrl:"https://tmiciagujxrxjvtrtlkv.supabase.co",supabaseAnonKey:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtaWNpYWd1anhyeGp2dHJ0bGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5OTg5NjQsImV4cCI6MjEwNzU3NDk2NH0.UT26ycK643i5gDW-KtuTDHRVHnXilnbJXc6_qz5UAmA"};
 function iniciar(){
-  const C=window.MM_CONFIG||{};
+  const C0=window.MM_CONFIG||{}; const valido=c=>c&&c.supabaseUrl&&c.supabaseAnonKey&&!/COLE_AQUI/.test(c.supabaseUrl+c.supabaseAnonKey);
+  const C=valido(C0)?C0:MM_CONFIG_PADRAO;
   if(!window.supabase||!C.supabaseUrl||!C.supabaseAnonKey||/COLE_AQUI/.test(C.supabaseUrl+C.supabaseAnonKey)){
     telaAviso("Configuração pendente","Preencha o arquivo config.js com a Project URL e a anon key do seu projeto Supabase (Project Settings → API) e publique de novo.");
     return;
@@ -3296,7 +3299,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 54 · 21/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 55 · 21/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
