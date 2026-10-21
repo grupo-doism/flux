@@ -524,6 +524,9 @@ tr.sel-on td{background:var(--accent-soft)!important}
 .al-aviso{border-left-color:#E3A008}.al-aviso .al-ico{background:#FFF4D6;color:#8A5A00}
 .al-info{border-left-color:#00BF63}.al-info .al-ico{background:#E3F8EC;color:#0B5A33}
 .al-ok{border-left-color:#00BF63;cursor:default}.al-ok .al-ico{background:#00BF63;color:#1E1E1E}
+.ag-acoes{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.th-sort{background:none;border:0;padding:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;font-weight:inherit}
+.th-sort span{color:var(--muted);font-size:10px}.th-sort.on span{color:var(--accent)}.th-sort:hover{color:var(--ink)}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -1373,7 +1376,7 @@ function chLista(lista,lado){
         <div class="ci-m"><span class="pill ${cl}">${st}</span><span class="tag ch-dest ${chDest(c)}">${chDest(c)==="bpo"?"BPO":"Sistema"}</span>${c.nota?estrelas(c.nota):""}<small>${dtHora(c.encerradoEm||c.ultima||c.abertoEm)}</small></div></button>`; }).join("")||'<div class="empty">Nenhum chamado aqui.</div>'}`;
 }
 function chPane(c,lado){
-  if(!c) return `<div class="empty" style="padding:40px">${masterFranq()||S.claims.papel==="observador"?'Selecione um chamado à esquerda ou <button class="btn sm pri" data-act="ch-novo">Abrir chamado</button>':"Selecione um chamado à esquerda."}</div>`;
+  if(!c) return `<div class="empty" style="padding:40px">Selecione um chamado à esquerda.</div>`;
   const me=S.me&&S.me.id; const msgs=(lado==="franq"?S.msgs:S.chatMsgs).filter(m=>m.chamadoId===c.id);
   const t=tenantDoCh(c); const [st,cl]=CH_ST[c.status]||["",""]; const dest=chDest(c); const ac=c.acesso||{};
   const at=souAtCh(c), sol=souSolCh(c), dono=souDonoCh(c), escreve=podeEscreverCh(c);
@@ -1429,7 +1432,10 @@ function calcCmv(d){
 }
 function vCmv(){
   const P=perDe("cmv"), ed=isAdm(), lj=lojasCmv();
-  const rows=(S.div||[]).filter(d=>{ const m=String(d.data||"").slice(0,7); return m>=P.ini&&m<=P.fim; }).sort((a,b)=>String(a.data||"").localeCompare(String(b.data||""))||(a.numero||0)-(b.numero||0));
+  const rows=(S.div||[]).filter(d=>{ const m=String(d.data||"").slice(0,7); return m>=P.ini&&m<=P.fim; }).sort((a,b)=>{ const o=ui.cmvSort||{k:"data",dir:"desc"}; const sg=o.dir==="asc"?1:-1;
+    const r=o.k==="valor"?((+a.total||0)-(+b.total||0)):String(a.data||"").localeCompare(String(b.data||""));
+    return (r||((a.numero||0)-(b.numero||0)))*sg; });
+  const so=ui.cmvSort||{k:"data",dir:"desc"}; const th=(k,txt,cls)=>`<th class="${cls||""}"><button type="button" class="th-sort ${so.k===k?"on":""}" data-act="cmv-sort" data-k="${k}" title="Ordenar por ${txt.toLowerCase()}">${txt} <span>${so.k===k?(so.dir==="desc"?"▼":"▲"):"↕"}</span></button></th>`;
   const tot={}; let totGeral=0; rows.forEach(d=>{ const c=calcCmv(d); totGeral+=+d.total||0; Object.entries(c.out).forEach(([k,v])=>tot[k]=(tot[k]||0)+v); });
   const cel=(d,html)=>`<td>${html}</td>`;
   const linha=d=>{ const c=calcCmv(d), lanc=d.status==="lancado", pt=d.partes||{}, dis=(!ed||lanc)?"disabled":"";
@@ -1454,7 +1460,7 @@ function vCmv(){
    + banners()
    + `<div class="toolbar dash-per">${periodoFiltro("cmv")}</div>`
    + (!lj.length?'<div class="banner lib-banner">Cadastre ao menos uma loja ativa em Lojas para dividir compras.</div>':"")
-   + `<div class="tbl-wrap"><table class="cmv"><thead><tr><th>#</th><th>Data</th><th>Descrição / fornecedor</th><th>Vencimento / forma</th><th class="r">Valor total</th>${lj.map(l=>`<th class="r">${esc(lojaNome(l))}</th>`).join("")}<th class="r">Restante</th><th></th></tr></thead>
+   + `<div class="tbl-wrap"><table class="cmv"><thead><tr><th>#</th>${th("data","Data")}<th>Descrição / fornecedor</th><th>Vencimento / forma</th>${th("valor","Valor total","r")}${lj.map(l=>`<th class="r">${esc(lojaNome(l))}</th>`).join("")}<th class="r">Restante</th><th></th></tr></thead>
       <tbody>${rows.map(linha).join("")||`<tr><td colspan="${7+lj.length}" class="empty">Nenhuma compra neste período.${ed?' Clique em “+ Nova compra”.':""}</td></tr>`}</tbody>
       ${rows.length?`<tfoot><tr><td colspan="4">Total do período</td><td class="r num">${fmt(totGeral)}</td>${lj.map(l=>`<td class="r num">${fmt(tot[l.id]||0)}</td>`).join("")}<td></td><td></td></tr></tfoot>`:""}</table></div>
      <p class="note" style="margin-top:10px">Digite a parte de cada loja em <b>%</b> ou em <b>R$</b> (botão abaixo do valor total). O botão “Lançar em contas a pagar” libera quando a divisão fecha 100%. Cada loja recebe um lançamento de <b>Compra de mercadorias</b> com a parte dela, que aparece em Contas a pagar, no Fluxo e no DRE (CMV).</p>`;
@@ -1791,7 +1797,7 @@ function vAgenda(){
           <div class="clk" data-act="edit-ag" data-id="${a.id}"><div class="desc" ${a.concluido?'style="text-decoration:line-through;color:var(--muted)"':''}><span class="tag mot">${esc(motivoNome(a))}</span> ${esc(cenNome(a.lojaId)||"")}${exTag(a)}</div>
             ${a.obs?`<div class="meta note">${esc(a.obs)}</div>`:""}
             <div class="meta resp">Responsável: <b>${esc(a.respId?nomeUsr(a.respId):(a.respNome||"não definido"))}</b></div></div>
-          <div><button class="btn sm" data-act="toggle-ag" data-id="${a.id}">${a.concluido?"Reabrir":"Concluir"}</button></div></div>`).join(""):'<div class="empty">Nenhum compromisso neste dia.</div>'}</div>
+          <div class="ag-acoes"><button class="btn sm" data-act="toggle-ag" data-id="${a.id}">${a.concluido?"Reabrir":"Concluir"}</button>${isAdm()?`<button class="icon-btn" data-act="edit-ag" data-id="${a.id}">Editar</button><button class="icon-btn" data-act="del-ag" data-id="${a.id}">Excluir</button>`:""}</div></div>`).join(""):'<div class="empty">Nenhum compromisso neste dia.</div>'}</div>
         <button class="btn" style="margin-top:12px" data-act="new-ag" data-d="${ui.a.sel}">+ Novo compromisso neste dia</button>
       </div></div>`;
 }
@@ -4072,6 +4078,8 @@ document.addEventListener("click",async e=>{
   if(act==="alerta-ir"){ const v=a.dataset.v, st=a.dataset.s; ui.view=v; periodoPadrao(v);
     if((v==="pagar"||v==="receber")&&st){ ui.c.status=st; ui.c.mes=""; }
     saveUi(); render(); window.scrollTo(0,0); return; }
+  if(act==="del-ag"&&isAdm()){ const ag=S.ag.find(x=>x.id===id); if(ag) confirmBtn(a,"Confirmar exclusão",()=>del("ag",id).then(()=>{ toast("Compromisso excluído"); }).catch(()=>{})); return; }
+  if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="cmv-nova"&&isAdm()){ novaCmv(); return; }
   if(act==="cmv-modelo"){ baixarModeloCmv(a); return; }
   if(act==="cmv-importar"&&isAdm()){ const f=$("#cmvFile"); if(f){ f.value=""; f.click(); } return; }
