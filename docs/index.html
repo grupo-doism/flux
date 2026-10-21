@@ -527,6 +527,10 @@ tr.sel-on td{background:var(--accent-soft)!important}
 .ag-acoes{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .th-sort{background:none;border:0;padding:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;font-weight:inherit}
 .th-sort span{color:var(--muted);font-size:10px}.th-sort.on span{color:var(--accent)}.th-sort:hover{color:var(--ink)}
+.clip{background:none;border:0;padding:0 2px;cursor:pointer;font-size:14px;vertical-align:middle}.clip small{font-size:10px;font-weight:700;color:var(--accent)}.clip:hover{transform:scale(1.15)}
+.anx-li{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;margin:4px 0;background:var(--surface)}
+.anx-li.pend{border-style:dashed;background:var(--surface-2)}.anx-ico{font-size:16px}.anx-nome{flex:1;min-width:0}.anx-nome b{display:block;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.anx-nome small{color:var(--muted);font-size:11px}
+.anx-add{display:inline-flex;align-items:center;gap:6px;cursor:pointer;align-self:flex-start;margin-top:4px}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -970,7 +974,7 @@ function bannersBase(){
   return b;
 }
 const autoTag = l => (l&&AUTO_TIPOS.includes(l.auto))?(autoManual(l)?(l.auto==="energia"&&l.autoValor===0?' <span class="tag t-auto">preenchido</span>':' <span class="tag t-auto t-ajust">ajustado</span>'):(l.valorPendente?' <span class="tag t-auto">a preencher</span>':' <span class="tag t-auto">automático</span>')):"";
-const exTag = x => (x.exemplo ? ' <span class="tag ex">exemplo</span>' : "")+autoTag(x);
+const exTag = x => (x.exemplo ? ' <span class="tag ex">exemplo</span>' : "")+autoTag(x)+clipTag(x);
 const lojaTag = id => id ? `<span class="tag loja">${esc(cenNome(id)||"—")}</span>` : '<span class="note">—</span>';
 
 /* ---------- Dashboard: alertas do que precisa de atenção ---------- */
@@ -1626,6 +1630,54 @@ async function lancarTodasCmv(btn){
   btn.disabled=true; let n=0; for(const d of ls){ btn.textContent=`Lançando… ${n+1}/${ls.length}`; await lancarCmv(d,{disabled:false}); n++; }
   atualizarTabelas("divisoes","lancamentos"); toast(`${n} compra(s) lançada(s) em Contas a pagar`);
 }
+/* ---------- anexos dos lançamentos (boleto, orçamento, nota) ---------- */
+const ANX_MAX=5*1024*1024, ANX_ACEITA=".pdf,.jpg,.jpeg,.png,.webp,.heic,.xlsx,.xls,.csv,.docx,.doc,.txt";
+const anxDe = l => (l&&Array.isArray(l.anexos))?l.anexos:[];
+const clipTag = l => anxDe(l).length?` <button type="button" class="clip" data-act="anexos" data-id="${l.id}" title="${anxDe(l).length} anexo(s) — clique para ver e baixar" aria-label="Ver anexos">📎${anxDe(l).length>1?`<small>${anxDe(l).length}</small>`:""}</button>`:"";
+const tamTxt = n => n>=1048576?(n/1048576).toLocaleString("pt-BR",{maximumFractionDigits:1})+" MB":Math.max(1,Math.round((n||0)/1024))+" KB";
+function lerB64(f){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]||""); r.onerror=()=>rej(new Error("Não foi possível ler "+f.name)); r.readAsDataURL(f); }); }
+function validarAnexos(files){ for(const f of files){ if(f.size>ANX_MAX) return `"${f.name}" tem ${tamTxt(f.size)} — o limite é 5 MB por arquivo.`; } return ""; }
+async function anexarArquivos(lid,files){
+  if(!files||!files.length) return [];
+  const {data:row,error:e0}=await FB.sb.from(COL.lanc).select("data").eq("id",lid).single(); if(e0) throw e0;
+  const lista=[...anxDe(row.data)];
+  for(const f of files){ const id="anx_"+rid(); const meta={nome:f.name,tipo:f.type||"",tamanho:f.size};
+    const {error}=await FB.sb.from("anexos").insert({id,tid:S.tid,lanc_id:lid,data:meta,conteudo:await lerB64(f)}); if(error) throw error;
+    lista.push({id,...meta,em:new Date().toISOString(),porNome:(S.me&&S.me.nome)||""}); }
+  const {error:e1}=await FB.sb.from(COL.lanc).update({data:{...row.data,anexos:lista}}).eq("id",lid); if(e1) throw e1;
+  diario("Anexo adicionado",`${files.map(f=>f.name).join(", ")} — lançamento #${row.data.numero||""} ${row.data.descricao||""}`,{cat:"lancamento"});
+  atualizarTabelas("lancamentos"); return lista;
+}
+async function removerAnexo(lid,aid){
+  const {data:row,error:e0}=await FB.sb.from(COL.lanc).select("data").eq("id",lid).single(); if(e0) throw e0;
+  const a=anxDe(row.data).find(x=>x.id===aid);
+  const {error}=await FB.sb.from("anexos").delete().eq("id",aid); if(error) throw error;
+  const {error:e1}=await FB.sb.from(COL.lanc).update({data:{...row.data,anexos:anxDe(row.data).filter(x=>x.id!==aid)}}).eq("id",lid); if(e1) throw e1;
+  diario("Anexo removido",`${a?a.nome:""} — lançamento #${row.data.numero||""}`,{cat:"lancamento"}); atualizarTabelas("lancamentos");
+}
+async function baixarAnexo(aid,btn){
+  const t0=btn?btn.innerHTML:""; if(btn){ btn.disabled=true; btn.textContent="Baixando…"; }
+  try{ const {data,error}=await FB.sb.from("anexos").select("data,conteudo").eq("id",aid).single(); if(error) throw error;
+    const bin=atob(data.conteudo); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([u8],{type:data.data.tipo||"application/octet-stream"}));
+    const a=document.createElement("a"); a.href=url; a.download=data.data.nome||"anexo"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }catch(e){ toast("Não foi possível baixar: "+msgErro(e)); }
+  finally{ if(btn){ btn.disabled=false; btn.innerHTML=t0; } }
+}
+function anexosLinhas(l,podeRemover){ const as=anxDe(l); if(!as.length) return '<div class="note">Nenhum anexo.</div>';
+  return as.map(a=>`<div class="anx-li"><span class="anx-ico">📎</span><span class="anx-nome"><b>${esc(a.nome)}</b><small>${tamTxt(a.tamanho)}${a.em?" · "+dtHora(a.em):""}${a.porNome?" · "+esc(a.porNome):""}</small></span>
+    <button type="button" class="btn sm" data-act="anx-baixar" data-id="${a.id}">Baixar</button>${podeRemover?`<button type="button" class="icon-btn" data-act="anx-remover" data-id="${a.id}" data-l="${l.id}">Remover</button>`:""}</div>`).join(""); }
+function anexosModal(l){
+  const ed=isAdm();
+  openModal(`<h2>Anexos — ${esc(l.descricao||"")}</h2><p class="note" style="margin-top:0">#${esc(l.numero||"")} · ${fmt(l.valor)} · vence ${dBR(l.venc)}</p>
+    <div id="anxLista">${anexosLinhas(l,ed)}</div>
+    ${ed?`<label class="btn sm anx-add" style="margin-top:10px">📎 Adicionar arquivo<input type="file" id="anxModalIn" multiple accept="${ANX_ACEITA}" hidden></label><span class="note"> PDF, imagem, Excel ou Word · até 5 MB cada</span>`:""}
+    <div class="err" id="anxErr" role="alert"></div>
+    <div class="foot"><div></div><div><button type="button" class="btn" data-close>Fechar</button></div></div>`,false,()=>{
+    const inp=$("#anxModalIn"); if(inp) inp.addEventListener("change",async()=>{ const fs=[...inp.files]; const er=validarAnexos(fs); if(er){ $("#anxErr").textContent=er; return; }
+      $("#anxErr").textContent="Enviando…"; try{ const lista=await anexarArquivos(l.id,fs); $("#anxLista").innerHTML=anexosLinhas({...l,anexos:lista},ed); $("#anxErr").textContent=""; toast("Anexo adicionado"); }catch(e){ $("#anxErr").textContent="Não foi possível enviar: "+msgErro(e); } });
+  },"all");
+}
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
   const tx=id.startsWith("_tx_"); const caixa=ui.d.regime==="caixa";
@@ -2071,6 +2123,10 @@ function lancForm(l,tipoDefault){
       ${l.recId?`<div class="rec-info">${ehVariavel(l)?`<b>Recorrente variável.</b> O valor digitado aqui vale só para ${mlabel(compOf(l))} — os outros meses não mudam. Ao salvar, escolha se assunto, fornecedor, categoria, loja, forma e observações mudam só neste mês, deste mês em diante ou em todos.`:`<b>Recorrente fixa.</b> Mesmo valor todo mês. Ao salvar, escolha se a alteração vale só para ${mlabel(compOf(l))}, deste mês em diante, ou para todos os meses (incluindo os anteriores).`}${recBy(l)&&!recBy(l).ativa?" <i>Recorrência encerrada.</i>":""}</div>`
       :grp.length>1?`<p class="note" style="margin:0">Faz parte de uma série de ${grp.length}. Ao salvar em todas, assunto, fornecedor, categoria, loja, forma e observações mudam em todas; valor e datas mudam só nesta.</p>`:""}`}
       <div class="field"><label for="lObs">Observações</label><textarea id="lObs" placeholder="Opcional">${esc(l.obs||"")}</textarea></div>
+      <div class="field anx-box"><span class="flabel">Anexos <small class="note">boleto, orçamento, nota · PDF, imagem, Excel ou Word · até 5 MB cada</small></span>
+        ${isNew?"":`<div id="lAnxLista">${anexosLinhas(l,true)}</div>`}
+        <div id="lAnxPend"></div>
+        <label class="btn sm anx-add">📎 Adicionar arquivo<input type="file" id="lAnxIn" multiple accept="${ANX_ACEITA}" hidden></label></div>
       <div class="autor"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.2-6 8-6s7 2 8 6"/></svg>Lançado por <b>${esc(autor?nomeUsr(autor):(isNew?"você":"—"))}</b>${!isNew&&l.criado?` em ${dBR(l.criado.slice(0,10))} às ${l.criado.slice(11,16)}`:""}</div>
       <div class="err" id="lErr" role="alert"></div>
       <div class="foot"><div>${isNew?"":l.recId?`<button type="button" class="btn danger" id="lDel">Excluir este mês</button>${recBy(l)&&recBy(l).ativa?`<button type="button" class="btn danger" id="lEnc">Encerrar a partir do próximo mês</button>`:""}<button type="button" class="btn danger" id="lDelAll">Excluir toda a recorrência</button>`:grp.length>1?`<button type="button" class="btn danger" id="lDel">Excluir esta</button><button type="button" class="btn danger" id="lDelAll">Excluir todas (${grp.length})</button>`:`<button type="button" class="btn danger" id="lDel">Excluir</button>`}</div>
@@ -2080,6 +2136,10 @@ function lancForm(l,tipoDefault){
         :!isNew&&grp.length>1?`<div class="scope-box"><span class="flabel">Salvar alteração em:</span><div class="scope-btns"><button type="submit" class="btn" data-scope="one">Só nesta parcela</button><button type="submit" class="btn pri" data-scope="all">Todas as parcelas (${grp.length})</button></div></div>`
         :`<div class="scope-box" style="justify-content:flex-end"><button type="submit" class="btn pri">${isNew?"Salvar lançamento":"Salvar alterações"}</button></div>`}
     </form>`,true,m=>{
+      let anxPend=[];
+      const pendHTML=()=>{ $("#lAnxPend").innerHTML=anxPend.map((f,i)=>`<div class="anx-li pend"><span class="anx-ico">📎</span><span class="anx-nome"><b>${esc(f.name)}</b><small>${tamTxt(f.size)} · será anexado ao salvar</small></span><button type="button" class="icon-btn" data-anx-tira="${i}">Tirar</button></div>`).join(""); };
+      $("#lAnxIn").addEventListener("change",e=>{ const fs=[...e.target.files]; const er=validarAnexos(fs); if(er){ toast(er); e.target.value=""; return; } anxPend.push(...fs); e.target.value=""; pendHTML(); });
+      $("#lAnxPend").addEventListener("click",e=>{ const b=e.target.closest("[data-anx-tira]"); if(b){ anxPend.splice(+b.dataset.anxTira,1); pendHTML(); } });
       if(AUTO_TIPOS.includes(l.auto)){ ["#lCat","#lCen"].forEach(q=>{ const el=$(q); if(el) el.disabled=true; });
         const f=$("#fL"), nome=AUTO_NOME[l.auto], calc=calcAuto(l); const enVar=l.auto==="energia"&&(lojaBy(l.centro)?.auto?.ener?.tipo==="var");
         if(f) f.insertAdjacentHTML("afterbegin", autoManual(l)
@@ -2154,7 +2214,7 @@ function lancForm(l,tipoDefault){
       const bda=$("#lDelAll"); if(bda) bda.addEventListener("click",()=>confirmBtn(bda,`Confirmar: excluir ${grp.length}`,async()=>{ bda.disabled=true; try{ const rc=l.recId&&S.rec.find(x=>x.id===l.recId); if(rc) await del("rec",rc.id); for(const x of grp) await del("lanc",x.id); closeModal(); toast(`${grp.length} lançamentos excluídos`); }catch(e){ bda.disabled=false; } }));
       const be=$("#lEnc"); if(be) be.addEventListener("click",()=>confirmBtn(be,`Confirmar: último mês ${mlabel(compOf(l))}`,async()=>{ const rc=recBy(l); if(rc){ await encerrarRec(rc,compOf(l)); closeModal(); } }));
       /* salvar */
-      $("#fL").addEventListener("submit",async e=>{
+      $("#fL").addEventListener("submit",async e=>{ let alvoAnx=null;
         e.preventDefault();
         const err=$("#lErr"); err.textContent="";
         const tipo=T(), desc=$("#lDesc").value.trim(), valor=parseMoney($("#lValor").value), dataLanc=$("#lData").value;
@@ -2196,6 +2256,7 @@ function lancForm(l,tipoDefault){
             if(l.recId){ upd.competencia=l.competencia||mkey(venc); upd.dataLanc=l.dataLanc||venc; }
             if(btn.dataset.scope==="all"||btn.dataset.scope==="next"){ const n=await salvarSerie(l,upd,btn.dataset.scope); toast(`Alteração aplicada em ${n} lançamento(s)${btn.dataset.scope==="next"?" — deste mês em diante":""}`); }
             else { await save("lanc",l.id,{...l,...upd,atualizado:new Date().toISOString()}); toast("Alterações salvas"); }
+            alvoAnx=l.id;
           } else {
             const numero=proxNumero(), criado=new Date().toISOString(), criadoPor=(S.me&&S.me.id)||null;
             if(cond==="rf"||cond==="rv"){
@@ -2204,14 +2265,16 @@ function lancForm(l,tipoDefault){
               await save("rec",rid_,recDoc);
               if(!S.rec.some(x=>x.id===rid_)) S.rec.push({...recDoc,id:rid_});
               await gerarRecorrencias(true,{...recDoc,id:rid_});
+              if(anxPend.length){ const {data:pr}=await FB.sb.from(COL.lanc).select("id,data").eq("data->>recId",rid_).order("data->>venc",{ascending:true}).limit(1); alvoAnx=pr&&pr[0]&&pr[0].id; }
             } else if(cond==="1"){
-              await save("lanc",newId("lanc"),{...base,qtdVendas:qtdV,valor,venc,pago:$("#lJaPago").checked?venc:null,numero,parcela:"",criadoPor,criado});
+              alvoAnx=newId("lanc"); await save("lanc",alvoAnx,{...base,qtdVendas:qtdV,valor,venc,pago:$("#lJaPago").checked?venc:null,numero,parcela:"",criadoPor,criado});
             } else {
               const g=rid();
-              for(let i=0;i<parcs.length;i++) await save("lanc",newId("lanc"),{...base,qtdVendas:i===0?qtdV:0,valor:parcs[i].valor,venc:parcs[i].venc,pago:null,numero,parcela:`${i+1}/${parcs.length}`,grupoRec:g,criadoPor,criado});
+              for(let i=0;i<parcs.length;i++){ const pid=newId("lanc"); if(i===0) alvoAnx=pid; await save("lanc",pid,{...base,qtdVendas:i===0?qtdV:0,valor:parcs[i].valor,venc:parcs[i].venc,pago:null,numero,parcela:`${i+1}/${parcs.length}`,grupoRec:g,criadoPor,criado}); }
             }
             toast(`Lançamento #${numero} salvo${cond==="p"?` em ${parcs.length} parcelas`:cond==="rf"?" — recorrente fixa, gerada mês a mês":cond==="rv"?" — recorrente variável: informe o valor a cada mês":""}${fnovo?` · fornecedor ${fnovo.codigo} cadastrado`:""}`);
           }
+          if(anxPend.length&&alvoAnx){ try{ btn.textContent="Enviando anexos…"; await anexarArquivos(alvoAnx,anxPend); toast(`Salvo com ${anxPend.length} anexo(s)`); }catch(ea){ toast("O lançamento foi salvo, mas o anexo não: "+msgErro(ea)); } }
           closeModal();
         }catch(ex){ btn.disabled=false; }
       });
@@ -4080,6 +4143,9 @@ document.addEventListener("click",async e=>{
     saveUi(); render(); window.scrollTo(0,0); return; }
   if(act==="del-ag"&&isAdm()){ const ag=S.ag.find(x=>x.id===id); if(ag) confirmBtn(a,"Confirmar exclusão",()=>del("ag",id).then(()=>{ toast("Compromisso excluído"); }).catch(()=>{})); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
+  if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
+  if(act==="anx-baixar"){ baixarAnexo(id,a); return; }
+  if(act==="anx-remover"&&isAdm()){ const lid=a.dataset.l; confirmBtn(a,"Confirmar",async()=>{ try{ await removerAnexo(lid,id); const box=a.closest(".anx-li"); if(box) box.remove(); toast("Anexo removido"); }catch(e){ toast("Não foi possível remover: "+msgErro(e)); } }); return; }
   if(act==="cmv-nova"&&isAdm()){ novaCmv(); return; }
   if(act==="cmv-modelo"){ baixarModeloCmv(a); return; }
   if(act==="cmv-importar"&&isAdm()){ const f=$("#cmvFile"); if(f){ f.value=""; f.click(); } return; }
