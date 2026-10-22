@@ -549,6 +549,10 @@ tr.sel-on td{background:var(--accent-soft)!important}
 .centro-raio span{display:block;width:22px;height:22px;border-radius:50%;border:3px solid #00BF63;background:rgba(0,191,99,.25);box-shadow:0 0 0 3px #fff}
 .pino-loja span{display:block;width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45)}
 .sg-l{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}.sg-l i{width:10px;height:10px;border-radius:50%;flex:0 0 auto}.sg-l span{flex:1;min-width:0}.sg-l b{display:block;font-size:12.5px}.sg-l small{color:var(--muted);font-size:11px}
+.end-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
+.end-box .row.end-r3{grid-template-columns:120px 1fr 90px}.end-box .row.end-cid{grid-template-columns:1fr 90px}
+@media (max-width:560px){.end-box .row.end-r3{grid-template-columns:1fr 1fr}}
+.end-antigo{background:#FFF4D6;border-radius:6px;padding:6px 8px;color:#6B4A00}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -1966,7 +1970,7 @@ async function desenharMapaLojas(){
   if(pts.length) MAPA.fitBounds(pts,{padding:[40,40],maxZoom:14}); else MAPA.setView([-23.55,-46.63],11);
   // procura sozinho, uma vez por sessão, as lojas com endereço e sem localização
   const falta=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)&&l.geoFalhou!==l.endereco);
-  if(isAdm()&&falta.length&&!GEO_AUTO_FEITO){ GEO_AUTO_FEITO=true; (async()=>{ let ok=0; for(const l of falta){ if(await geocodificarLoja(l.id,l.endereco)) ok++; }
+  if(isAdm()&&falta.length&&!GEO_AUTO_FEITO){ GEO_AUTO_FEITO=true; (async()=>{ let ok=0; for(const l of falta){ if(await geocodificarLoja(l.id,l)) ok++; }
     if(ok) toast(`${ok} loja(s) localizada(s) no mapa`); else if(falta.length) toast("Não encontramos o endereço — use “Marcar no mapa”."); })(); }
   MAPA.on("click",async ev=>{
     if(MARCAR_LOJA){ const id=MARCAR_LOJA; MARCAR_LOJA=null; el.style.cursor=""; try{ await salvarPosLoja(id,ev.latlng.lat,ev.latlng.lng); toast("Loja marcada no mapa"); }catch(e){} return; }
@@ -1974,7 +1978,41 @@ async function desenharMapaLojas(){
     if(window.__raioPrev) MAPA.removeLayer(window.__raioPrev); window.__raioPrev=L.circle([RAIO_TMP.lat,RAIO_TMP.lng],{radius:(+($("#raioKm")||{}).value||5)*1000,color:"#00BF63",dashArray:"6",fillOpacity:.06}).addTo(MAPA);
     const i=$("#raioInfo"); if(i) i.textContent="Centro marcado. Clique em “Salvar raio” para guardar."; el.style.cursor=""; });
 }
-async function geocodificarLoja(id,endereco){
+const UFS=["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+const UF_NOME={AC:"Acre",AL:"Alagoas",AP:"Amapá",AM:"Amazonas",BA:"Bahia",CE:"Ceará",DF:"Distrito Federal",ES:"Espírito Santo",GO:"Goiás",MA:"Maranhão",MT:"Mato Grosso",MS:"Mato Grosso do Sul",MG:"Minas Gerais",PA:"Pará",PB:"Paraíba",PR:"Paraná",PE:"Pernambuco",PI:"Piauí",RJ:"Rio de Janeiro",RN:"Rio Grande do Norte",RS:"Rio Grande do Sul",RO:"Rondônia",RR:"Roraima",SC:"Santa Catarina",SP:"São Paulo",SE:"Sergipe",TO:"Tocantins"};
+const fmtCep = v => { const d=digitos(v||""); return d.length===8?d.slice(0,5)+"-"+d.slice(5):String(v||"").trim(); };
+function montaEndereco(e){ if(!e||!e.rua) return ""; return `${e.rua}, ${e.num||"s/n"}${e.comp?" ("+e.comp+")":""}${e.bairro?" - "+e.bairro:""}${e.cidade?", "+e.cidade:""}${e.uf?" - "+e.uf:""}${e.cep?", "+e.cep:""}`; }
+function bindCep(){
+  const c=$("#lj_cep"); if(!c) return; let ultimo="";
+  const buscar=async()=>{ const d=digitos(c.value); if(d.length!==8||d===ultimo) return; ultimo=d; c.value=fmtCep(d); const info=$("#cepInfo"); info.textContent="Buscando CEP…";
+    try{ const r=await fetch(`https://viacep.com.br/ws/${d}/json/`); const j=await r.json();
+      if(j.erro){ info.innerHTML='<span class="neg">CEP não encontrado — confira o número ou preencha à mão.</span>'; return; }
+      if(j.logradouro) $("#lj_rua").value=j.logradouro; if(j.bairro) $("#lj_bairro").value=j.bairro; if(j.localidade) $("#lj_cidade").value=j.localidade; if(j.uf) $("#lj_uf").value=j.uf;
+      info.innerHTML=`<span class="pos">✓ ${esc([j.logradouro,j.bairro,j.localidade+" - "+j.uf].filter(Boolean).join(", "))}</span>`; $("#lj_num").focus();
+    }catch(e){ info.textContent="Não foi possível consultar o CEP agora — preencha os campos à mão."; } };
+  c.addEventListener("input",()=>{ const d=digitos(c.value); if(d.length===8) buscar(); });
+  c.addEventListener("blur",buscar);
+}
+async function geocodificarLoja(id,dados){
+  const l0=S.lojas.find(x=>x.id===id)||{}; const lj=(dados&&typeof dados==="object")?{...l0,...dados}:{...l0,endereco:dados||l0.endereco};
+  const e=lj.end||{}; const base="https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&";
+  const tent=[];
+  if(e.rua&&e.cidade){ const est=UF_NOME[e.uf]||e.uf||"";
+    tent.push(`street=${encodeURIComponent(((e.num&&!/s\/?n/i.test(e.num))?e.num+" ":"")+e.rua)}&city=${encodeURIComponent(e.cidade)}&state=${encodeURIComponent(est)}${e.cep?"&postalcode="+digitos(e.cep):""}`);
+    tent.push(`street=${encodeURIComponent(e.rua)}&city=${encodeURIComponent(e.cidade)}&state=${encodeURIComponent(est)}`); }
+  if(lj.endereco) tent.push("q="+encodeURIComponent(lj.endereco+", Brasil"));
+  if(e.cep) tent.push("postalcode="+digitos(e.cep)+"&country=Brasil");
+  for(const q of tent){
+    try{ const r=await fetch(base+q,{headers:{"Accept-Language":"pt-BR"}}); const j=await r.json();
+      if(j&&j[0]){ const atual=S.lojas.find(x=>x.id===id); if(!atual) return false; const {id:_i,...rest}={...atual,...((dados&&typeof dados==="object")?dados:{})};
+        await save("lojas",id,{...rest,lat:+j[0].lat,lng:+j[0].lon,geoEnd:lj.endereco||"",geoFalhou:null,geoAprox:q.startsWith("postalcode=")}); return true; }
+    }catch(err){}
+    await new Promise(r=>setTimeout(r,1100));
+  }
+  const atual=S.lojas.find(x=>x.id===id); if(atual){ const {id:_i,...rest}={...atual,...((dados&&typeof dados==="object")?dados:{})}; try{ await save("lojas",id,{...rest,geoFalhou:lj.endereco||""}); }catch(err){} }
+  return false;
+}
+async function geocodificarLojaAntigo(id,endereco){
   const limpa=String(endereco||"").trim(); if(!limpa) return false;
   const semNum=limpa.replace(/,?\s*(n[º°o.]?\s*)?\d+[A-Za-z]?(\s*-\s*[^,]*)?/i,"").replace(/\s{2,}/g," ").trim();
   const tentativas=[...new Set([limpa+", Brasil", limpa, semNum+", Brasil"].filter(x=>x.length>5))];
@@ -2530,7 +2568,16 @@ function lojaForm(x,statusPreset){
     <form id="fLj" novalidate class="fcol">
       <div class="row">${F("condominio","Nome do condomínio")}${F("cnpj","CNPJ do condomínio")}</div>
       <div class="row">${F("sindico","Nome do síndico")}${F("inauguracao","Data de inauguração","date")}</div>
-      ${F("endereco","Endereço")}
+      <div class="end-box"><span class="flabel">Endereço da loja <small class="note">digite o CEP e o resto é preenchido sozinho</small></span>
+        ${x.endereco&&!x.end?`<div class="note end-antigo">Endereço atual: <b>${esc(x.endereco)}</b> — complete os campos abaixo para a loja aparecer certinho no mapa.</div>`:""}
+        <div class="row end-r3"><div class="field"><label for="lj_cep">CEP</label><input id="lj_cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${esc((x.end||{}).cep||"")}"></div>
+          <div class="field"><label for="lj_rua">Rua / avenida</label><input id="lj_rua" value="${esc((x.end||{}).rua||"")}" placeholder="Ex.: Rua Augusta"></div>
+          <div class="field"><label for="lj_num">Número</label><input id="lj_num" value="${esc((x.end||{}).num||"")}" placeholder="900"></div></div>
+        <div class="row"><div class="field"><label for="lj_comp">Complemento</label><input id="lj_comp" value="${esc((x.end||{}).comp||"")}" placeholder="Opcional — bloco, torre"></div>
+          <div class="field"><label for="lj_bairro">Bairro</label><input id="lj_bairro" value="${esc((x.end||{}).bairro||"")}"></div></div>
+        <div class="row end-cid"><div class="field"><label for="lj_cidade">Cidade</label><input id="lj_cidade" value="${esc((x.end||{}).cidade||"")}"></div>
+          <div class="field"><label for="lj_uf">UF</label><select id="lj_uf">${opt("","—",(x.end||{}).uf||"")}${UFS.map(u=>opt(u,u,(x.end||{}).uf||"")).join("")}</select></div></div>
+        <div class="note" id="cepInfo"></div></div>
       <div class="row">${F("telefone","Telefone","tel")}${F("email","E-mail","email")}</div>
       <div class="field"><span class="flabel">Situação</span><div class="seg loja-st" id="ljStSeg">${LOJA_ORDEM.map(k=>`<button type="button" data-st="${k}" aria-pressed="${st0===k}"><i style="background:${LOJA_ST[k].cor}"></i>${LOJA_ST[k].nome}</button>`).join("")}</div><input type="hidden" id="lj_status" value="${st0}"></div>
       <div class="field"><label for="lj_obs">Observações / próximos passos</label><textarea id="lj_obs" rows="2" placeholder="Ex.: reunião com o síndico dia 10; proposta enviada; motivo da perda…">${esc(x.obs||"")}</textarea></div>
@@ -2544,15 +2591,20 @@ function lojaForm(x,statusPreset){
       <div class="foot"><div>${!isNew&&!usos?`<button type="button" class="btn danger" id="ljDel">Excluir</button>`:""}</div>
         <div><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn pri">${isNew?"Cadastrar loja":"Salvar alterações"}</button></div></div>
     </form>`,false,()=>{
-      bindAutoLoja(); bindTaxasLoja(isNew?null:x);
+      bindAutoLoja(); bindTaxasLoja(isNew?null:x); bindCep();
       $("#ljStSeg").addEventListener("click",ev=>{ const b=ev.target.closest("[data-st]"); if(!b) return; const v=b.dataset.st; $("#lj_status").value=v;
         $("#ljStSeg").querySelectorAll("[data-st]").forEach(y=>y.setAttribute("aria-pressed",y.dataset.st===v)); $("#ljOper").hidden=!lojaOper({status:v}); $("#ljTipo").textContent=lojaOper({status:v})?"centro de custo":"funil de expansão"; });
       const bd=$("#ljDel"); if(bd) bd.addEventListener("click",()=>confirmBtn(bd,"Confirmar exclusão",async()=>{ try{ await del("lojas",x.id); if(ui.cc===x.id){ ui.cc=""; saveUi(); } closeModal(); toast("Loja excluída"); }catch(e){} }));
       $("#fLj").addEventListener("submit",async e=>{ e.preventDefault();
-        const d={}; ["condominio","cnpj","sindico","inauguracao","endereco","telefone","email","obs"].forEach(k=>d[k]=$("#lj_"+k).value.trim());
+        const d={}; ["condominio","cnpj","sindico","inauguracao","telefone","email","obs"].forEach(k=>d[k]=$("#lj_"+k).value.trim());
+        d.end={cep:fmtCep($("#lj_cep").value),rua:$("#lj_rua").value.trim(),num:$("#lj_num").value.trim(),comp:$("#lj_comp").value.trim(),bairro:$("#lj_bairro").value.trim(),cidade:$("#lj_cidade").value.trim(),uf:$("#lj_uf").value};
+        d.endereco=montaEndereco(d.end)||(x.endereco||"");
         d.status=$("#lj_status").value; d.ativa=d.status==="ativa"; const oper=lojaOper(d);
         const err=$("#ljErr");
-        const req=oper?[["condominio","o nome do condomínio"],["sindico","o nome do síndico"],["endereco","o endereço"],["telefone","o telefone"]]:[["condominio","o nome do condomínio"],["endereco","o endereço"]];
+        const req=oper?[["condominio","o nome do condomínio"],["sindico","o nome do síndico"],["telefone","o telefone"]]:[["condominio","o nome do condomínio"]];
+        const reqEnd=[["rua","a rua / avenida"],["num","o número (ou s/n)"],["cidade","a cidade"],["uf","a UF"]];
+        for(const [k,t] of reqEnd){ if(!d.end[k]){ err.textContent="Informe "+t+" do endereço."; $("#lj_"+k).focus(); return; } }
+        if(d.end.cep&&digitos(d.end.cep).length!==8){ err.textContent="O CEP deve ter 8 dígitos."; $("#lj_cep").focus(); return; }
         for(const [k,t] of req){ if(!d[k]){ err.textContent="Informe "+t+"."; $("#lj_"+k).focus(); return; } }
         if(d.cnpj&&digitos(d.cnpj).length!==14){ err.textContent="O CNPJ do condomínio deve ter 14 dígitos."; $("#lj_cnpj").focus(); return; }
         if(d.cnpj) d.cnpj=fmtDoc(d.cnpj);
@@ -2560,13 +2612,13 @@ function lojaForm(x,statusPreset){
         let txMud=[], txEsc, txMes;
         if(oper){ window.__autoPrev=(!isNew&&x.auto)||null; const au=lerAutoLoja(err); if(!au) return; d.auto=au;
           const tx=lerTaxasLoja(isNew?null:x,err); if(!tx) return; txMud=tx._mud||[]; txEsc=tx._esc; txMes=tx._mes; delete tx._mud; delete tx._esc; delete tx._mes; Object.assign(d,tx); }
-        const mudouSt=!isNew&&lojaStatus(x)!==d.status; const mudouEnd=isNew||x.endereco!==d.endereco||x.lat==null;
+        const mudouSt=!isNew&&lojaStatus(x)!==d.status; const mudouEnd=isNew||x.endereco!==d.endereco||x.lat==null||JSON.stringify(x.end||{})!==JSON.stringify(d.end);
         try{
           let lid=x.id;
           if(isNew){ lid=newId("lojas"); await save("lojas",lid,{...d,codigo:proxCodigo(S.lojas,"L",3),criado:new Date().toISOString()}); }
           else await save("lojas",x.id,{...x,...d});
           if(mudouSt) diario("Situação da loja alterada",`${d.condominio}: ${LOJA_ST[lojaStatus(x)].nome} → ${LOJA_ST[d.status].nome}`,{cat:"alteracao"});
-          if(mudouEnd&&d.endereco) geocodificarLoja(lid,d.endereco);
+          if(mudouEnd&&d.endereco) geocodificarLoja(lid,d);
           if(typeof txMud!=="undefined"&&txMud.length) diario("Taxas da loja alteradas",`${d.condominio}: ${txMud.join(" · ")} — ${txEsc==="so"?"somente "+mlabel(txMes):txEsc==="adiante"?"de "+mlabel(txMes)+" em diante":"todos os meses"}`,{cat:"alteracao"});
           closeModal(); toast(isNew?"Loja cadastrada":"Loja atualizada"); agendarAuto();
         }catch(ex){}
@@ -3421,7 +3473,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 57 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 58 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4286,7 +4338,7 @@ document.addEventListener("click",async e=>{
     if(!c){ toast("Clique em “Marcar centro no mapa” primeiro."); return; } const cfgN={...(S.cfg||{})}; delete cfgN.categorias; cfgN.raioOp={lat:c.lat,lng:c.lng,km};
     saveCfg(cfgN).then(()=>{ RAIO_TMP=null; toast(`Raio de operação salvo: ${km} km`); diario("Raio de operação definido",`${km} km`,{cat:"alteracao"}); }); return; }
   if(act==="raio-limpar"&&isAdm()){ const cfgN={...(S.cfg||{})}; delete cfgN.categorias; delete cfgN.raioOp; saveCfg(cfgN).then(()=>toast("Raio removido")); return; }
-  if(act==="geo-todas"&&isAdm()){ const ls=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)); a.disabled=true; (async()=>{ let ok=0, n=0; for(const l of ls){ n++; a.textContent=`Procurando ${n}/${ls.length}…`; if(await geocodificarLoja(l.id,l.endereco)) ok++; } toast(ok?`${ok} de ${ls.length} loja(s) localizada(s)`:"Não encontramos — use “Marcar no mapa”."); a.disabled=false; a.textContent="Procurar endereços de novo"; })(); return; }
+  if(act==="geo-todas"&&isAdm()){ const ls=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)); a.disabled=true; (async()=>{ let ok=0, n=0; for(const l of ls){ n++; a.textContent=`Procurando ${n}/${ls.length}…`; if(await geocodificarLoja(l.id,l)) ok++; } toast(ok?`${ok} de ${ls.length} loja(s) localizada(s)`:"Não encontramos — use “Marcar no mapa”."); a.disabled=false; a.textContent="Procurar endereços de novo"; })(); return; }
   if(act==="geo-marcar"&&isAdm()){ MARCAR_LOJA=id; const el=$("#mapaLojas"); if(el){ el.style.cursor="crosshair"; el.scrollIntoView({behavior:"smooth",block:"center"}); } const l=S.lojas.find(x=>x.id===id); toast(`Clique no mapa onde fica ${l?lojaNome(l):"a loja"}`); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
