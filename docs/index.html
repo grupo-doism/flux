@@ -770,12 +770,12 @@ const motivoNome = a => a.motivo==="outro" ? (a.motivoOutro||"Outro") : (MOTIVOS
 const agIni = a => a.horaIni||a.hora||"";
 
 const compOf = l => l.competencia || mkey(l.dataLanc||l.venc);
-const CAMPOS_SERIE=["descricao","categoria","centro","forma","fornecedorId","obs","dataLanc","competencia"];
+const CAMPOS_SERIE=["descricao","categoria","centro","forma","fornecedorId","obs","dataLanc","competencia","pix"];
 const serieDe = l => l.recId ? S.lanc.filter(x=>x.recId===l.recId) : l.grupoRec ? S.lanc.filter(x=>x.grupoRec===l.grupoRec) : [l];
 const recBy = l => l&&l.recId ? S.rec.find(x=>x.id===l.recId) : null;
 const ehVariavel = l => !!(l&&(l.recTipo==="variavel"||(recBy(l)&&recBy(l).variavel)));
 const comDia = (d,dia) => { const [y,m]=d.split("-").map(Number); const ult=new Date(y,m,0).getDate(); return `${y}-${pad(m)}-${pad(Math.min(dia,ult))}`; };
-const CAMPOS_REC=["descricao","categoria","centro","forma","fornecedorId","obs"];
+const CAMPOS_REC=["descricao","categoria","centro","forma","fornecedorId","obs","pix"];
 async function salvarSerie(l,base,scope){
   let grp=serieDe(l); const agora=new Date().toISOString();
   const rec=!!l.recId, varv=ehVariavel(l), comp=compOf(l);
@@ -1232,7 +1232,7 @@ function vContas(tipo){
         <tbody>${rows.length?rows.map(l=>{ const fo=fornBy(l.fornecedorId); return `<tr class="${ui.selC[l.id]?"sel-on":""}">
           ${isAdm()?`<td class="sel-col">${!l.pago&&!(l.valorPendente&&!l.valor)?`<input type="checkbox" class="sel-c" data-id="${l.id}" ${ui.selC[l.id]?"checked":""} aria-label="Selecionar ${esc(l.descricao)}">`:""}</td>`:""}
           <td class="num">${dBR(l.venc)}${l.pago?`<div class="meta">${rec?"recebido":"pago"} ${dShort(l.pago)}</div>`:""}</td>
-          <td><div class="desc">${esc(l.descricao)}${recTag(l)}${exTag(l)}</div><div class="meta">${l.numero?"#"+l.numero:""}${fo?(l.numero?" · ":"")+esc(fornNome(fo))+(fo.codigo?" ("+esc(fo.codigo)+")":""):""}</div>${l.pix&&!l.pago&&/pix/i.test(l.forma||"")?`<button type="button" class="pix-cp" data-act="pix-copiar" data-v="${esc(l.pix)}" title="Copiar a chave Pix">Pix: ${esc(l.pix.length>28?l.pix.slice(0,26)+"…":l.pix)} <b>📋 Copiar</b></button>`:""}</td>
+          <td><div class="desc">${esc(l.descricao)}${recTag(l)}${exTag(l)}</div><div class="meta">${l.numero?"#"+l.numero:""}${fo?(l.numero?" · ":"")+esc(fornNome(fo))+(fo.codigo?" ("+esc(fo.codigo)+")":""):""}</div>${l.pix&&!l.pago?`<button type="button" class="pix-cp" data-act="pix-copiar" data-v="${esc(l.pix)}" title="Copiar a chave Pix">Pix: ${esc(l.pix.length>28?l.pix.slice(0,26)+"…":l.pix)} <b>📋 Copiar</b></button>`:""}</td>
           <td><span class="cat-tag">${esc(catBy(l.categoria)?.nome||"Sem categoria")}</span></td>
           <td>${lojaTag(l.centro)}</td>
           <td>${esc(l.forma||"—")}</td>
@@ -2274,7 +2274,6 @@ function lancForm(l,tipoDefault){
         <div class="field"><label for="lValor" id="lValorLbl">Valor${isNew?" total":""} (R$)</label><input type="text" inputmode="decimal" id="lValor" value="${l.valorPendente?"":moneyIn(l.valor)}" placeholder="${l.valorPendente?(l.valor?"est. "+moneyIn(l.valor):"valor deste mês"):"0,00"}"></div>
       </div>
       ${isNew?`<div class="field"><span class="flabel">Condição de pagamento</span><div class="seg" id="lCond" style="align-self:flex-start"><button type="button" data-cd="1" aria-pressed="true">À vista</button><button type="button" data-cd="p" aria-pressed="false">Parcelado</button>${isAdm()?`<button type="button" data-cd="rf" aria-pressed="false">Recorrente fixa</button><button type="button" data-cd="rv" aria-pressed="false">Recorrente variável</button>`:""}</div></div>
-      <div class="field" id="lPixBox" hidden><label for="lPix">Chave Pix <small class="note">para fazer o pagamento</small></label><input id="lPix" value="${esc(l.pix||((l.fornecedorId&&(S.forn.find(f=>f.id===l.fornecedorId)||{}).pix)||""))}" placeholder="CPF/CNPJ, e-mail, celular ou chave aleatória" autocomplete="off"></div>
       <div class="row" id="lAV">
         <div class="field"><label for="lVenc">Data de pagamento</label><input type="date" id="lVenc" value="${HOJE}"></div>
         <div class="field"><span class="flabel">&nbsp;</span><label class="chkline"><input type="checkbox" id="lJaPago"> <span id="lJaPagoTxt">${tipo==="receita"?"Já foi recebido":"Já foi pago"}</span></label></div>
@@ -2305,6 +2304,7 @@ function lancForm(l,tipoDefault){
       </div>
       ${l.recId?`<div class="rec-info">${ehVariavel(l)?`<b>Recorrente variável.</b> O valor digitado aqui vale só para ${mlabel(compOf(l))} — os outros meses não mudam. Ao salvar, escolha se assunto, fornecedor, categoria, loja, forma e observações mudam só neste mês, deste mês em diante ou em todos.`:`<b>Recorrente fixa.</b> Mesmo valor todo mês. Ao salvar, escolha se a alteração vale só para ${mlabel(compOf(l))}, deste mês em diante, ou para todos os meses (incluindo os anteriores).`}${recBy(l)&&!recBy(l).ativa?" <i>Recorrência encerrada.</i>":""}</div>`
       :grp.length>1?`<p class="note" style="margin:0">Faz parte de uma série de ${grp.length}. Ao salvar em todas, assunto, fornecedor, categoria, loja, forma e observações mudam em todas; valor e datas mudam só nesta.</p>`:""}`}
+      <div class="field" id="lPixBox"><label for="lPix">Chave Pix <small class="note">opcional — aparece em Contas a pagar com botão para copiar</small></label><input id="lPix" value="${esc(l.pix||((l.fornecedorId&&(S.forn.find(f=>f.id===l.fornecedorId)||{}).pix)||""))}" placeholder="CPF/CNPJ, e-mail, celular ou chave aleatória" autocomplete="off"></div>
       <div class="field"><label for="lObs">Observações</label><textarea id="lObs" placeholder="Opcional">${esc(l.obs||"")}</textarea></div>
       <div class="field anx-box"><span class="flabel">Anexos <small class="note">boleto, orçamento, nota · PDF, imagem, Excel ou Word · até 5 MB cada</small></span>
         ${isNew?"":`<div id="lAnxLista">${anexosLinhas(l,true)}</div>`}
@@ -2321,7 +2321,7 @@ function lancForm(l,tipoDefault){
     </form>`,true,m=>{
       let anxPend=[];
       const ehPix=f=>/pix/i.test(f||"");
-      var verPix=()=>{ const box=$("#lPixBox"); if(!box) return; const tem=ehPix($("#lForma").value)||(typeof parcs!=="undefined"&&cond==="p"&&parcs.some(p=>ehPix(p.forma)))||!!$("#lPix").value.trim(); box.hidden=!tem; };
+      var verPix=()=>{ return; const box=$("#lPixBox"); if(!box) return; const tem=ehPix($("#lForma").value)||(typeof parcs!=="undefined"&&cond==="p"&&parcs.some(p=>ehPix(p.forma)))||!!$("#lPix").value.trim(); box.hidden=!tem; };
       setTimeout(()=>{ verPix(); $("#lForma").addEventListener("change",verPix); },0);
       const pendHTML=()=>{ $("#lAnxPend").innerHTML=anxPend.map((f,i)=>`<div class="anx-li pend"><span class="anx-ico">📎</span><span class="anx-nome"><b>${esc(f.name)}</b><small>${tamTxt(f.size)} · será anexado ao salvar</small></span><button type="button" class="icon-btn" data-anx-tira="${i}">Tirar</button></div>`).join(""); };
       $("#lAnxIn").addEventListener("change",e=>{ const fs=[...e.target.files]; const er=validarAnexos(fs); if(er){ toast(er); e.target.value=""; return; } anxPend.push(...fs); e.target.value=""; pendHTML(); });
@@ -2439,7 +2439,7 @@ function lancForm(l,tipoDefault){
         try{
           let fnovo=null;
           if(novoForn){ fnovo=await criarForn(fornFieldsRead("lf")); fid=fnovo.id; }
-          const base={tipo,descricao:desc,categoria:$("#lCat").value,centro:$("#lCen").value,forma:$("#lForma").value,fornecedorId:fid,obs:$("#lObs").value.trim(),dataLanc,competencia:mkey(dataLanc),pix:$("#lPix").value.trim()};
+          const base={tipo,descricao:desc,categoria:$("#lCat").value,centro:$("#lCen").value,forma:$("#lForma").value,fornecedorId:fid,obs:$("#lObs").value.trim(),dataLanc,competencia:mkey(dataLanc),pix:(($("#lPix")||{}).value||"").trim()};
           if(base.pix&&fid){ const fo=S.forn.find(f=>f.id===fid); if(fo&&fo.pix!==base.pix){ try{ const {id:_f,...fr}=fo; await save("forn",fid,{...fr,pix:base.pix}); }catch(e){} } }
           const qtdV=(tipo==="receita"&&l&&+l.qtdVendas)||0;
           if(!isNew){
@@ -2469,7 +2469,7 @@ function lancForm(l,tipoDefault){
           }
           if(anxPend.length&&alvoAnx){ try{ btn.textContent="Enviando anexos…"; await anexarArquivos(alvoAnx,anxPend); toast(`Salvo com ${anxPend.length} anexo(s)`); }catch(ea){ toast("O lançamento foi salvo, mas o anexo não: "+msgErro(ea)); } }
           closeModal();
-        }catch(ex){ btn.disabled=false; }
+        }catch(ex){ btn.disabled=false; const er=$("#lErr"); if(er){ er.textContent="Não foi possível salvar: "+msgErro(ex); er.scrollIntoView({block:"center"}); } console.error(ex); }
       });
     }, isNew);
 }
@@ -3507,7 +3507,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 63 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 64 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
