@@ -532,6 +532,21 @@ tr.sel-on td{background:var(--accent-soft)!important}
 .anx-li.pend{border-style:dashed;background:var(--surface-2)}.anx-ico{font-size:16px}.anx-nome{flex:1;min-width:0}.anx-nome b{display:block;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.anx-nome small{color:var(--muted);font-size:11px}
 .anx-add{display:inline-flex;align-items:center;gap:6px;cursor:pointer;align-self:flex-start;margin-top:4px}
 .versao-app{font-size:10px;color:#6b7280;margin-top:6px;letter-spacing:.02em}
+.loja-st{flex-wrap:wrap}.loja-st button{display:inline-flex;align-items:center;gap:6px;font-size:12px}.loja-st i,.st-loja i,.kb-h i,.leg-l i{width:10px;height:10px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+.st-loja{display:inline-flex;align-items:center;gap:5px;font-weight:600}
+.kanban{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px}
+.kb-col{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:8px;min-height:260px;display:flex;flex-direction:column;gap:8px}
+.kb-col.kb-alvo{outline:2px dashed #00BF63;background:#E9F8F0}
+.kb-h{display:flex;align-items:center;gap:7px;padding:4px 4px 6px;font-size:13px}.kb-h .kb-n{margin-left:auto;background:var(--line-2);border-radius:999px;padding:0 8px;font-size:11px;font-weight:700}
+.kb-cards{display:flex;flex-direction:column;gap:8px}
+.kb-card{background:var(--surface);border:1px solid var(--line);border-left:4px solid;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:12px}
+.kb-card[draggable=true]{cursor:grab}.kb-card.arrastando{opacity:.45}
+.kb-t{display:flex;justify-content:space-between;gap:6px}.kb-t b{font-size:13px}.kb-m{color:var(--muted);margin-top:3px}.kb-o{margin-top:5px;background:var(--surface-2);border-radius:6px;padding:4px 6px}
+.kb-vazio{color:var(--muted);font-size:12px;text-align:center;padding:18px 6px;border:1px dashed var(--line);border-radius:8px}
+.mapa-wrap{display:grid;grid-template-columns:1fr 300px;gap:14px}.mapa{height:560px;border-radius:12px;border:1px solid var(--line);overflow:hidden;background:#e9eef2}
+.mapa-lado{display:flex;flex-direction:column;gap:12px}.leg-l{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}.leg-l .note{margin-left:auto}
+@media (max-width:900px){.mapa-wrap{grid-template-columns:1fr}.kanban{grid-template-columns:repeat(5,240px)}}
+.centro-raio span{display:block;width:22px;height:22px;border-radius:50%;border:3px solid #00BF63;background:rgba(0,191,99,.25);box-shadow:0 0 0 3px #fff}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -714,7 +729,13 @@ const fornBy = id => S.forn.find(f=>f.id===id);
 const lojaBy = id => S.lojas.find(l=>l.id===id);
 const lojaNome = x => x ? (x.condominio||x.nome||"Loja sem nome") : "";
 const lojasOrd = () => [...S.lojas].sort((a,b)=>(a.codigo||"").localeCompare(b.codigo||"")||lojaNome(a).localeCompare(lojaNome(b)));
-const centros = () => lojasOrd().map(l=>({id:l.id,nome:lojaNome(l)}));   // todo lançamento é de uma loja
+// funil de lojas: só ativas e inativas são lojas da operação (lançamentos, filtros, CMV, indicadores)
+const LOJA_ST={oportunidade:{nome:"Oportunidade",plural:"Oportunidades",cor:"#F2C200"},prospeccao:{nome:"Em prospecção",plural:"Em prospecção",cor:"#2F80ED"},
+  ativa:{nome:"Ativa",plural:"Lojas ativas",cor:"#00BF63"},perdida:{nome:"Oportunidade perdida",plural:"Oportunidades perdidas",cor:"#9AA0A6"},inativa:{nome:"Inativa",plural:"Lojas inativas",cor:"#1E1E1E"}};
+const LOJA_ORDEM=["oportunidade","prospeccao","ativa","perdida","inativa"];
+const lojaStatus = l => (l&&l.status&&LOJA_ST[l.status])?l.status:((l&&l.ativa===false)?"inativa":"ativa");
+const lojaOper = l => ["ativa","inativa"].includes(lojaStatus(l));
+const centros = () => lojasOrd().filter(lojaOper).map(l=>({id:l.id,nome:lojaNome(l)}));   // todo lançamento é de uma loja
 const cenNome = id => lojaBy(id) ? lojaNome(lojaBy(id)) : id==="matriz" ? "Matriz (antiga)" : "";
 const ccOk = (id,cc) => !cc || cc==="lojas" || cc==="matriz" || id===cc;
 const ccLabel = cc => (!cc||cc==="lojas"||cc==="matriz") ? "Operação toda" : (cenNome(cc)||"Loja removida");
@@ -1124,11 +1145,11 @@ function dashFiltro(){
 }
 
 function fatMes(k,cc){ return S.lanc.reduce((a,l)=>a+(ehFat(l)&&inCC(l,cc)&&compOf(l)===k?l.valor:0),0); }
-const lojaAtiva = l => l.ativa!==false && (!l.inauguracao || l.inauguracao<=HOJE);
+const lojaAtiva = l => lojaStatus(l)==="ativa" && (!l.inauguracao || l.inauguracao<=HOJE);
 function bizBlock(cc){
   const p=dashPer(); const F=fatPer(p,cc); const base=p.modo==="ano"&&p.atual?F.fatCmp:F.fat;
   const mx=Math.max(1,...F.serie.map(x=>x.v)); const varPct = F.ant ? (base-F.ant)/F.ant*100 : null;
-  const lj=S.lojas.filter(l=>ccOk(l.id,cc)); const ativas=lj.filter(lojaAtiva).length; const lojaSel=lojaBy(ccLoja(cc));
+  const lj=S.lojas.filter(l=>lojaOper(l)&&ccOk(l.id,cc)); const ativas=lj.filter(lojaAtiva).length; const lojaSel=lojaBy(ccLoja(cc));
   return `<div class="sec-lbl">Indicadores do negócio · ${esc(p.nome)}</div><div class="biz biz2">
     <div class="kpi fat"><div class="fat-top"><div><span class="lbl">Faturamento · ${esc(p.modo==="ano"?p.y+(p.atual?" (até hoje)":""):p.curto)}</span><span class="val">${fmt(F.fat)}</span>
       <span class="sub">${varPct==null?(p.modo==="ano"?"sem base no ano anterior":p.modo==="periodo"?"sem base no período anterior":"sem base no mês anterior"):`<b class="${varPct<0?"neg":"up"}">${varPct>=0?"▲":"▼"} ${Math.abs(varPct).toLocaleString("pt-BR",{maximumFractionDigits:1})}%</b> ${esc(F.cmpTxt)}`}${p.modo!=="mes"?` · média ${fmt(Math.round(F.fat/Math.max(1,F.serie.filter(x=>x.v).length)))}/mês`:""}</span></div></div>
@@ -1867,7 +1888,7 @@ function vAgenda(){
 
 /* ---------- lojas ---------- */
 let mzDraft=null;
-function vLojas(){
+function vLojasLista(){
   const mz=mzDraft||matriz(); const podeMz=podeMzFn();
   const ls=lojasOrd();
   const nL=id=>S.lanc.filter(l=>l.centro===id).length;
@@ -1881,17 +1902,80 @@ function vLojas(){
         </form>
         <p class="note" style="margin:12px 0 0">O <b>CNPJ</b> é o login do franqueado e o <b>e-mail principal</b> recebe o link de recuperação de senha. ${masterRede()?"Só a franqueadora edita os dados da empresa; cada alteração fica registrada no Diário.":"Para alterar algum dado, fale com a franqueadora."} Aparece no cabeçalho dos relatórios em PDF.</p>
       </div>
-      <div class="panel" style="align-self:start"><h2>Lojas<small>${ls.length} cadastrada(s)</small></h2>
+      <div class="panel" style="align-self:start"><h2>Lojas<small>${ls.filter(lojaOper).length} na operação · ${ls.filter(l=>!lojaOper(l)).length} no funil</small></h2>
         <div class="list">${ls.length?ls.map(x=>`<div class="loja-row clk" data-act="edit-loja" data-id="${x.id}">
           <span class="loja-cod num">${esc(x.codigo||"—")}</span>
           <div><div class="desc">${esc(lojaNome(x))}${exTag(x)}</div>
             <div class="meta note">${x.cnpj?"CNPJ "+esc(x.cnpj)+" · ":""}Síndico: ${esc(x.sindico||"—")}${x.telefone?" · "+esc(x.telefone):""}${x.email?" · "+esc(x.email):""}</div>
-            <div class="meta note">${x.inauguracao?"Inaugurada em "+dBR(x.inauguracao)+" · ":""}${lojaAtiva(x)?'<span class="pos">ativa</span>':'<span class="neg">inativa</span>'}</div>
+            <div class="meta note">${x.inauguracao?"Inaugurada em "+dBR(x.inauguracao)+" · ":""}<span class="st-loja"><i style="background:${LOJA_ST[lojaStatus(x)].cor}"></i>${LOJA_ST[lojaStatus(x)].nome}</span></div>
             <div class="meta note">${esc(x.endereco||"")}</div></div>
           <span class="note">${nL(x.id)} lanç.</span></div>`).join(""):'<div class="empty">Nenhuma loja cadastrada ainda.</div>'}</div>
         ${isAdm()?`<button class="btn" style="margin-top:12px" data-act="new-loja">+ Cadastrar loja</button>`:""}
       </div></div>`;
 }
+function vLojas(){
+  const vis=ui.lojasVis||"lista";
+  const abas=`<div class="seg" style="margin:0 0 14px">${[["lista","Lista e dados da empresa"],["kanban","Kanban"],["mapa","Mapa"]].map(([k,t])=>`<button data-act="lojas-vis" data-v="${k}" aria-pressed="${vis===k}">${t}</button>`).join("")}</div>`;
+  if(vis==="lista"){ const h=vLojasLista(); const k=h.indexOf('<div class="grid g2e">'); return k>0?h.slice(0,k)+abas+h.slice(k):abas+h; }
+  const topo=header("Lojas","Acompanhe o funil de expansão: oportunidades, prospecção, lojas ativas, perdidas e inativas.",isAdm()?`<button class="btn pri" data-act="new-loja">+ Nova loja</button>`:"")+banners()+abas;
+  return topo+(vis==="kanban"?kanbanLojas():mapaLojasHTML());
+}
+function kanbanLojas(){
+  const ed=isAdm();
+  return `<div class="kanban">${LOJA_ORDEM.map(st=>{ const ls=lojasOrd().filter(l=>lojaStatus(l)===st);
+    return `<div class="kb-col" data-st="${st}"><div class="kb-h"><i style="background:${LOJA_ST[st].cor}"></i><b>${LOJA_ST[st].plural}</b><span class="kb-n">${ls.length}</span>${ed?`<button type="button" class="icon-btn" data-act="kb-nova" data-st="${st}" title="Nova loja em ${LOJA_ST[st].plural.toLowerCase()}">+</button>`:""}</div>
+      <div class="kb-cards">${ls.map(l=>`<div class="kb-card" ${ed?'draggable="true"':""} data-id="${l.id}" data-act="edit-loja" style="border-left-color:${LOJA_ST[st].cor}">
+        <div class="kb-t"><b>${esc(lojaNome(l))}</b><span class="num note">${esc(l.codigo||"")}</span></div>
+        ${l.endereco?`<div class="kb-m">📍 ${esc(l.endereco)}</div>`:""}${l.sindico||l.telefone?`<div class="kb-m">${esc(l.sindico||"")}${l.sindico&&l.telefone?" · ":""}${esc(l.telefone||"")}</div>`:""}
+        ${l.obs?`<div class="kb-o">${esc(l.obs).slice(0,110)}${l.obs.length>110?"…":""}</div>`:""}${l.inauguracao?`<div class="kb-m">Inauguração ${dBR(l.inauguracao)}</div>`:""}</div>`).join("")||'<div class="kb-vazio">Arraste uma loja para cá</div>'}</div></div>`; }).join("")}</div>
+    ${ed?'<p class="note" style="margin-top:8px">Arraste os cartões entre as colunas para mudar a situação. Ao soltar em <b>Lojas ativas</b>, abre o cadastro para completar taxas, royalties, cashback, mensalidade e energia.</p>':""}`;
+}
+function mapaLojasHTML(){
+  const r=(S.cfg&&S.cfg.raioOp)||{}; const ls=S.lojas; const sem=ls.filter(l=>l.endereco&&(l.lat==null||l.lng==null));
+  return `<div class="mapa-wrap"><div id="mapaLojas" class="mapa"></div>
+    <div class="mapa-lado">
+      <div class="panel"><h2>Legenda</h2>${LOJA_ORDEM.map(st=>`<div class="leg-l"><i style="background:${LOJA_ST[st].cor}"></i>${LOJA_ST[st].plural}<span class="note">${ls.filter(l=>lojaStatus(l)===st&&l.lat!=null).length}</span></div>`).join("")}
+        ${sem.length?`<p class="note" style="margin:8px 0 0">${sem.length} loja(s) ainda sem localização.</p>${isAdm()?`<button class="btn sm" data-act="geo-todas" style="margin-top:6px">Localizar endereços</button>`:""}`:""}</div>
+      <div class="panel"><h2>Raio de operação</h2>
+        <div class="field"><label for="raioKm">Raio (km)</label><input id="raioKm" type="number" min="0.5" step="0.5" value="${esc(r.km||5)}" ${isAdm()?"":"disabled"}></div>
+        <p class="note" id="raioInfo" style="margin:6px 0">${r.lat!=null?`Centro definido. ${isAdm()?"Clique em “Marcar centro” para mudar.":""}`:"Nenhum raio definido ainda."}</p>
+        ${isAdm()?`<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="raio-centro">Marcar centro no mapa</button><button class="btn sm pri" data-act="raio-salvar">Salvar raio</button>${r.lat!=null?`<button class="icon-btn" data-act="raio-limpar">Remover</button>`:""}</div>`:""}</div>
+    </div></div>`;
+}
+let MAPA=null, RAIO_TMP=null, RAIO_MARCANDO=false;
+async function desenharMapaLojas(){
+  const el=$("#mapaLojas"); if(!el) return;
+  try{
+    if(!document.getElementById("leafletCss")){ const lk=document.createElement("link"); lk.id="leafletCss"; lk.rel="stylesheet"; lk.href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"; document.head.appendChild(lk); }
+    await loadLib("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js",()=>window.L&&window.L.map);
+  }catch(e){ el.innerHTML='<div class="empty">Não foi possível carregar o mapa. Verifique a internet.</div>'; return; }
+  if(MAPA){ try{ MAPA.remove(); }catch(e){} MAPA=null; }
+  const L=window.L; MAPA=L.map(el,{zoomControl:true}); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(MAPA);
+  const pts=[]; const r=(S.cfg&&S.cfg.raioOp)||{};
+  S.lojas.filter(l=>l.lat!=null&&l.lng!=null).forEach(l=>{ const st=lojaStatus(l);
+    L.circleMarker([l.lat,l.lng],{radius:9,color:"#fff",weight:2,fillColor:LOJA_ST[st].cor,fillOpacity:1}).addTo(MAPA)
+     .bindPopup(`<b>${esc(lojaNome(l))}</b><br>${esc(LOJA_ST[st].nome)}<br><small>${esc(l.endereco||"")}</small>`); pts.push([l.lat,l.lng]); });
+  if(r.lat!=null){ L.circle([r.lat,r.lng],{radius:(+r.km||5)*1000,color:"#00BF63",weight:2,fillOpacity:.08}).addTo(MAPA); L.marker([r.lat,r.lng],{icon:L.divIcon({className:"centro-raio",html:"<span></span>",iconSize:[22,22],iconAnchor:[11,11]})}).addTo(MAPA).bindPopup(`Centro do raio de operação · ${esc(r.km)} km`); pts.push([r.lat,r.lng]); }
+  if(pts.length) MAPA.fitBounds(pts,{padding:[40,40],maxZoom:14}); else MAPA.setView([-23.55,-46.63],11);
+  MAPA.on("click",ev=>{ if(!RAIO_MARCANDO) return; RAIO_MARCANDO=false; RAIO_TMP={lat:ev.latlng.lat,lng:ev.latlng.lng};
+    if(window.__raioPrev) MAPA.removeLayer(window.__raioPrev); window.__raioPrev=L.circle([RAIO_TMP.lat,RAIO_TMP.lng],{radius:(+($("#raioKm")||{}).value||5)*1000,color:"#00BF63",dashArray:"6",fillOpacity:.06}).addTo(MAPA);
+    const i=$("#raioInfo"); if(i) i.textContent="Centro marcado. Clique em “Salvar raio” para guardar."; el.style.cursor=""; });
+}
+async function geocodificarLoja(id,endereco){
+  try{ const u="https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q="+encodeURIComponent(endereco);
+    const r=await fetch(u,{headers:{"Accept-Language":"pt-BR"}}); const j=await r.json(); if(!j||!j[0]) return false;
+    const l=S.lojas.find(x=>x.id===id)||(await FB.sb.from(COL.lojas).select("data").eq("id",id).single()).data.data; if(!l) return false;
+    const {id:_i,...rest}=l; await save("lojas",id,{...rest,lat:+j[0].lat,lng:+j[0].lon,geoEnd:endereco}); return true;
+  }catch(e){ return false; } }
+/* ---------- arrastar e soltar no Kanban ---------- */
+document.addEventListener("dragstart",e=>{ const c=e.target.closest&&e.target.closest(".kb-card"); if(!c) return; e.dataTransfer.setData("text/plain",c.dataset.id); c.classList.add("arrastando"); });
+document.addEventListener("dragend",e=>{ document.querySelectorAll(".arrastando,.kb-alvo").forEach(x=>x.classList.remove("arrastando","kb-alvo")); });
+document.addEventListener("dragover",e=>{ const col=e.target.closest&&e.target.closest(".kb-col"); if(!col) return; e.preventDefault(); document.querySelectorAll(".kb-alvo").forEach(x=>x!==col&&x.classList.remove("kb-alvo")); col.classList.add("kb-alvo"); });
+document.addEventListener("drop",async e=>{ const col=e.target.closest&&e.target.closest(".kb-col"); if(!col) return; e.preventDefault(); col.classList.remove("kb-alvo");
+  const id=e.dataTransfer.getData("text/plain"); const l=S.lojas.find(x=>x.id===id); const st=col.dataset.st; if(!l||!isAdm()||lojaStatus(l)===st) return;
+  if(st==="ativa"){ lojaForm(l,"ativa"); return; }
+  try{ const {id:_i,...rest}=l; await save("lojas",l.id,{...rest,status:st,ativa:false}); diario("Situação da loja alterada",`${lojaNome(l)}: ${LOJA_ST[lojaStatus(l)].nome} → ${LOJA_ST[st].nome}`,{cat:"alteracao"}); toast(`${lojaNome(l)} → ${LOJA_ST[st].nome}`); }catch(ex){} });
+
 function bindMatriz(){
   const f=$("#fMz"); if(!f||!podeMzFn()) return;
   f.addEventListener("input",()=>{ mzDraft=mzLer("mz_"); });
@@ -1999,6 +2083,7 @@ function render(){
   main.innerHTML=(V||vPainel)();
   if(ui.view==="lojas") bindMatriz();
   if(ui.view==="meucad") bindMeuCadastro();
+  if(ui.view==="lojas"&&ui.lojasVis==="mapa") setTimeout(desenharMapaLojas,0);
   if(ui.view==="painel"){ const P=dashPer(); fluxChart(P.modo==="ano"?fluxoMeses(P.ini,12,ui.cc):P.modo==="periodo"?fluxoMeses(P.ini,P.n,ui.cc):fluxoMeses(addMonths(P.m,-3),6,ui.cc),"chPainel"); }
   if(ui.view==="fluxo") fluxChart(fluxoMeses(ui.f.ini,ui.f.n||12,ui.cc),"chFluxo");
   { const cm=document.getElementById("chatMsgs"); if(cm) cm.scrollTop=cm.scrollHeight; }
@@ -2410,41 +2495,53 @@ function agForm(a,dataDef){
 }
 
 /* ---------- loja ---------- */
-function lojaForm(x){
-  const isNew=!x; x=x||{};
+function lojaForm(x,statusPreset){
+  const isNew=!x; x=x||{}; const st0=statusPreset||lojaStatus(isNew?{status:"ativa"}:x);
   const usos=isNew?0:S.lanc.filter(l=>l.centro===x.id).length+S.ag.filter(a=>a.lojaId===x.id).length;
   const F=(k,l,t)=>`<div class="field"><label for="lj_${k}">${l}</label><input type="${t||"text"}" id="lj_${k}" value="${esc(x[k]||"")}"></div>`;
   openModal(`<h2>${isNew?"Nova loja":esc(lojaNome(x))}</h2>
-    <div class="cod-line">Código <b class="num">${esc(isNew?proxCodigo(S.lojas,"L",3):(x.codigo||"—"))}</b> · centro de custo</div>
+    <div class="cod-line">Código <b class="num">${esc(isNew?proxCodigo(S.lojas,"L",3):(x.codigo||"—"))}</b> · <span id="ljTipo">${lojaOper({status:st0})?"centro de custo":"funil de expansão"}</span></div>
+    ${statusPreset==="ativa"&&!isNew&&!lojaOper(x)?`<div class="banner lib-banner" style="margin:6px 0 0">Loja passando para <b>Ativa</b>: confira os dados e preencha as taxas da maquininha, royalties, cashback, mensalidade e energia abaixo.</div>`:""}
     <form id="fLj" novalidate class="fcol">
       <div class="row">${F("condominio","Nome do condomínio")}${F("cnpj","CNPJ do condomínio")}</div>
       <div class="row">${F("sindico","Nome do síndico")}${F("inauguracao","Data de inauguração","date")}</div>
       ${F("endereco","Endereço")}
       <div class="row">${F("telefone","Telefone","tel")}${F("email","E-mail","email")}</div>
-      <label class="chkline" style="padding-top:0"><input type="checkbox" id="lj_ativa" ${x.ativa===false?"":"checked"}> Loja ativa (em operação)</label>
+      <div class="field"><span class="flabel">Situação</span><div class="seg loja-st" id="ljStSeg">${LOJA_ORDEM.map(k=>`<button type="button" data-st="${k}" aria-pressed="${st0===k}"><i style="background:${LOJA_ST[k].cor}"></i>${LOJA_ST[k].nome}</button>`).join("")}</div><input type="hidden" id="lj_status" value="${st0}"></div>
+      <div class="field"><label for="lj_obs">Observações / próximos passos</label><textarea id="lj_obs" rows="2" placeholder="Ex.: reunião com o síndico dia 10; proposta enviada; motivo da perda…">${esc(x.obs||"")}</textarea></div>
+      <div id="ljOper" ${lojaOper({status:st0})?"":"hidden"}>
       <p class="note" style="margin:-4px 0 0">O aniversário da loja aparece todo ano na agenda, na data de inauguração.</p>
       ${taxasLojaHTML(isNew?null:x)}
       ${autoLojaHTML(x.auto)}
+      </div>
       ${usos?`<p class="note" style="margin:0">Usada em ${usos} lançamento(s)/compromisso(s) — por isso não pode ser excluída.</p>`:""}
       <div class="err" id="ljErr" role="alert"></div>
       <div class="foot"><div>${!isNew&&!usos?`<button type="button" class="btn danger" id="ljDel">Excluir</button>`:""}</div>
         <div><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn pri">${isNew?"Cadastrar loja":"Salvar alterações"}</button></div></div>
     </form>`,false,()=>{
       bindAutoLoja(); bindTaxasLoja(isNew?null:x);
+      $("#ljStSeg").addEventListener("click",ev=>{ const b=ev.target.closest("[data-st]"); if(!b) return; const v=b.dataset.st; $("#lj_status").value=v;
+        $("#ljStSeg").querySelectorAll("[data-st]").forEach(y=>y.setAttribute("aria-pressed",y.dataset.st===v)); $("#ljOper").hidden=!lojaOper({status:v}); $("#ljTipo").textContent=lojaOper({status:v})?"centro de custo":"funil de expansão"; });
       const bd=$("#ljDel"); if(bd) bd.addEventListener("click",()=>confirmBtn(bd,"Confirmar exclusão",async()=>{ try{ await del("lojas",x.id); if(ui.cc===x.id){ ui.cc=""; saveUi(); } closeModal(); toast("Loja excluída"); }catch(e){} }));
       $("#fLj").addEventListener("submit",async e=>{ e.preventDefault();
-        const d={}; ["condominio","cnpj","sindico","inauguracao","endereco","telefone","email"].forEach(k=>d[k]=$("#lj_"+k).value.trim()); d.ativa=$("#lj_ativa").checked;
+        const d={}; ["condominio","cnpj","sindico","inauguracao","endereco","telefone","email","obs"].forEach(k=>d[k]=$("#lj_"+k).value.trim());
+        d.status=$("#lj_status").value; d.ativa=d.status==="ativa"; const oper=lojaOper(d);
         const err=$("#ljErr");
-        const req=[["condominio","o nome do condomínio"],["sindico","o nome do síndico"],["endereco","o endereço"],["telefone","o telefone"]];
+        const req=oper?[["condominio","o nome do condomínio"],["sindico","o nome do síndico"],["endereco","o endereço"],["telefone","o telefone"]]:[["condominio","o nome do condomínio"],["endereco","o endereço"]];
         for(const [k,t] of req){ if(!d[k]){ err.textContent="Informe "+t+"."; $("#lj_"+k).focus(); return; } }
         if(d.cnpj&&digitos(d.cnpj).length!==14){ err.textContent="O CNPJ do condomínio deve ter 14 dígitos."; $("#lj_cnpj").focus(); return; }
         if(d.cnpj) d.cnpj=fmtDoc(d.cnpj);
         if(d.email&&!/^\S+@\S+\.\S+$/.test(d.email)){ err.textContent="E-mail inválido."; $("#lj_email").focus(); return; }
-        window.__autoPrev=(!isNew&&x.auto)||null; const au=lerAutoLoja(err); if(!au) return; d.auto=au;
-        const tx=lerTaxasLoja(isNew?null:x,err); if(!tx) return; const txMud=tx._mud||[], txEsc=tx._esc, txMes=tx._mes; delete tx._mud; delete tx._esc; delete tx._mes; Object.assign(d,tx);
+        let txMud=[], txEsc, txMes;
+        if(oper){ window.__autoPrev=(!isNew&&x.auto)||null; const au=lerAutoLoja(err); if(!au) return; d.auto=au;
+          const tx=lerTaxasLoja(isNew?null:x,err); if(!tx) return; txMud=tx._mud||[]; txEsc=tx._esc; txMes=tx._mes; delete tx._mud; delete tx._esc; delete tx._mes; Object.assign(d,tx); }
+        const mudouSt=!isNew&&lojaStatus(x)!==d.status; const mudouEnd=isNew||x.endereco!==d.endereco||x.lat==null;
         try{
-          if(isNew){ const id=newId("lojas"); await save("lojas",id,{...d,codigo:proxCodigo(S.lojas,"L",3),criado:new Date().toISOString()}); }
+          let lid=x.id;
+          if(isNew){ lid=newId("lojas"); await save("lojas",lid,{...d,codigo:proxCodigo(S.lojas,"L",3),criado:new Date().toISOString()}); }
           else await save("lojas",x.id,{...x,...d});
+          if(mudouSt) diario("Situação da loja alterada",`${d.condominio}: ${LOJA_ST[lojaStatus(x)].nome} → ${LOJA_ST[d.status].nome}`,{cat:"alteracao"});
+          if(mudouEnd&&d.endereco) geocodificarLoja(lid,d.endereco);
           if(typeof txMud!=="undefined"&&txMud.length) diario("Taxas da loja alteradas",`${d.condominio}: ${txMud.join(" · ")} — ${txEsc==="so"?"somente "+mlabel(txMes):txEsc==="adiante"?"de "+mlabel(txMes)+" em diante":"todos os meses"}`,{cat:"alteracao"});
           closeModal(); toast(isNew?"Loja cadastrada":"Loja atualizada"); agendarAuto();
         }catch(ex){}
@@ -3299,7 +3396,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 55 · 21/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 56 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4157,6 +4254,14 @@ document.addEventListener("click",async e=>{
     saveUi(); render(); window.scrollTo(0,0); return; }
   if(act==="del-ag"&&isAdm()){ const ag=S.ag.find(x=>x.id===id); if(ag) confirmBtn(a,"Confirmar exclusão",()=>del("ag",id).then(()=>{ toast("Compromisso excluído"); }).catch(()=>{})); return; }
   if(act==="ord"){ const t=a.dataset.t, k=a.dataset.k, o=ordemDe(t); ui.sort=ui.sort||{}; ui.sort[t]={k,dir:o.k===k?(o.dir==="desc"?"asc":"desc"):(k==="data"||k==="valor"||k==="numero"||k==="pagamento"||k==="venc"?"desc":"asc")}; render(); return; }
+  if(act==="lojas-vis"){ ui.lojasVis=a.dataset.v; render(); return; }
+  if(act==="kb-nova"&&isAdm()){ lojaForm(null,a.dataset.st); return; }
+  if(act==="raio-centro"&&isAdm()){ RAIO_MARCANDO=true; const el=$("#mapaLojas"); if(el) el.style.cursor="crosshair"; const i=$("#raioInfo"); if(i) i.textContent="Clique no mapa onde fica o centro do seu raio de operação."; return; }
+  if(act==="raio-salvar"&&isAdm()){ const km=+(($("#raioKm")||{}).value)||5; const atual=(S.cfg&&S.cfg.raioOp)||{}; const c=RAIO_TMP||(atual.lat!=null?atual:null);
+    if(!c){ toast("Clique em “Marcar centro no mapa” primeiro."); return; } const cfgN={...(S.cfg||{})}; delete cfgN.categorias; cfgN.raioOp={lat:c.lat,lng:c.lng,km};
+    saveCfg(cfgN).then(()=>{ RAIO_TMP=null; toast(`Raio de operação salvo: ${km} km`); diario("Raio de operação definido",`${km} km`,{cat:"alteracao"}); }); return; }
+  if(act==="raio-limpar"&&isAdm()){ const cfgN={...(S.cfg||{})}; delete cfgN.categorias; delete cfgN.raioOp; saveCfg(cfgN).then(()=>toast("Raio removido")); return; }
+  if(act==="geo-todas"&&isAdm()){ const ls=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)); a.disabled=true; (async()=>{ let ok=0; for(const l of ls){ a.textContent=`Localizando ${ok+1}/${ls.length}…`; if(await geocodificarLoja(l.id,l.endereco)) ok++; await new Promise(r=>setTimeout(r,1100)); } toast(`${ok} de ${ls.length} endereço(s) localizado(s)`); a.disabled=false; a.textContent="Localizar endereços"; })(); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
   if(act==="anx-baixar"){ baixarAnexo(id,a); return; }
