@@ -557,6 +557,8 @@ tr.sel-on td{background:var(--accent-soft)!important}
 .parc-ed .pr.pr4{grid-template-columns:78px 1fr 1fr 1fr}.parc-ed .pr.pr4 select{font:inherit;font-size:12.5px;padding:5px 6px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 .sinal-tag{display:block;font-size:10px;font-weight:700;color:#8A5A00;background:#FFF4D6;border-radius:999px;padding:0 6px;margin-top:2px;width:max-content}
 .pix-cp{display:inline-flex;gap:6px;align-items:center;margin-top:4px;font:inherit;font-size:11px;color:#0B5A33;background:#E3F8EC;border:1px solid #BDEFD3;border-radius:6px;padding:2px 8px;cursor:pointer}.pix-cp b{font-weight:700}.pix-cp:hover{background:#D2F3E0}
+.cmv-card{border:2px solid #00BF63;box-shadow:0 4px 14px rgba(0,191,99,.12);margin-bottom:14px}.cmv-card h2 small{color:#0B5A33}
+.cmv-vazio{display:flex;align-items:center;gap:12px;color:var(--muted);padding:10px 2px}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -1470,7 +1472,8 @@ function calcCmv(d){
 }
 function vCmv(){
   const P=perDe("cmv"), ed=isAdm(), lj=lojasCmv();
-  const rows=ordenar((S.div||[]).filter(d=>{ const m=String(d.data||"").slice(0,7); return m>=P.ini&&m<=P.fim; }),"cmv",accCmv());
+  const rows=ordenar((S.div||[]).filter(d=>{ const m=String(d.data||"").slice(0,7); return d.status==="lancado"&&m>=P.ini&&m<=P.fim; }),"cmv",accCmv());
+  const rasc=(S.div||[]).filter(d=>d.status!=="lancado").sort((a,b)=>(+b.numero||0)-(+a.numero||0));
   const tot={}; let totGeral=0; rows.forEach(d=>{ const c=calcCmv(d); totGeral+=+d.total||0; Object.entries(c.out).forEach(([k,v])=>tot[k]=(tot[k]||0)+v); });
   const cel=(d,html)=>`<td>${html}</td>`;
   const linha=d=>{ const c=calcCmv(d), lanc=d.status==="lancado", pt=d.partes||{}, dis=(!ed||lanc)?"disabled":"";
@@ -1489,19 +1492,26 @@ function vCmv(){
         ? `<div class="pill st-pago">Lançado ${dBR(String(d.lancadoEm||"").slice(0,10))}</div>${ed?`<div style="margin-top:4px"><button class="btn sm" data-act="cmv-desfazer" data-id="${d.id}">Desfazer</button></div>`:""}`
         : ed?`<button class="btn sm pri" data-act="cmv-lancar" data-id="${d.id}" ${c.ok?"":"disabled"} title="${c.ok?"Lança a parte de cada loja em Contas a pagar":"Divida 100% do valor para liberar"}">Lançar em contas a pagar</button><div style="margin-top:4px"><button class="icon-btn" data-act="cmv-excluir" data-id="${d.id}" aria-label="Excluir">Excluir</button></div>`:""}</td>
     </tr>`; };
-  const fechadas=rows.filter(d=>d.status!=="lancado"&&calcCmv(d).ok).length;
+  const fechadas=rasc.filter(d=>calcCmv(d).ok).length;
+  const cabFixo=`<tr><th>#</th><th>Data</th><th>Descrição / fornecedor</th><th>Vencimento / forma</th><th class="r">Valor total</th>${lj.map(l=>`<th class="r">${esc(lojaNome(l))}</th>`).join("")}<th class="r">Restante</th><th></th></tr>`;
+  const cardRasc = ed||rasc.length ? `<div class="panel cmv-card"><h2>Compras a dividir<small>${rasc.length?`${rasc.length} em preenchimento${fechadas?` · ${fechadas} pronta(s) para lançar`:""}`:"preencha e lance em Contas a pagar"}</small></h2>
+      ${rasc.length?`<div class="tbl-wrap"><table class="cmv"><thead>${cabFixo}</thead><tbody>${rasc.map(linha).join("")}</tbody></table></div>`
+        :`<div class="cmv-vazio">Nenhuma compra em preenchimento. ${ed?`<button class="btn pri sm" data-act="cmv-nova">+ Nova compra</button>`:""}</div>`}
+      ${rasc.length?'<p class="note" style="margin:8px 0 0">Digite a parte de cada loja em <b>%</b> ou em <b>R$</b>. Quando o Restante mostrar ✓ fechado, clique em <b>Lançar em contas a pagar</b> — a compra vai para a lista abaixo.</p>':""}</div>` : "";
   return header("Divisão de CMV","Divida uma compra de mercadorias entre as lojas e lance a parte de cada uma em Contas a pagar, na categoria Compra de mercadorias.",
      `<button class="btn" data-act="cmv-modelo">Modelo de planilha</button>`+(ed?`<button class="btn" data-act="cmv-importar">Importar planilha</button><input type="file" id="cmvFile" accept=".xlsx,.xls,.csv" hidden>${fechadas?`<button class="btn" data-act="cmv-lancar-todas">Lançar todas as fechadas (${fechadas})</button>`:""}<button class="btn pri" data-act="cmv-nova">+ Nova compra</button>`:""))
    + banners()
-   + `<div class="toolbar dash-per">${periodoFiltro("cmv")}</div>`
    + (!lj.length?'<div class="banner lib-banner">Cadastre ao menos uma loja ativa em Lojas para dividir compras.</div>':"")
+   + cardRasc
+   + `<div class="toolbar dash-per" style="margin-top:6px">${periodoFiltro("cmv")}</div>`
+   + `<div class="panel"><h2>Compras lançadas<small>${rows.length} no período · ${fmt(totGeral)}</small></h2>`
    + `<div class="tbl-wrap"><table class="cmv"><thead><tr>${thS("cmv","numero","#")}${thS("cmv","data","Data")}${thS("cmv","descricao","Descrição / fornecedor")}${thS("cmv","venc","Vencimento / forma")}${thS("cmv","valor","Valor total","r")}${lj.map(l=>thS("cmv","l_"+l.id,esc(lojaNome(l)),"r")).join("")}${thS("cmv","restante","Restante","r")}<th></th></tr></thead>
-      <tbody>${rows.map(linha).join("")||`<tr><td colspan="${7+lj.length}" class="empty">Nenhuma compra neste período.${ed?' Clique em “+ Nova compra”.':""}</td></tr>`}</tbody>
+      <tbody>${rows.map(linha).join("")||`<tr><td colspan="${7+lj.length}" class="empty">Nenhuma compra lançada neste período.</td></tr>`}</tbody>
       ${rows.length?`<tfoot><tr><td colspan="4">Total do período</td><td class="r num">${fmt(totGeral)}</td>${lj.map(l=>`<td class="r num">${fmt(tot[l.id]||0)}</td>`).join("")}<td></td><td></td></tr></tfoot>`:""}</table></div>
-     <p class="note" style="margin-top:10px">Digite a parte de cada loja em <b>%</b> ou em <b>R$</b> (botão abaixo do valor total). O botão “Lançar em contas a pagar” libera quando a divisão fecha 100%. Cada loja recebe um lançamento de <b>Compra de mercadorias</b> com a parte dela, que aparece em Contas a pagar, no Fluxo e no DRE (CMV).</p>`;
+     <p class="note" style="margin:8px 0 0">Cada loja recebe um lançamento de <b>Compra de mercadorias</b> com a parte dela, que aparece em Contas a pagar, no Fluxo e no DRE (CMV). Para corrigir uma compra lançada, use <b>Desfazer</b>: ela volta para o card de cima.</p></div>`;
 }
 async function salvarCmv(d,patch){ const n={...d,...patch}; delete n.id; await save("div",d.id,n); }
-async function novaCmv(){ const numero=(S.div||[]).reduce((a,x)=>Math.max(a,+x.numero||0),0)+1; const P=perDe("cmv"); const dia=(P.ini<=mkey(HOJE)&&mkey(HOJE)<=P.fim)?HOJE:P.ini+"-01";
+async function novaCmv(){ const numero=(S.div||[]).reduce((a,x)=>Math.max(a,+x.numero||0),0)+1; const dia=HOJE;
   try{ await save("div",newId("div"),{numero,data:dia,venc:dia,forma:"Boleto",modo:"pct",total:0,partes:{},status:"rascunho",descricao:"",fornecedor:"",criado:new Date().toISOString(),criadoPor:(S.me&&S.me.id)||null}); atualizarTabelas("divisoes"); }catch(e){} }
 function lerCampoCmv(d,campo,valor){
   if(campo==="total") { const v=reaisCent(valor); return {total:v==null||isNaN(v)?0:v}; }
@@ -1657,7 +1667,7 @@ async function importarCmvArquivo(file){
   }catch(e){ toast("Não foi possível ler a planilha: "+(e.message||"")); }
 }
 async function lancarTodasCmv(btn){
-  const P=perDe("cmv"); const ls=(S.div||[]).filter(d=>{ const m=String(d.data||"").slice(0,7); return m>=P.ini&&m<=P.fim&&d.status!=="lancado"&&calcCmv(d).ok; });
+  const ls=(S.div||[]).filter(d=>d.status!=="lancado"&&calcCmv(d).ok);
   btn.disabled=true; let n=0; for(const d of ls){ btn.textContent=`Lançando… ${n+1}/${ls.length}`; await lancarCmv(d,{disabled:false}); n++; }
   atualizarTabelas("divisoes","lancamentos"); toast(`${n} compra(s) lançada(s) em Contas a pagar`);
 }
@@ -3496,7 +3506,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 61 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 62 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
