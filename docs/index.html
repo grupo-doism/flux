@@ -558,6 +558,7 @@ tr.sel-on td{background:var(--accent-soft)!important}
 .sinal-tag{display:block;font-size:10px;font-weight:700;color:#8A5A00;background:#FFF4D6;border-radius:999px;padding:0 6px;margin-top:2px;width:max-content}
 .pix-cp{display:inline-flex;gap:6px;align-items:center;margin-top:4px;font:inherit;font-size:11px;color:#0B5A33;background:#E3F8EC;border:1px solid #BDEFD3;border-radius:6px;padding:2px 8px;cursor:pointer}.pix-cp b{font-weight:700}.pix-cp:hover{background:#D2F3E0}
 .cmv-card{border:2px solid #00BF63;box-shadow:0 4px 14px rgba(0,191,99,.12);margin-bottom:14px}.cmv-card h2 small{color:#0B5A33}
+.cmv-card-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .cmv-vazio{display:flex;align-items:center;gap:12px;color:var(--muted);padding:10px 2px}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
@@ -1494,12 +1495,12 @@ function vCmv(){
     </tr>`; };
   const fechadas=rasc.filter(d=>calcCmv(d).ok).length;
   const cabFixo=`<tr><th>#</th><th>Data</th><th>Descrição / fornecedor</th><th>Vencimento / forma</th><th class="r">Valor total</th>${lj.map(l=>`<th class="r">${esc(lojaNome(l))}</th>`).join("")}<th class="r">Restante</th><th></th></tr>`;
-  const cardRasc = ed||rasc.length ? `<div class="panel cmv-card"><h2>Compras a dividir<small>${rasc.length?`${rasc.length} em preenchimento${fechadas?` · ${fechadas} pronta(s) para lançar`:""}`:"preencha e lance em Contas a pagar"}</small></h2>
+  const cardRasc = ed||rasc.length ? `<div class="panel cmv-card"><h2 class="cmv-card-h"><span>Compras a dividir<small>${rasc.length?`${rasc.length} em preenchimento${fechadas?` · ${fechadas} pronta(s) para lançar`:""}`:"preencha e lance em Contas a pagar"}</small></span>${ed?`<button class="btn pri sm" data-act="cmv-nova">+ Nova compra</button>`:""}</h2>
       ${rasc.length?`<div class="tbl-wrap"><table class="cmv"><thead>${cabFixo}</thead><tbody>${rasc.map(linha).join("")}</tbody></table></div>`
-        :`<div class="cmv-vazio">Nenhuma compra em preenchimento. ${ed?`<button class="btn pri sm" data-act="cmv-nova">+ Nova compra</button>`:""}</div>`}
+        :`<div class="cmv-vazio">Nenhuma compra em preenchimento.</div>`}
       ${rasc.length?'<p class="note" style="margin:8px 0 0">Digite a parte de cada loja em <b>%</b> ou em <b>R$</b>. Quando o Restante mostrar ✓ fechado, clique em <b>Lançar em contas a pagar</b> — a compra vai para a lista abaixo.</p>':""}</div>` : "";
   return header("Divisão de CMV","Divida uma compra de mercadorias entre as lojas e lance a parte de cada uma em Contas a pagar, na categoria Compra de mercadorias.",
-     `<button class="btn" data-act="cmv-modelo">Modelo de planilha</button>`+(ed?`<button class="btn" data-act="cmv-importar">Importar planilha</button><input type="file" id="cmvFile" accept=".xlsx,.xls,.csv" hidden>${fechadas?`<button class="btn" data-act="cmv-lancar-todas">Lançar todas as fechadas (${fechadas})</button>`:""}<button class="btn pri" data-act="cmv-nova">+ Nova compra</button>`:""))
+     `<button class="btn" data-act="cmv-modelo">Modelo de planilha</button>`+(ed?`<button class="btn" data-act="cmv-importar">Importar planilha</button><input type="file" id="cmvFile" accept=".xlsx,.xls,.csv" hidden>${fechadas?`<button class="btn" data-act="cmv-lancar-todas">Lançar todas as fechadas (${fechadas})</button>`:""}`:""))
    + banners()
    + (!lj.length?'<div class="banner lib-banner">Cadastre ao menos uma loja ativa em Lojas para dividir compras.</div>':"")
    + cardRasc
@@ -3506,7 +3507,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 62 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 63 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
