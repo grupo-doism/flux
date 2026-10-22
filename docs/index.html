@@ -547,6 +547,8 @@ tr.sel-on td{background:var(--accent-soft)!important}
 .mapa-lado{display:flex;flex-direction:column;gap:12px}.leg-l{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}.leg-l .note{margin-left:auto}
 @media (max-width:900px){.mapa-wrap{grid-template-columns:1fr}.kanban{grid-template-columns:repeat(5,240px)}}
 .centro-raio span{display:block;width:22px;height:22px;border-radius:50%;border:3px solid #00BF63;background:rgba(0,191,99,.25);box-shadow:0 0 0 3px #fff}
+.pino-loja span{display:block;width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45)}
+.sg-l{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}.sg-l i{width:10px;height:10px;border-radius:50%;flex:0 0 auto}.sg-l span{flex:1;min-width:0}.sg-l b{display:block;font-size:12.5px}.sg-l small{color:var(--muted);font-size:11px}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -1935,7 +1937,10 @@ function mapaLojasHTML(){
   return `<div class="mapa-wrap"><div id="mapaLojas" class="mapa"></div>
     <div class="mapa-lado">
       <div class="panel"><h2>Legenda</h2>${LOJA_ORDEM.map(st=>`<div class="leg-l"><i style="background:${LOJA_ST[st].cor}"></i>${LOJA_ST[st].plural}<span class="note">${ls.filter(l=>lojaStatus(l)===st&&l.lat!=null).length}</span></div>`).join("")}
-        ${sem.length?`<p class="note" style="margin:8px 0 0">${sem.length} loja(s) ainda sem localização.</p>${isAdm()?`<button class="btn sm" data-act="geo-todas" style="margin-top:6px">Localizar endereços</button>`:""}`:""}</div>
+        ${sem.length?`<div class="sem-geo"><p class="note" style="margin:10px 0 4px"><b>${sem.length} loja(s) sem localização</b>${isAdm()?" — o sistema procura o endereço sozinho; se não achar, marque no mapa:":""}</p>
+          ${sem.map(l=>`<div class="sg-l"><i style="background:${LOJA_ST[lojaStatus(l)].cor}"></i><span><b>${esc(lojaNome(l))}</b><small>${esc(l.endereco||"")}${l.geoFalhou===l.endereco?' · <span class="neg">endereço não encontrado</span>':""}</small></span>${isAdm()?`<button class="btn sm" data-act="geo-marcar" data-id="${l.id}">📍 Marcar no mapa</button>`:""}</div>`).join("")}
+          ${isAdm()?`<button class="btn sm" data-act="geo-todas" style="margin-top:6px">Procurar endereços de novo</button>`:""}</div>`:""}
+        ${isAdm()&&ls.some(l=>l.lat!=null)?'<p class="note" style="margin:8px 0 0">Dica: arraste um ponto no mapa para ajustar a posição da loja.</p>':""}</div>
       <div class="panel"><h2>Raio de operação</h2>
         <div class="field"><label for="raioKm">Raio (km)</label><input id="raioKm" type="number" min="0.5" step="0.5" value="${esc(r.km||5)}" ${isAdm()?"":"disabled"}></div>
         <p class="note" id="raioInfo" style="margin:6px 0">${r.lat!=null?`Centro definido. ${isAdm()?"Clique em “Marcar centro” para mudar.":""}`:"Nenhum raio definido ainda."}</p>
@@ -1953,20 +1958,40 @@ async function desenharMapaLojas(){
   const L=window.L; MAPA=L.map(el,{zoomControl:true}); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(MAPA);
   const pts=[]; const r=(S.cfg&&S.cfg.raioOp)||{};
   S.lojas.filter(l=>l.lat!=null&&l.lng!=null).forEach(l=>{ const st=lojaStatus(l);
-    L.circleMarker([l.lat,l.lng],{radius:9,color:"#fff",weight:2,fillColor:LOJA_ST[st].cor,fillOpacity:1}).addTo(MAPA)
-     .bindPopup(`<b>${esc(lojaNome(l))}</b><br>${esc(LOJA_ST[st].nome)}<br><small>${esc(l.endereco||"")}</small>`); pts.push([l.lat,l.lng]); });
+    const mk=L.marker([l.lat,l.lng],{draggable:isAdm(),icon:L.divIcon({className:"pino-loja",html:`<span style="background:${LOJA_ST[st].cor}"></span>`,iconSize:[20,20],iconAnchor:[10,10]})}).addTo(MAPA)
+      .bindPopup(`<b>${esc(lojaNome(l))}</b><br>${esc(LOJA_ST[st].nome)}<br><small>${esc(l.endereco||"")}</small>`);
+    mk.on("dragend",async()=>{ const p=mk.getLatLng(); try{ await salvarPosLoja(l.id,p.lat,p.lng); toast(`Posição de ${lojaNome(l)} ajustada`); }catch(e){} });
+    pts.push([l.lat,l.lng]); });
   if(r.lat!=null){ L.circle([r.lat,r.lng],{radius:(+r.km||5)*1000,color:"#00BF63",weight:2,fillOpacity:.08}).addTo(MAPA); L.marker([r.lat,r.lng],{icon:L.divIcon({className:"centro-raio",html:"<span></span>",iconSize:[22,22],iconAnchor:[11,11]})}).addTo(MAPA).bindPopup(`Centro do raio de operação · ${esc(r.km)} km`); pts.push([r.lat,r.lng]); }
   if(pts.length) MAPA.fitBounds(pts,{padding:[40,40],maxZoom:14}); else MAPA.setView([-23.55,-46.63],11);
-  MAPA.on("click",ev=>{ if(!RAIO_MARCANDO) return; RAIO_MARCANDO=false; RAIO_TMP={lat:ev.latlng.lat,lng:ev.latlng.lng};
+  // procura sozinho, uma vez por sessão, as lojas com endereço e sem localização
+  const falta=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)&&l.geoFalhou!==l.endereco);
+  if(isAdm()&&falta.length&&!GEO_AUTO_FEITO){ GEO_AUTO_FEITO=true; (async()=>{ let ok=0; for(const l of falta){ if(await geocodificarLoja(l.id,l.endereco)) ok++; }
+    if(ok) toast(`${ok} loja(s) localizada(s) no mapa`); else if(falta.length) toast("Não encontramos o endereço — use “Marcar no mapa”."); })(); }
+  MAPA.on("click",async ev=>{
+    if(MARCAR_LOJA){ const id=MARCAR_LOJA; MARCAR_LOJA=null; el.style.cursor=""; try{ await salvarPosLoja(id,ev.latlng.lat,ev.latlng.lng); toast("Loja marcada no mapa"); }catch(e){} return; }
+    if(!RAIO_MARCANDO) return; RAIO_MARCANDO=false; RAIO_TMP={lat:ev.latlng.lat,lng:ev.latlng.lng};
     if(window.__raioPrev) MAPA.removeLayer(window.__raioPrev); window.__raioPrev=L.circle([RAIO_TMP.lat,RAIO_TMP.lng],{radius:(+($("#raioKm")||{}).value||5)*1000,color:"#00BF63",dashArray:"6",fillOpacity:.06}).addTo(MAPA);
     const i=$("#raioInfo"); if(i) i.textContent="Centro marcado. Clique em “Salvar raio” para guardar."; el.style.cursor=""; });
 }
 async function geocodificarLoja(id,endereco){
-  try{ const u="https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q="+encodeURIComponent(endereco);
-    const r=await fetch(u,{headers:{"Accept-Language":"pt-BR"}}); const j=await r.json(); if(!j||!j[0]) return false;
-    const l=S.lojas.find(x=>x.id===id)||(await FB.sb.from(COL.lojas).select("data").eq("id",id).single()).data.data; if(!l) return false;
-    const {id:_i,...rest}=l; await save("lojas",id,{...rest,lat:+j[0].lat,lng:+j[0].lon,geoEnd:endereco}); return true;
-  }catch(e){ return false; } }
+  const limpa=String(endereco||"").trim(); if(!limpa) return false;
+  const semNum=limpa.replace(/,?\s*(n[º°o.]?\s*)?\d+[A-Za-z]?(\s*-\s*[^,]*)?/i,"").replace(/\s{2,}/g," ").trim();
+  const tentativas=[...new Set([limpa+", Brasil", limpa, semNum+", Brasil"].filter(x=>x.length>5))];
+  for(const q of tentativas){
+    try{ const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q="+encodeURIComponent(q),{headers:{"Accept-Language":"pt-BR"}});
+      const j=await r.json();
+      if(j&&j[0]){ const l=S.lojas.find(x=>x.id===id); if(!l) return false; const {id:_i,...rest}=l;
+        await save("lojas",id,{...rest,lat:+j[0].lat,lng:+j[0].lon,geoEnd:limpa,geoFalhou:null}); return true; }
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,1100));   // respeita o limite do serviço gratuito (1 consulta por segundo)
+  }
+  const l=S.lojas.find(x=>x.id===id); if(l){ const {id:_i,...rest}=l; try{ await save("lojas",id,{...rest,geoFalhou:limpa}); }catch(e){} }
+  return false;
+}
+async function salvarPosLoja(id,lat,lng){ const l=S.lojas.find(x=>x.id===id); if(!l) return; const {id:_i,...rest}=l;
+  await save("lojas",id,{...rest,lat,lng,geoEnd:l.endereco||"",geoFalhou:null}); diario("Localização da loja ajustada",lojaNome(l),{cat:"alteracao"}); }
+let GEO_AUTO_FEITO=false, MARCAR_LOJA=null;
 /* ---------- arrastar e soltar no Kanban ---------- */
 document.addEventListener("dragstart",e=>{ const c=e.target.closest&&e.target.closest(".kb-card"); if(!c) return; e.dataTransfer.setData("text/plain",c.dataset.id); c.classList.add("arrastando"); });
 document.addEventListener("dragend",e=>{ document.querySelectorAll(".arrastando,.kb-alvo").forEach(x=>x.classList.remove("arrastando","kb-alvo")); });
@@ -3396,7 +3421,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 56 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 57 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4261,7 +4286,8 @@ document.addEventListener("click",async e=>{
     if(!c){ toast("Clique em “Marcar centro no mapa” primeiro."); return; } const cfgN={...(S.cfg||{})}; delete cfgN.categorias; cfgN.raioOp={lat:c.lat,lng:c.lng,km};
     saveCfg(cfgN).then(()=>{ RAIO_TMP=null; toast(`Raio de operação salvo: ${km} km`); diario("Raio de operação definido",`${km} km`,{cat:"alteracao"}); }); return; }
   if(act==="raio-limpar"&&isAdm()){ const cfgN={...(S.cfg||{})}; delete cfgN.categorias; delete cfgN.raioOp; saveCfg(cfgN).then(()=>toast("Raio removido")); return; }
-  if(act==="geo-todas"&&isAdm()){ const ls=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)); a.disabled=true; (async()=>{ let ok=0; for(const l of ls){ a.textContent=`Localizando ${ok+1}/${ls.length}…`; if(await geocodificarLoja(l.id,l.endereco)) ok++; await new Promise(r=>setTimeout(r,1100)); } toast(`${ok} de ${ls.length} endereço(s) localizado(s)`); a.disabled=false; a.textContent="Localizar endereços"; })(); return; }
+  if(act==="geo-todas"&&isAdm()){ const ls=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)); a.disabled=true; (async()=>{ let ok=0, n=0; for(const l of ls){ n++; a.textContent=`Procurando ${n}/${ls.length}…`; if(await geocodificarLoja(l.id,l.endereco)) ok++; } toast(ok?`${ok} de ${ls.length} loja(s) localizada(s)`:"Não encontramos — use “Marcar no mapa”."); a.disabled=false; a.textContent="Procurar endereços de novo"; })(); return; }
+  if(act==="geo-marcar"&&isAdm()){ MARCAR_LOJA=id; const el=$("#mapaLojas"); if(el){ el.style.cursor="crosshair"; el.scrollIntoView({behavior:"smooth",block:"center"}); } const l=S.lojas.find(x=>x.id===id); toast(`Clique no mapa onde fica ${l?lojaNome(l):"a loja"}`); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
   if(act==="anx-baixar"){ baixarAnexo(id,a); return; }
