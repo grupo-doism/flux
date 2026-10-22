@@ -554,6 +554,9 @@ tr.sel-on td{background:var(--accent-soft)!important}
 @media (max-width:560px){.end-box .row.end-r3{grid-template-columns:1fr 1fr}}
 .end-antigo{background:#FFF4D6;border-radius:6px;padding:6px 8px;color:#6B4A00}
 .cat-tag{display:inline-block;font-size:11.5px;line-height:1.3;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;max-width:180px}
+.parc-ed .pr.pr4{grid-template-columns:78px 1fr 1fr 1fr}.parc-ed .pr.pr4 select{font:inherit;font-size:12.5px;padding:5px 6px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.sinal-tag{display:block;font-size:10px;font-weight:700;color:#8A5A00;background:#FFF4D6;border-radius:999px;padding:0 6px;margin-top:2px;width:max-content}
+.pix-cp{display:inline-flex;gap:6px;align-items:center;margin-top:4px;font:inherit;font-size:11px;color:#0B5A33;background:#E3F8EC;border:1px solid #BDEFD3;border-radius:6px;padding:2px 8px;cursor:pointer}.pix-cp b{font-weight:700}.pix-cp:hover{background:#D2F3E0}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -1119,7 +1122,7 @@ function periodoPadrao(v){
   if(v==="painel"&&ui.per) delete ui.per.dash;
   if(v==="fluxo"&&ui.per) delete ui.per.fluxo;
   if(v==="dre"&&ui.per) delete ui.per.dre;
-  if(ui.sort){ if(v==="pagar"||v==="receber") delete ui.sort.contas; if(v==="lancamentos") delete ui.sort.lanc; if(v==="cmv") delete ui.sort.cmv; }
+  if(ui.sort){ if(v==="pagar"||v==="receber") delete ui.sort.contas; if(v==="lancamentos") delete ui.sort.lanc; if(v==="cmv") delete ui.sort.cmv; if(v==="dre") delete ui.sort.dre; }
   if(v==="lancamentos"){ ui.l=ui.l||{tipo:"todos",q:""}; ui.l.mes=mkey(HOJE); ui.l.semLoja=false; }
   if(v==="cmv"&&ui.per) delete ui.per.cmv;
   if(v==="pagar"||v==="receber"){ ui.c=ui.c||{status:"todos",q:""}; ui.c.mes=mkey(HOJE); ui.c.mesBase=mkey(HOJE); }
@@ -1226,7 +1229,7 @@ function vContas(tipo){
         <tbody>${rows.length?rows.map(l=>{ const fo=fornBy(l.fornecedorId); return `<tr class="${ui.selC[l.id]?"sel-on":""}">
           ${isAdm()?`<td class="sel-col">${!l.pago&&!(l.valorPendente&&!l.valor)?`<input type="checkbox" class="sel-c" data-id="${l.id}" ${ui.selC[l.id]?"checked":""} aria-label="Selecionar ${esc(l.descricao)}">`:""}</td>`:""}
           <td class="num">${dBR(l.venc)}${l.pago?`<div class="meta">${rec?"recebido":"pago"} ${dShort(l.pago)}</div>`:""}</td>
-          <td><div class="desc">${esc(l.descricao)}${recTag(l)}${exTag(l)}</div><div class="meta">${l.numero?"#"+l.numero:""}${fo?(l.numero?" · ":"")+esc(fornNome(fo))+(fo.codigo?" ("+esc(fo.codigo)+")":""):""}</div></td>
+          <td><div class="desc">${esc(l.descricao)}${recTag(l)}${exTag(l)}</div><div class="meta">${l.numero?"#"+l.numero:""}${fo?(l.numero?" · ":"")+esc(fornNome(fo))+(fo.codigo?" ("+esc(fo.codigo)+")":""):""}</div>${l.pix&&!l.pago&&/pix/i.test(l.forma||"")?`<button type="button" class="pix-cp" data-act="pix-copiar" data-v="${esc(l.pix)}" title="Copiar a chave Pix">Pix: ${esc(l.pix.length>28?l.pix.slice(0,26)+"…":l.pix)} <b>📋 Copiar</b></button>`:""}</td>
           <td><span class="cat-tag">${esc(catBy(l.categoria)?.nome||"Sem categoria")}</span></td>
           <td>${lojaTag(l.centro)}</td>
           <td>${esc(l.forma||"—")}</td>
@@ -1707,7 +1710,7 @@ function anexosModal(l){
   },"all");
 }
 /* ---------- ordenação por coluna (Contas, Lançamentos, Divisão de CMV) ---------- */
-const SORT_PADRAO={contas:{k:"data",dir:"asc"},lanc:{k:"data",dir:"desc"},cmv:{k:"data",dir:"desc"}};
+const SORT_PADRAO={dre:{k:"mes",dir:"desc"},contas:{k:"data",dir:"asc"},lanc:{k:"data",dir:"desc"},cmv:{k:"data",dir:"desc"}};
 const ordemDe = t => (ui.sort&&ui.sort[t])||SORT_PADRAO[t];
 function thS(t,k,txt,cls){ const o=ordemDe(t); return `<th class="${cls||""}"><button type="button" class="th-sort ${o.k===k?"on":""}" data-act="ord" data-t="${t}" data-k="${k}" title="Ordenar por ${esc(txt.toLowerCase())}">${txt} <span>${o.k===k?(o.dir==="desc"?"▼":"▲"):"↕"}</span></button></th>`; }
 function ordenar(rows,t,acc){ const o=ordemDe(t), f=acc[o.k]; if(!f) return rows; const sg=o.dir==="asc"?1:-1;
@@ -1721,12 +1724,15 @@ function accCmv(){ const a={numero:d=>+d.numero||0,data:d=>d.data||"",descricao:
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
   const tx=id.startsWith("_tx_"); const caixa=ui.d.regime==="caixa";
-  const it=[...c.it].sort((a,b)=>((a.l.pago||a.l.venc||"")+a.l.numero).localeCompare((b.l.pago||b.l.venc||"")+b.l.numero));
+  const fornN=l=>{ const f=l.fornecedorId&&S.forn.find(x=>x.id===l.fornecedorId); return f?f.empresa:""; };
+  const ACC={numero:x=>+x.l.numero||0,mes:x=>caixa?(x.l.pago||""):(x.k||""),descricao:x=>x.l.descricao||"",loja:x=>cenNome(x.l.centro)||"",fornecedor:x=>fornN(x.l),
+    situacao:x=>x.l.pago?"1"+x.l.pago:"0"+(x.l.venc||""),venda:x=>+x.l.valor||0,taxa:x=>+x.pc||0,valor:x=>Math.abs(x.v||0)};
+  const it=ordenar([...c.it].map(x=>({...x,numero:x.l.numero})),"dre",ACC);
   const quitado=x=>!!x.l.pago; const tq=it.filter(quitado).reduce((a,x)=>a+x.v,0), ta=it.filter(x=>!quitado(x)).reduce((a,x)=>a+x.v,0);
   const sit=l=> l.pago ? `<span class="pill st-pago">${l.tipo==="receita"?"Recebido":"Pago"} ${dBR(l.pago)}</span>` : `<span class="pill ${l.venc<HOJE?"st-vencido":"st-aberto"}">Em aberto · vence ${dBR(l.venc)}</span>`;
   const forn=l=>{ const f=l.fornecedorId&&S.forn.find(x=>x.id===l.fornecedorId); return f?esc(f.empresa):""; };
   return `<div class="dre-lista"><div class="dre-lista-h"><b>${it.length} lançamento(s)</b> · ${esc(mlabel(ui.d.ini))} a ${esc(mlabel(ui.d.fim))} · ${caixa?"regime de caixa (só o que foi pago/recebido)":"competência"}${!caixa?` · <span class="tipo-r">${it[0]&&it[0].v>0?"recebido":"pago"}: ${fmt(Math.abs(tq))}</span> · em aberto: ${fmt(Math.abs(ta))}`:""}${tx?' · <span class="note">taxa calculada sobre cada venda com a % de Minhas taxas</span>':""}</div>
-    <table><thead><tr><th>Nº</th><th>${caixa?"Pago/recebido em":"Mês"}</th><th>Descrição</th><th>Loja</th>${tx?'<th class="r">Venda</th><th class="r">Taxa</th>':"<th>Fornecedor</th>"}<th>Situação</th><th class="r">Valor no DRE</th><th></th></tr></thead><tbody>
+    <table><thead><tr>${thS("dre","numero","Nº")}${thS("dre","mes",caixa?"Pago/recebido em":"Mês")}${thS("dre","descricao","Descrição")}${thS("dre","loja","Loja")}${tx?thS("dre","venda","Venda","r")+thS("dre","taxa","Taxa","r"):thS("dre","fornecedor","Fornecedor")}${thS("dre","situacao","Situação")}${thS("dre","valor","Valor no DRE","r")}<th></th></tr></thead><tbody>
     ${it.map(x=>{ const l=x.l; return `<tr><td class="num">#${esc(l.numero||"")}</td><td class="num">${caixa?dBR(l.pago):esc(mlabel(x.k))}</td><td>${esc(l.descricao||"")}${l.importado?' <span class="tag t-propria">importado</span>':""}${l.parcela?` <span class="note">${esc(l.parcela)}</span>`:""}</td><td>${esc(cenNome(l.centro)||"—")}</td>
       ${tx?`<td class="r num">${fmt(l.valor)}</td><td class="r num">${pctTxt(x.pc)}%</td>`:`<td>${forn(l)||'<span class="note">—</span>'}</td>`}<td>${sit(l)}</td><td class="r num ${x.v<0?"neg":"tipo-r"}">${fmt(x.v)}</td>
       <td class="r"><button class="icon-btn" data-act="edit-lanc" data-id="${esc(l.id)}">${isAdm()?"Editar":"Ver"}</button></td></tr>`; }).join("")}
@@ -2257,6 +2263,7 @@ function lancForm(l,tipoDefault){
         <div class="field"><label for="lValor" id="lValorLbl">Valor${isNew?" total":""} (R$)</label><input type="text" inputmode="decimal" id="lValor" value="${l.valorPendente?"":moneyIn(l.valor)}" placeholder="${l.valorPendente?(l.valor?"est. "+moneyIn(l.valor):"valor deste mês"):"0,00"}"></div>
       </div>
       ${isNew?`<div class="field"><span class="flabel">Condição de pagamento</span><div class="seg" id="lCond" style="align-self:flex-start"><button type="button" data-cd="1" aria-pressed="true">À vista</button><button type="button" data-cd="p" aria-pressed="false">Parcelado</button>${isAdm()?`<button type="button" data-cd="rf" aria-pressed="false">Recorrente fixa</button><button type="button" data-cd="rv" aria-pressed="false">Recorrente variável</button>`:""}</div></div>
+      <div class="field" id="lPixBox" hidden><label for="lPix">Chave Pix <small class="note">para fazer o pagamento</small></label><input id="lPix" value="${esc(l.pix||((l.fornecedorId&&(S.forn.find(f=>f.id===l.fornecedorId)||{}).pix)||""))}" placeholder="CPF/CNPJ, e-mail, celular ou chave aleatória" autocomplete="off"></div>
       <div class="row" id="lAV">
         <div class="field"><label for="lVenc">Data de pagamento</label><input type="date" id="lVenc" value="${HOJE}"></div>
         <div class="field"><span class="flabel">&nbsp;</span><label class="chkline"><input type="checkbox" id="lJaPago"> <span id="lJaPagoTxt">${tipo==="receita"?"Já foi recebido":"Já foi pago"}</span></label></div>
@@ -2266,6 +2273,9 @@ function lancForm(l,tipoDefault){
           <div class="field"><label for="lN">Quantidade de parcelas</label><input type="number" id="lN" min="2" max="60" value="2"></div>
           <div class="field"><label for="lP1">Data do 1º pagamento</label><input type="date" id="lP1" value="${HOJE}"></div>
         </div>
+        <div class="row sinal-row"><div class="field"><label for="lSinal">Sinal / entrada (R$) <small class="note">opcional</small></label><input type="text" inputmode="decimal" id="lSinal" placeholder="0,00"></div>
+          <div class="field"><label for="lSinalF">Forma do sinal</label><select id="lSinalF">${opt("","Igual às demais","")}${FORMAS_PAG.map(f=>opt(f,f,"")).join("")}</select></div></div>
+        <div class="note" style="margin:-2px 0 6px">Com sinal, a 1ª parcela é o sinal e o restante é dividido nas outras. Você também pode escolher a forma de cada parcela na lista.</div>
         <div class="parc-ed" id="lParcs"></div>
         <div class="note" id="lParcSum" style="margin-top:6px"></div>
       </div>
@@ -2299,6 +2309,9 @@ function lancForm(l,tipoDefault){
         :`<div class="scope-box" style="justify-content:flex-end"><button type="submit" class="btn pri">${isNew?"Salvar lançamento":"Salvar alterações"}</button></div>`}
     </form>`,true,m=>{
       let anxPend=[];
+      const ehPix=f=>/pix/i.test(f||"");
+      var verPix=()=>{ const box=$("#lPixBox"); if(!box) return; const tem=ehPix($("#lForma").value)||(typeof parcs!=="undefined"&&cond==="p"&&parcs.some(p=>ehPix(p.forma)))||!!$("#lPix").value.trim(); box.hidden=!tem; };
+      setTimeout(()=>{ verPix(); $("#lForma").addEventListener("change",verPix); },0);
       const pendHTML=()=>{ $("#lAnxPend").innerHTML=anxPend.map((f,i)=>`<div class="anx-li pend"><span class="anx-ico">📎</span><span class="anx-nome"><b>${esc(f.name)}</b><small>${tamTxt(f.size)} · será anexado ao salvar</small></span><button type="button" class="icon-btn" data-anx-tira="${i}">Tirar</button></div>`).join(""); };
       $("#lAnxIn").addEventListener("change",e=>{ const fs=[...e.target.files]; const er=validarAnexos(fs); if(er){ toast(er); e.target.value=""; return; } anxPend.push(...fs); e.target.value=""; pendHTML(); });
       $("#lAnxPend").addEventListener("click",e=>{ const b=e.target.closest("[data-anx-tira]"); if(b){ anxPend.splice(+b.dataset.anxTira,1); pendHTML(); } });
@@ -2352,12 +2365,16 @@ function lancForm(l,tipoDefault){
       /* parcelas */
       let cond="1", parcs=[];
       const drawParcs=()=>{ const box=$("#lParcs"); if(!box) return;
-        box.innerHTML=parcs.length?`<div class="pr pr-h"><span>Parcela</span><span>Data do pagamento</span><span>Valor (R$)</span></div>`+parcs.map((p,i)=>`<div class="pr"><span class="num">${i+1}/${parcs.length}</span><input type="date" data-pi="${i}" data-pf="venc" value="${esc(p.venc)}" aria-label="Data da parcela ${i+1}"><input type="text" inputmode="decimal" data-pi="${i}" data-pf="valor" value="${moneyIn(p.valor)}" aria-label="Valor da parcela ${i+1}"></div>`).join(""):'<div class="note">Informe o valor total, a quantidade e a 1ª data.</div>';
-        somaParcs(); };
+        box.innerHTML=parcs.length?`<div class="pr pr4 pr-h"><span>Parcela</span><span>Data do pagamento</span><span>Valor (R$)</span><span>Forma</span></div>`+parcs.map((p,i)=>`<div class="pr pr4"><span class="num">${i+1}/${parcs.length}${p.sinal?'<small class="sinal-tag">sinal</small>':""}</span><input type="date" data-pi="${i}" data-pf="venc" value="${esc(p.venc)}" aria-label="Data da parcela ${i+1}"><input type="text" inputmode="decimal" data-pi="${i}" data-pf="valor" value="${moneyIn(p.valor)}" aria-label="Valor da parcela ${i+1}"><select data-pi="${i}" data-pf="forma" aria-label="Forma da parcela ${i+1}">${FORMAS_PAG.map(f=>opt(f,f,p.forma||$("#lForma").value)).join("")}</select></div>`).join(""):'<div class="note">Informe o valor total, a quantidade e a 1ª data.</div>';
+        somaParcs(); verPix(); };
       const somaParcs=()=>{ const el=$("#lParcSum"); if(!el) return; if(!parcs.length){ el.textContent=""; return; } const s=parcs.reduce((a,p)=>a+(p.valor||0),0), tot=parseMoney($("#lValor").value); el.innerHTML=`Soma das parcelas: <b class="num ${tot>0&&s!==tot?"neg":""}">${fmt(s)}</b>${tot>0&&s!==tot?` — diferente do valor total (${fmt(tot)})`:""}. Você pode ajustar datas e valores de cada parcela.`; };
       const genParcs=()=>{ if(cond!=="p") return; const n=parseInt($("#lN").value)||0, tot=parseMoney($("#lValor").value), d1=$("#lP1").value;
         if(!(n>=2&&n<=60)||!d1){ parcs=[]; drawParcs(); return; }
-        const b=tot>0?Math.floor(tot/n):0; parcs=Array.from({length:n},(_,i)=>({venc:addMonthsDate(d1,i),valor:tot>0?(i===n-1?tot-b*(n-1):b):0})); drawParcs(); };
+        const fG=$("#lForma").value||"Boleto", sinal=parseMoney(($("#lSinal")||{}).value||"")||0, fS=($("#lSinalF")||{}).value||fG;
+        if(sinal>0&&tot>sinal){ const m=n-1, rest=tot-sinal, b2=Math.floor(rest/m);
+          parcs=[{venc:d1,valor:sinal,forma:fS,sinal:true},...Array.from({length:m},(_,i)=>({venc:addMonthsDate(d1,i+1),valor:i===m-1?rest-b2*(m-1):b2,forma:fG}))]; }
+        else { const b=tot>0?Math.floor(tot/n):0; parcs=Array.from({length:n},(_,i)=>({venc:addMonthsDate(d1,i),valor:tot>0?(i===n-1?tot-b*(n-1):b):0,forma:fG})); }
+        drawParcs(); };
       if(isNew){
         const recPrev=()=>{ if(cond!=="rf"&&cond!=="rv") return; const v=parseMoney($("#lValor").value), r1=$("#lR1").value, fim=$("#lRFim").value;
           $("#lRInfo").innerHTML = cond==="rf" ? "<b>Recorrente fixa:</b> o mesmo valor é lançado todo mês. Para mudar, edite um mês e escolha se vale só para ele, dali em diante ou para todos." : "<b>Recorrente variável:</b> todo mês aparece um lançamento para você digitar o valor daquele mês (direto na lista ou editando). O valor de um mês não altera os outros. O valor acima é só uma estimativa, opcional.";
@@ -2369,7 +2386,9 @@ function lancForm(l,tipoDefault){
         $("#lR1").addEventListener("change",recPrev); $("#lRFim").addEventListener("change",recPrev); $("#lValor").addEventListener("input",recPrev);
         m.querySelectorAll("[data-cd]").forEach(b=>b.addEventListener("click",()=>setCond(b.dataset.cd)));
         $("#lN").addEventListener("input",genParcs); $("#lP1").addEventListener("change",genParcs); $("#lValor").addEventListener("input",()=>{ if(cond==="p") genParcs(); });
-        $("#lParcs").addEventListener("input",e=>{ const t=e.target; if(!t.dataset.pi) return; const p=parcs[+t.dataset.pi]; if(!p) return; if(t.dataset.pf==="venc") p.venc=t.value; else { const v=parseMoney(t.value); p.valor=isFinite(v)?v:0; } somaParcs(); });
+        $("#lParcs").addEventListener("input",e=>{ const t=e.target; if(!t.dataset.pi) return; const p=parcs[+t.dataset.pi]; if(!p) return; if(t.dataset.pf==="venc") p.venc=t.value; else if(t.dataset.pf==="forma"){ p.forma=t.value; verPix(); } else { const v=parseMoney(t.value); p.valor=isFinite(v)?v:0; } somaParcs(); });
+        $("#lSinal").addEventListener("input",genParcs); $("#lSinalF").addEventListener("change",genParcs);
+        $("#lForma").addEventListener("change",()=>{ if(cond==="p") genParcs(); });
       }
       /* excluir */
       const bd=$("#lDel"); if(bd) bd.addEventListener("click",()=>confirmBtn(bd,"Confirmar exclusão",async()=>{ try{ const rc=l.recId&&S.rec.find(x=>x.id===l.recId); if(rc) await save("rec",rc.id,{...rc,pulados:[...new Set([...(rc.pulados||[]),compOf(l)])]}); await del("lanc",l.id); closeModal(); toast("Lançamento excluído"); }catch(e){} }));
@@ -2409,7 +2428,8 @@ function lancForm(l,tipoDefault){
         try{
           let fnovo=null;
           if(novoForn){ fnovo=await criarForn(fornFieldsRead("lf")); fid=fnovo.id; }
-          const base={tipo,descricao:desc,categoria:$("#lCat").value,centro:$("#lCen").value,forma:$("#lForma").value,fornecedorId:fid,obs:$("#lObs").value.trim(),dataLanc,competencia:mkey(dataLanc)};
+          const base={tipo,descricao:desc,categoria:$("#lCat").value,centro:$("#lCen").value,forma:$("#lForma").value,fornecedorId:fid,obs:$("#lObs").value.trim(),dataLanc,competencia:mkey(dataLanc),pix:$("#lPix").value.trim()};
+          if(base.pix&&fid){ const fo=S.forn.find(f=>f.id===fid); if(fo&&fo.pix!==base.pix){ try{ const {id:_f,...fr}=fo; await save("forn",fid,{...fr,pix:base.pix}); }catch(e){} } }
           const qtdV=(tipo==="receita"&&l&&+l.qtdVendas)||0;
           if(!isNew){
             const vOk = varv ? (valor>0?valor:(l.valor||0)) : valor;
@@ -2432,7 +2452,7 @@ function lancForm(l,tipoDefault){
               alvoAnx=newId("lanc"); await save("lanc",alvoAnx,{...base,qtdVendas:qtdV,valor,venc,pago:$("#lJaPago").checked?venc:null,numero,parcela:"",criadoPor,criado});
             } else {
               const g=rid();
-              for(let i=0;i<parcs.length;i++){ const pid=newId("lanc"); if(i===0) alvoAnx=pid; await save("lanc",pid,{...base,qtdVendas:i===0?qtdV:0,valor:parcs[i].valor,venc:parcs[i].venc,pago:null,numero,parcela:`${i+1}/${parcs.length}`,grupoRec:g,criadoPor,criado}); }
+              for(let i=0;i<parcs.length;i++){ const pid=newId("lanc"); if(i===0) alvoAnx=pid; await save("lanc",pid,{...base,qtdVendas:i===0?qtdV:0,valor:parcs[i].valor,venc:parcs[i].venc,forma:parcs[i].forma||base.forma,sinal:!!parcs[i].sinal,pix:/pix/i.test(parcs[i].forma||base.forma)?base.pix:"",pago:null,numero,parcela:`${i+1}/${parcs.length}${parcs[i].sinal?" (sinal)":""}`,grupoRec:g,criadoPor,criado}); }
             }
             toast(`Lançamento #${numero} salvo${cond==="p"?` em ${parcs.length} parcelas`:cond==="rf"?" — recorrente fixa, gerada mês a mês":cond==="rv"?" — recorrente variável: informe o valor a cada mês":""}${fnovo?` · fornecedor ${fnovo.codigo} cadastrado`:""}`);
           }
@@ -3476,7 +3496,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 59 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 61 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4333,7 +4353,7 @@ document.addEventListener("click",async e=>{
     if((v==="pagar"||v==="receber")&&st){ ui.c.status=st; ui.c.mes=""; }
     saveUi(); render(); window.scrollTo(0,0); return; }
   if(act==="del-ag"&&isAdm()){ const ag=S.ag.find(x=>x.id===id); if(ag) confirmBtn(a,"Confirmar exclusão",()=>del("ag",id).then(()=>{ toast("Compromisso excluído"); }).catch(()=>{})); return; }
-  if(act==="ord"){ const t=a.dataset.t, k=a.dataset.k, o=ordemDe(t); ui.sort=ui.sort||{}; ui.sort[t]={k,dir:o.k===k?(o.dir==="desc"?"asc":"desc"):(k==="data"||k==="valor"||k==="numero"||k==="pagamento"||k==="venc"?"desc":"asc")}; render(); return; }
+  if(act==="ord"){ const t=a.dataset.t, k=a.dataset.k, o=ordemDe(t); ui.sort=ui.sort||{}; ui.sort[t]={k,dir:o.k===k?(o.dir==="desc"?"asc":"desc"):(["data","valor","numero","pagamento","venc","mes","venda","taxa"].includes(k)?"desc":"asc")}; render(); return; }
   if(act==="lojas-vis"){ ui.lojasVis=a.dataset.v; render(); return; }
   if(act==="kb-nova"&&isAdm()){ lojaForm(null,a.dataset.st); return; }
   if(act==="raio-centro"&&isAdm()){ RAIO_MARCANDO=true; const el=$("#mapaLojas"); if(el) el.style.cursor="crosshair"; const i=$("#raioInfo"); if(i) i.textContent="Clique no mapa onde fica o centro do seu raio de operação."; return; }
@@ -4343,6 +4363,7 @@ document.addEventListener("click",async e=>{
   if(act==="raio-limpar"&&isAdm()){ const cfgN={...(S.cfg||{})}; delete cfgN.categorias; delete cfgN.raioOp; saveCfg(cfgN).then(()=>toast("Raio removido")); return; }
   if(act==="geo-todas"&&isAdm()){ const ls=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)); a.disabled=true; (async()=>{ let ok=0, n=0; for(const l of ls){ n++; a.textContent=`Procurando ${n}/${ls.length}…`; if(await geocodificarLoja(l.id,l)) ok++; } toast(ok?`${ok} de ${ls.length} loja(s) localizada(s)`:"Não encontramos — use “Marcar no mapa”."); a.disabled=false; a.textContent="Procurar endereços de novo"; })(); return; }
   if(act==="geo-marcar"&&isAdm()){ MARCAR_LOJA=id; const el=$("#mapaLojas"); if(el){ el.style.cursor="crosshair"; el.scrollIntoView({behavior:"smooth",block:"center"}); } const l=S.lojas.find(x=>x.id===id); toast(`Clique no mapa onde fica ${l?lojaNome(l):"a loja"}`); return; }
+  if(act==="pix-copiar"){ const v=a.dataset.v; (navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast("Chave Pix copiada"),()=>{ const t=document.createElement("textarea"); t.value=v; document.body.appendChild(t); t.select(); try{ document.execCommand("copy"); toast("Chave Pix copiada"); }catch(e){ toast(v); } t.remove(); }); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
   if(act==="anx-baixar"){ baixarAnexo(id,a); return; }
