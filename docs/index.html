@@ -566,6 +566,15 @@ tr.sel-on td{background:var(--accent-soft)!important}
 .rota-li{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid var(--line);font-size:12.5px}.rota-li small{display:block;color:var(--muted);font-size:11px}
 .rota-n{flex:0 0 22px;height:22px;border-radius:50%;background:#1E1E1E;color:#00BF63;font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center}
 .rota-num span{display:flex;width:24px;height:24px;border-radius:50%;background:#1E1E1E;color:#00BF63;border:2px solid #fff;font-weight:800;font-size:12px;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+table.cmv select.cmv-cat{max-width:200px;font-size:12px}
+.env-grid{display:grid;grid-template-columns:260px 1fr;gap:14px;align-items:start}@media (max-width:860px){.env-grid{grid-template-columns:1fr}}
+.env-ts{display:flex;flex-direction:column;gap:6px}.env-t-item{position:relative;text-align:left;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);cursor:pointer;font:inherit;color:var(--ink)}.env-t-item small{display:block;color:var(--muted);font-size:11px}.env-t-item.on{border-color:#00BF63;background:#E3F8EC}.env-t-item .badge{position:absolute;right:8px;top:8px}
+.env-lista{max-height:56vh;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:4px 2px 10px}
+.env-msg{display:flex}.env-msg.meu{justify-content:flex-end}.env-b{max-width:640px;width:min(640px,92%);border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}
+.env-msg.meu .env-b{background:#F2FBF6;border-color:#BDEFD3}.env-msg.lanc .env-b{opacity:.85}
+.env-t{display:flex;justify-content:space-between;gap:8px;align-items:center}.env-v{margin-top:3px;font-size:13px}.env-o{margin-top:5px;background:var(--surface-2);border-radius:6px;padding:5px 8px;font-size:12.5px}
+.env-st{display:flex;flex-direction:column;gap:2px;margin-top:8px;font-size:11.5px;color:var(--muted)}.env-st .ok{color:#0B5A33;font-weight:600}.env-st .aguarda{color:#8A5A00}
+.env-comp{border-top:1px solid var(--line);margin-top:6px;padding-top:12px;display:flex;flex-direction:column;gap:8px}.env-comp .row3{display:grid;grid-template-columns:1fr 1fr 170px;gap:10px}.env-comp .row{display:grid;grid-template-columns:190px 1fr;gap:10px}.env-comp .field{margin:0}@media (max-width:700px){.env-comp .row3,.env-comp .row{grid-template-columns:1fr}}.env-acoes{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}.env-acoes .btn.pri{margin-left:auto}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -811,7 +820,7 @@ const statusPill = l => `<span class="pill st-${statusOf(l)}">${statusTxt(l)}</s
 /* ---------- data layer ---------- */
 const COL = {div:"divisoes",lanc:"lancamentos", forn:"fornecedores", ag:"agenda", lojas:"lojas", usr:"usuarios", rec:"recorrencias"};
 function clean(o){ const r={}; for(const k in o){ if(k!=="id"&&o[k]!==undefined) r[k]=o[k]; } return r; }
-const ROT={div:"Divisão de CMV",lanc:"Lançamento",forn:"Fornecedor",ag:"Compromisso",lojas:"Loja",rec:"Recorrência",usr:"Usuário"};
+const ROT={div:"Rateio de despesas",lanc:"Lançamento",forn:"Fornecedor",ag:"Compromisso",lojas:"Loja",rec:"Recorrência",usr:"Usuário"};
 function checarEscrita(){ if(S.role==="ro"){ toast("Somente leitura — você não pode alterar dados aqui."); throw new Error("ro"); } }
 function logRede(kind,id,modo,data){ if(!masterRede()) return; const am=S.tenant&&S.tenant.acessoMaster; const r=data&&(data.descricao||data.condominio||data.empresa||data.nome)||id; diario("Alteração autorizada",`${ROT[kind]||kind} ${modo}: ${r}`,{cat:"alteracao",chamadoId:(am&&am.chamadoId)||""}); }
 async function save(kind,id,data){
@@ -850,6 +859,8 @@ function agendarCodigos(){ clearTimeout(codT); codT=setTimeout(async()=>{
 
 /* ---------- nav ---------- */
 const ICONS = {
+  envios:'<path d="M4 4h16v12H5.2L4 17.2z"/><path d="M8 9h8M8 12h5"/><path d="m15 18 2 2 4-4"/>',
+  enviosrede:'<path d="M4 4h16v12H5.2L4 17.2z"/><path d="M8 9h8M8 12h5"/><path d="m15 18 2 2 4-4"/>',
   cmv:'<path d="M4 7h16l-1.5 11a2 2 0 0 1-2 1.7h-9a2 2 0 0 1-2-1.7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><path d="M12 11v6M9 14h6"/>',
   chamadosrede:'<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/>',
   painel:'<path d="M3 13h7V3H3zM14 21h7V11h-7zM3 21h7v-5H3zM14 7h7V3h-7z"/>',
@@ -875,16 +886,19 @@ const ICONS = {
 };
 const VIEWS_T = [
   ["painel","Dashboard"],["receber","Contas a receber"],["pagar","Contas a pagar"],["fluxo","Fluxo de caixa"],["dre","DRE financeiro"],
-  ["sep"],["cmv","Divisão de CMV"],["lancamentos","Lançamentos"],["fornecedores","Fornecedores"],["agenda","Agenda"],["lojas","Lojas"],["sep"],["chamados","Chamados"],["usuarios","Usuários"],["config","Configurações"]
+  ["sep"],["cmv","Rateio de despesas"],["lancamentos","Lançamentos"],["fornecedores","Fornecedores"],["agenda","Agenda"],["lojas","Lojas"],["sep"],["envios","Envio de contas"],["chamados","Chamados"],["usuarios","Usuários"],["config","Configurações"]
 ];
-function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["chamadosrede","Chamados"],["rede","Franqueados"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Histórico da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus franqueados"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Franqueados"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]); }
-  const v=[]; if(S.tid) VIEWS_T.forEach(x=>{ if(["chamados","diario","usuarios"].includes(x[0])&&!(gestorFranq()||plat())) return; if(VIEW_MOD[x[0]]&&nivel(VIEW_MOD[x[0]])<1) return; if(x[0]==="sep"&&(!v.length||v[v.length-1][0]==="sep")) return; v.push(x); }); while(v.length&&v[v.length-1][0]==="sep") v.pop(); return v; }
+function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["rede","Franqueados"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Histórico da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus franqueados"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Franqueados"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]); }
+  const v=[]; if(S.tid) VIEWS_T.forEach(x=>{ if(["chamados","diario","usuarios"].includes(x[0])&&!(gestorFranq()||plat())) return; if(x[0]==="envios"&&!temBpo()) return; if(VIEW_MOD[x[0]]&&nivel(VIEW_MOD[x[0]])<1) return; if(x[0]==="sep"&&(!v.length||v[v.length-1][0]==="sep")) return; v.push(x); }); while(v.length&&v[v.length-1][0]==="sep") v.pop(); return v; }
 function renderNav(){
   const VIEWS=viewsOk(); const ladoT=plat()?"rede":"franq";
   const pend=S.cham.filter(c=>(c.status==="aberto"&&souAtCh(c))||chNaoLido(c)||(souDonoCh(c)&&c.acesso&&c.acesso.status==="pedido"&&c.status==="atendimento")).length;
+  const meuId=S.me&&S.me.id; const tB=id=>(S.tenants.find(t=>t.id===id)||(S.tenant&&S.tenant.id===id?S.tenant:{})||{}).bpoUid;
+  const envNovos=ehBpo()?(S.envRede||[]).filter(e=>!e.recebidoEm&&tB(e.tid)===meuId).length:0;
+  const envNovosT=bpoTenant()?(S.envios||[]).filter(e=>!e.recebidoEm).length:0;
   const pendRede=(S.chamRede||[]).filter(c=>(c.status==="aberto"&&souAtCh(c))||(c.status==="atendimento"&&chNaoLido(c))).length;
   $("#nav").innerHTML = VIEWS.map(v=> v[0]==="sep" ? '<div class="sep"></div>' :
-    `<button data-nav="${v[0]}" ${ui.view===v[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[v[0]]}</svg>${v[1]}${v[0]==="pagar"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa").length}</span>`:""}${v[0]==="receber"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita").length}</span>`:""}${v[0]==="chamados"&&pend?`<span class="badge">${pend}</span>`:""}${v[0]==="chamadosrede"&&pendRede?`<span class="badge">${pendRede}</span>`:""}</button>`).join("");
+    `<button data-nav="${v[0]}" ${ui.view===v[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[v[0]]}</svg>${v[1]}${v[0]==="pagar"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa").length}</span>`:""}${v[0]==="receber"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita").length}</span>`:""}${v[0]==="chamados"&&pend?`<span class="badge">${pend}</span>`:""}${v[0]==="chamadosrede"&&pendRede?`<span class="badge">${pendRede}</span>`:""}${v[0]==="enviosrede"&&envNovos?`<span class="badge">${envNovos}</span>`:""}${v[0]==="envios"&&envNovosT?`<span class="badge">${envNovosT}</span>`:""}</button>`).join("");
 }
 
 /* ---------- options builders ---------- */
@@ -1032,7 +1046,7 @@ function alertasDash(cc){
   try{ const d=dreCalc(mkey(HOJE).slice(0,4)+"-01",mkey(HOJE),"competencia",cc); const n=Object.keys(d.semTaxa||{}).length;
     if(n) add("aviso","%",`Taxa de cartão não cadastrada (${n})`,"vendas sem o desconto da taxa","lojas",""); }catch(e){}
   if(+HOJE.slice(8,10)>=5&&S.lojas.some(lojaAtiva)&&fatMes(mkey(HOJE),cc)===0) add("aviso","$",`Nenhuma venda lançada em ${mlabel(mkey(HOJE))}`,"lance as vendas do mês","lancamentos","");
-  const rasc=(S.div||[]).filter(d=>d.status!=="lancado"&&(+d.total||0)>0); if(rasc.length) add("aviso","⇄",`${rasc.length} compra(s) da Divisão de CMV não lançada(s)`,"","cmv","");
+  const rasc=(S.div||[]).filter(d=>d.status!=="lancado"&&(+d.total||0)>0); if(rasc.length) add("aviso","⇄",`${rasc.length} rateio(s) de despesas não lançado(s)`,"","cmv","");
   const ch=(S.cham||[]).filter(c=>chNaoLido(c)||(c.status==="aberto"&&souAtCh(c))||(souDonoCh(c)&&c.status==="atendimento"&&c.acesso&&c.acesso.status==="pedido"));
   if(ch.length) add("info","✉",`${ch.length} chamado(s) aguardando você`,"mensagem nova ou pedido de acesso","chamados","");
   const chip=a=>`<button type="button" class="al-chip al-${a.nivel}" data-act="alerta-ir" data-v="${a.view}" data-s="${a.status}"><span class="al-ico">${esc(a.ico)}</span><span><b>${esc(a.txt)}</b>${a.sub?`<small>${esc(a.sub)}</small>`:""}</span><span class="al-ir">›</span></button>`;
@@ -1464,7 +1478,7 @@ function vChamadosRede(){
 }
 function resumoNotas(lista){ const av=lista.filter(c=>c.nota); if(!av.length) return ""; const m=av.reduce((a,c)=>a+ +c.nota,0)/av.length;
   return `<div class="banner info" style="margin-bottom:10px">Avaliação média dos atendimentos: <b>${m.toLocaleString("pt-BR",{maximumFractionDigits:1})} de 5</b> ${estrelas(Math.round(m))} (${av.length} avaliação(ões))</div>`; }
-/* ---------- Divisão de CMV: uma compra dividida entre as lojas ---------- */
+/* ---------- Rateio de despesas (antes: Divisão de CMV) ---------- */
 S.div=S.div||[];
 const lojasCmv = () => lojasOrd().filter(lojaAtiva);
 function calcCmv(d){
@@ -1488,7 +1502,7 @@ function vCmv(){
     return `<tr class="${lanc?"cmv-ok":""}" data-cmv="${d.id}">
       <td class="num note">#${esc(d.numero||"")}</td>
       ${cel(d,inp("data","date",d.data))}
-      ${cel(d,inp("descricao","text",d.descricao,"Ex.: Atacadão semana 1",'style="min-width:150px"')+`<div style="margin-top:4px">${inp("fornecedor","text",d.fornecedor,"Fornecedor (opcional)",'style="min-width:150px"')}</div>`)}
+      ${cel(d,inp("descricao","text",d.descricao,"Ex.: Combustível semana 1",'style="min-width:160px"')+`<div style="margin-top:4px"><select class="cmv-in cmv-cat" data-id="${d.id}" data-c="categoria" ${dis} title="Categoria da despesa">${catOptions("despesa",d.categoria||"cmv_merc")}</select></div><div style="margin-top:4px">${inp("fornecedor","text",d.fornecedor,"Fornecedor (opcional)",'style="min-width:160px"')}</div>`)}
       ${cel(d,inp("venc","date",d.venc)+`<div style="margin-top:4px"><select class="cmv-in" data-id="${d.id}" data-c="forma" ${dis}>${FORMAS_PAG.map(f=>opt(f,f,d.forma||"Boleto")).join("")}</select></div>`)}
       <td class="r">${inp("total","text",d.total?fmtIn(d.total):"","0,00",'inputmode="decimal" style="width:110px;text-align:right;font-weight:700"')}
         <div class="seg cmv-modo" style="margin-top:4px">${[["valor","R$"],["pct","%"]].map(([v,t])=>`<button type="button" data-act="cmv-modo" data-id="${d.id}" data-v="${v}" aria-pressed="${(d.modo||"pct")===v}" ${dis}>${t}</button>`).join("")}</div></td>
@@ -1500,26 +1514,26 @@ function vCmv(){
         : ed?`<button class="btn sm pri" data-act="cmv-lancar" data-id="${d.id}" ${c.ok?"":"disabled"} title="${c.ok?"Lança a parte de cada loja em Contas a pagar":"Divida 100% do valor para liberar"}">Lançar em contas a pagar</button><div style="margin-top:4px"><button class="icon-btn" data-act="cmv-excluir" data-id="${d.id}" aria-label="Excluir">Excluir</button></div>`:""}</td>
     </tr>`; };
   const fechadas=rasc.filter(d=>calcCmv(d).ok).length;
-  const cabFixo=`<tr><th>#</th><th>Data</th><th>Descrição / fornecedor</th><th>Vencimento / forma</th><th class="r">Valor total</th>${lj.map(l=>`<th class="r">${esc(lojaNome(l))}</th>`).join("")}<th class="r">Restante</th><th></th></tr>`;
-  const cardRasc = ed||rasc.length ? `<div class="panel cmv-card"><h2 class="cmv-card-h"><span>Compras a dividir<small>${rasc.length?`${rasc.length} em preenchimento${fechadas?` · ${fechadas} pronta(s) para lançar`:""}`:"preencha e lance em Contas a pagar"}</small></span>${ed?`<button class="btn pri sm" data-act="cmv-nova">+ Nova compra</button>`:""}</h2>
+  const cabFixo=`<tr><th>#</th><th>Data</th><th>Descrição / categoria / fornecedor</th><th>Vencimento / forma</th><th class="r">Valor total</th>${lj.map(l=>`<th class="r">${esc(lojaNome(l))}</th>`).join("")}<th class="r">Restante</th><th></th></tr>`;
+  const cardRasc = ed||rasc.length ? `<div class="panel cmv-card"><h2 class="cmv-card-h"><span>Despesas a ratear<small>${rasc.length?`${rasc.length} em preenchimento${fechadas?` · ${fechadas} pronto(s) para lançar`:""}`:"preencha e lance em Contas a pagar"}</small></span>${ed?`<button class="btn pri sm" data-act="cmv-nova">+ Novo rateio</button>`:""}</h2>
       ${rasc.length?`<div class="tbl-wrap"><table class="cmv"><thead>${cabFixo}</thead><tbody>${rasc.map(linha).join("")}</tbody></table></div>`
-        :`<div class="cmv-vazio">Nenhuma compra em preenchimento.</div>`}
-      ${rasc.length?'<p class="note" style="margin:8px 0 0">Digite a parte de cada loja em <b>%</b> ou em <b>R$</b>. Quando o Restante mostrar ✓ fechado, clique em <b>Lançar em contas a pagar</b> — a compra vai para a lista abaixo.</p>':""}</div>` : "";
-  return header("Divisão de CMV","Divida uma compra de mercadorias entre as lojas e lance a parte de cada uma em Contas a pagar, na categoria Compra de mercadorias.",
+        :`<div class="cmv-vazio">Nenhum rateio em preenchimento.</div>`}
+      ${rasc.length?'<p class="note" style="margin:8px 0 0">Digite a parte de cada loja em <b>%</b> ou em <b>R$</b>. Quando o Restante mostrar ✓ fechado, clique em <b>Lançar em contas a pagar</b> — o rateio vai para a lista abaixo.</p>':""}</div>` : "";
+  return header("Rateio de despesas","Rateie uma despesa entre as lojas — compra de mercadorias, combustível, manutenção, sacolas… — e lance a parte de cada uma em Contas a pagar, na categoria escolhida.",
      `<button class="btn" data-act="cmv-modelo">Modelo de planilha</button>`+(ed?`<button class="btn" data-act="cmv-importar">Importar planilha</button><input type="file" id="cmvFile" accept=".xlsx,.xls,.csv" hidden>${fechadas?`<button class="btn" data-act="cmv-lancar-todas">Lançar todas as fechadas (${fechadas})</button>`:""}`:""))
    + banners()
    + (!lj.length?'<div class="banner lib-banner">Cadastre ao menos uma loja ativa em Lojas para dividir compras.</div>':"")
    + cardRasc
    + `<div class="toolbar dash-per" style="margin-top:6px">${periodoFiltro("cmv")}</div>`
-   + `<div class="panel"><h2>Compras lançadas<small>${rows.length} no período · ${fmt(totGeral)}</small></h2>`
-   + `<div class="tbl-wrap"><table class="cmv"><thead><tr>${thS("cmv","numero","#")}${thS("cmv","data","Data")}${thS("cmv","descricao","Descrição / fornecedor")}${thS("cmv","venc","Vencimento / forma")}${thS("cmv","valor","Valor total","r")}${lj.map(l=>thS("cmv","l_"+l.id,esc(lojaNome(l)),"r")).join("")}${thS("cmv","restante","Restante","r")}<th></th></tr></thead>
-      <tbody>${rows.map(linha).join("")||`<tr><td colspan="${7+lj.length}" class="empty">Nenhuma compra lançada neste período.</td></tr>`}</tbody>
+   + `<div class="panel"><h2>Rateios lançados<small>${rows.length} no período · ${fmt(totGeral)}</small></h2>`
+   + `<div class="tbl-wrap"><table class="cmv"><thead><tr>${thS("cmv","numero","#")}${thS("cmv","data","Data")}${thS("cmv","descricao","Descrição")}${'' /* categoria fica na mesma célula */}${thS("cmv","venc","Vencimento / forma")}${thS("cmv","valor","Valor total","r")}${lj.map(l=>thS("cmv","l_"+l.id,esc(lojaNome(l)),"r")).join("")}${thS("cmv","restante","Restante","r")}<th></th></tr></thead>
+      <tbody>${rows.map(linha).join("")||`<tr><td colspan="${7+lj.length}" class="empty">Nenhum rateio lançado neste período.</td></tr>`}</tbody>
       ${rows.length?`<tfoot><tr><td colspan="4">Total do período</td><td class="r num">${fmt(totGeral)}</td>${lj.map(l=>`<td class="r num">${fmt(tot[l.id]||0)}</td>`).join("")}<td></td><td></td></tr></tfoot>`:""}</table></div>
-     <p class="note" style="margin:8px 0 0">Cada loja recebe um lançamento de <b>Compra de mercadorias</b> com a parte dela, que aparece em Contas a pagar, no Fluxo e no DRE (CMV). Para corrigir uma compra lançada, use <b>Desfazer</b>: ela volta para o card de cima.</p></div>`;
+     <p class="note" style="margin:8px 0 0">Cada loja recebe um lançamento na <b>categoria escolhida</b> com a parte dela, que aparece em Contas a pagar, no Fluxo e no DRE. Para corrigir um rateio lançado, use <b>Desfazer</b>: ele volta para o card de cima.</p></div>`;
 }
 async function salvarCmv(d,patch){ const n={...d,...patch}; delete n.id; await save("div",d.id,n); }
 async function novaCmv(){ const numero=(S.div||[]).reduce((a,x)=>Math.max(a,+x.numero||0),0)+1; const dia=HOJE;
-  try{ await save("div",newId("div"),{numero,data:dia,venc:dia,forma:"Boleto",modo:"pct",total:0,partes:{},status:"rascunho",descricao:"",fornecedor:"",criado:new Date().toISOString(),criadoPor:(S.me&&S.me.id)||null}); atualizarTabelas("divisoes"); }catch(e){} }
+  try{ await save("div",newId("div"),{numero,data:dia,venc:dia,forma:"Boleto",modo:"pct",total:0,partes:{},status:"rascunho",descricao:"",categoria:"cmv_merc",fornecedor:"",criado:new Date().toISOString(),criadoPor:(S.me&&S.me.id)||null}); atualizarTabelas("divisoes"); }catch(e){} }
 function lerCampoCmv(d,campo,valor){
   if(campo==="total") { const v=reaisCent(valor); return {total:v==null||isNaN(v)?0:v}; }
   if(campo.startsWith("p_")){ const lid=campo.slice(2); const pt={...(d.partes||{})}; let v;
@@ -1542,13 +1556,14 @@ async function lancarCmv(d,btn){
     let numero=Math.max(proxNumero(),S._numReserva||0); const nLojas=Object.keys(c.out).length;
     for(const [lid,v] of Object.entries(c.out)){ if(!(v>0)) continue;
       const id=newId("lanc"); const pc=d.total?Math.round(v/d.total*10000)/100:0;
-      await save("lanc",id,{tipo:"despesa",descricao:`${String(d.descricao||"").trim()||"Compra de mercadorias"} — ${cenNome(lid)} (${pctTxt(pc)}%)`,valor:v,categoria:"cmv_merc",centro:lid,
+      const catR=d.categoria||"cmv_merc";
+      await save("lanc",id,{tipo:"despesa",descricao:`${String(d.descricao||"").trim()||(catBy(catR)||{}).nome||"Rateio de despesa"} — ${cenNome(lid)} (${pctTxt(pc)}%)`,valor:v,categoria:catR,centro:lid,
         dataLanc:d.data,venc:d.venc||d.data,competencia:d.data.slice(0,7),forma:d.forma||"Boleto",pago:null,fornecedorId:fid,parcela:"",numero:numero++,
-        obs:`Divisão de CMV #${d.numero}: compra de ${fmt(d.total)} dividida entre ${nLojas} loja(s).`,divisaoId:d.id,criado:new Date().toISOString(),criadoPor:(S.me&&S.me.id)||null});
+        obs:`Rateio de despesas #${d.numero}: ${(catBy(catR)||{}).nome||"despesa"} de ${fmt(d.total)} rateada entre ${nLojas} loja(s).`,divisaoId:d.id,criado:new Date().toISOString(),criadoPor:(S.me&&S.me.id)||null});
       ids.push(id); }
     S._numReserva=numero;
     await salvarCmv(d,{status:"lancado",lancIds:ids,lancadoEm:new Date().toISOString(),fornecedorId:fid});
-    diario("CMV dividido entre lojas",`Compra #${d.numero} (${d.descricao||"sem descrição"}): ${fmt(d.total)} → `+Object.entries(c.out).map(([l,v])=>`${cenNome(l)} ${fmt(v)}`).join(" · "),{cat:"lancamento"});
+    diario("Despesa rateada entre lojas",`Rateio #${d.numero} · ${(catBy(d.categoria||"cmv_merc")||{}).nome||""} (${d.descricao||"sem descrição"}): ${fmt(d.total)} → `+Object.entries(c.out).map(([l,v])=>`${cenNome(l)} ${fmt(v)}`).join(" · "),{cat:"lancamento"});
     atualizarTabelas("lancamentos","divisoes"); toast(`Lançado em ${ids.length} loja(s) — veja em Contas a pagar`);
   }catch(e){ btn.disabled=false; toast("Não foi possível lançar tudo: "+(e.message||"")+(ids.length?` (${ids.length} lançamento(s) criados — use Desfazer)`:"")); if(ids.length) await salvarCmv(d,{status:"lancado",lancIds:ids,lancadoEm:new Date().toISOString()}).catch(()=>{}); }
 }
@@ -1557,10 +1572,10 @@ async function desfazerCmv(d,btn){
   if(ls.some(l=>l.pago)){ toast("Alguma parte já foi paga. Volte essas contas para em aberto antes de desfazer."); return; }
   btn.disabled=true;
   try{ for(const l of ls) await del("lanc",l.id); await salvarCmv(d,{status:"rascunho",lancIds:[],lancadoEm:null});
-    diario("Divisão de CMV desfeita",`Compra #${d.numero}: ${ls.length} lançamento(s) removido(s) de Contas a pagar`,{cat:"lancamento"}); atualizarTabelas("lancamentos","divisoes"); toast("Lançamentos desfeitos — a compra voltou para edição"); }
+    diario("Rateio desfeito",`Rateio #${d.numero}: ${ls.length} lançamento(s) removido(s) de Contas a pagar`,{cat:"lancamento"}); atualizarTabelas("lancamentos","divisoes"); toast("Lançamentos desfeitos — a compra voltou para edição"); }
   catch(e){ btn.disabled=false; }
 }
-/* ---------- Divisão de CMV: modelo de planilha e importação ---------- */
+/* ---------- Rateio de despesas: modelo de planilha e importação ---------- */
 const FORMAS_CMV=FORMAS_PAG;
 async function baixarModeloCmv(btn){
   const txt0=btn.innerHTML; btn.disabled=true; btn.textContent="Gerando…";
@@ -1579,12 +1594,12 @@ async function baixarModeloCmv(btn){
       inpD:{font:{name:F,sz:10,color:{rgb:"0000FF"}},fill:{fgColor:{rgb:"FFF6C9"}},border:borda,numFmt:"dd/mm/yyyy"},
       inpN:{font:{name:F,sz:10,color:{rgb:"0000FF"}},fill:{fgColor:{rgb:"FFF6C9"}},border:borda,numFmt:"#,##0.00"},
       res:{font:{name:F,sz:10,bold:true},border:borda,numFmt:"#,##0.00"}};
-    const COLS=["Data da compra","Descrição","Fornecedor","Vencimento","Forma de pagamento","Valor total (R$)","Divisão em (% ou R$)",...lj.map(l=>lojaNome(l)),"Restante"];
+    const COLS=["Data","Descrição","Fornecedor","Vencimento","Forma de pagamento","Valor total (R$)","Divisão em (% ou R$)",...lj.map(l=>lojaNome(l)),"Restante","Categoria"];
     const nC=COLS.length, L=(c,r)=>X.utils.encode_cell({c,r});
     const ws={}; const put=(r,c,v,s,t)=>{ ws[L(c,r)]={v,t:t||(typeof v==="number"?"n":"s"),s}; };
-    for(let c=0;c<nC;c++){ put(0,c,c===0?"flux · Divisão de CMV — modelo de importação":"",st.titulo); put(1,c,c===0?`Gerado em ${dBR(HOJE)} · ${lj.length} loja(s) ativa(s)`:"",st.sub); }
+    for(let c=0;c<nC;c++){ put(0,c,c===0?"flux · Rateio de despesas — modelo de importação":"",st.titulo); put(1,c,c===0?`Gerado em ${dBR(HOJE)} · ${lj.length} loja(s) ativa(s)`:"",st.sub); }
     const dicas=["Como preencher: uma linha por compra, nas células amarelas. Datas no formato dd/mm/aaaa. Valores com vírgula (ex.: 1.250,00).",
-      `Forma de pagamento: ${FORMAS_CMV.join(", ")}. Divisão em: digite % (porcentagem de cada loja) ou R$ (valor de cada loja). Em %, a soma das lojas deve dar 100; em R$, deve dar o valor total.`,
+      `Forma de pagamento: ${FORMAS_CMV.join(", ")}. Divisão em: digite % (porcentagem de cada loja) ou R$ (valor de cada loja). Em %, a soma das lojas deve dar 100; em R$, deve dar o valor total. Categoria (última coluna): o nome de uma despesa do plano de contas, ex.: ${cfg().categorias.filter(c=>c.tipo==="despesa"&&!c.auto).slice(0,4).map(c=>c.nome).join(", ")}… Em branco = Compra de mercadorias.`,
       "As linhas cinza começando com EXEMPLO são ignoradas na importação — pode apagá-las. Não altere a linha de cabeçalho nem a linha de códigos das lojas (logo abaixo dela)."];
     dicas.forEach((t,i)=>{ for(let c=0;c<nC;c++) put(2+i,c,c===0?t:"",st.dica); });
     const H=6; COLS.forEach((t,c)=>put(H,c,t,c>=7&&c<7+lj.length?st.cabLoja:st.cab));
@@ -1593,18 +1608,19 @@ async function baixarModeloCmv(btn){
     const exs=[["EXEMPLO Atacadão semana 1","Atacadão",10000,"%",lj.map((l,i)=>i===lj.length-1?100-Math.floor(100/lj.length)*(lj.length-1):Math.floor(100/lj.length))],
                ["EXEMPLO Distribuidora de bebidas","Bebidas SP",4800,"R$",lj.map((l,i)=>i===lj.length-1?4800-Math.floor(4800/lj.length)*(lj.length-1):Math.floor(4800/lj.length))]];
     exs.forEach((e,k)=>{ const r=H+2+k; put(r,0,dBR(HOJE),st.ex); put(r,1,e[0],st.ex); put(r,2,e[1],st.ex); put(r,3,dBR(HOJE),st.ex); put(r,4,"Boleto",st.ex); put(r,5,e[2],st.exN); put(r,6,e[3],st.ex);
-      e[4].forEach((v,i)=>put(r,7+i,v,st.exN)); put(r,7+lj.length,0,st.exN); });
+      e[4].forEach((v,i)=>put(r,7+i,v,st.exN)); put(r,7+lj.length,0,st.exN); put(r,8+lj.length,k===0?"Compra de mercadorias":((cfg().categorias.find(c=>/combust/i.test(c.nome))||{}).nome||"Compra de mercadorias"),st.ex); });
     const N=40, r0=H+4;
     for(let r=r0;r<r0+N;r++){ for(let c=0;c<7+lj.length;c++) put(r,c,"",c===0||c===3?st.inpD:c===5||c>=7?st.inpN:st.inp);
       const ini=X.utils.encode_col(7), fim=X.utils.encode_col(6+lj.length), lin=r+1;
+      put(r,8+lj.length,"",st.inp);
       ws[L(7+lj.length,r)]={t:"n",f:`IF(F${lin}="","",IF(UPPER(G${lin})="R$",F${lin}-SUM(${ini}${lin}:${fim}${lin}),100-SUM(${ini}${lin}:${fim}${lin})))`,s:st.res}; }
     ws["!ref"]=X.utils.encode_range({s:{c:0,r:0},e:{c:nC-1,r:r0+N-1}});
     ws["!merges"]=[0,1,2,3,4].map(r=>({s:{r,c:0},e:{r,c:nC-1}}));
-    ws["!cols"]=[{wch:13},{wch:30},{wch:20},{wch:13},{wch:15},{wch:14},{wch:12},...lj.map(()=>({wch:14})),{wch:12}];
+    ws["!cols"]=[{wch:13},{wch:30},{wch:20},{wch:13},{wch:15},{wch:14},{wch:12},...lj.map(()=>({wch:14})),{wch:12},{wch:26}];
     ws["!rows"]=[{hpt:26},{hpt:16},{hpt:28},{hpt:28},{hpt:28},{hpt:6},{hpt:30}];
     ws["!freeze"]={xSplit:2,ySplit:H+2};
     const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Compras");
-    X.writeFile(wb,`Modelo-Divisao-de-CMV-flux.xlsx`); toast("Modelo baixado");
+    X.writeFile(wb,`Modelo-Rateio-de-despesas-flux.xlsx`); toast("Modelo baixado");
   }catch(e){ toast("Não foi possível gerar o modelo: "+(e.message||"")); }
   finally{ btn.disabled=false; btn.innerHTML=txt0; }
 }
@@ -1623,8 +1639,8 @@ function lerPlanCmv(wb){
     const h=rows.findIndex(r=>r&&r.some(c=>/^valor\s*total/i.test(String(c||"").trim()))&&r.some(c=>/^descri/i.test(String(c||"").trim()))); if(h<0) continue;
     const cab=rows[h].map(c=>String(c||"").trim()), cod=(rows[h+1]||[]).map(c=>String(c||"").trim());
     const col=re=>cab.findIndex(c=>re.test(c));
-    const cD=col(/^data/i), cDe=col(/descri/i), cF=col(/fornec/i), cV=col(/venc/i), cFo=col(/forma/i), cT=col(/valor\s*total/i), cM=col(/divis/i);
-    const lojasCol=[]; cab.forEach((c,i)=>{ if(i<=Math.max(cT,cM)||/restante/i.test(c)||!c) return;
+    const cCat=col(/^categ/i), cD=col(/^data/i), cDe=col(/descri/i), cF=col(/fornec/i), cV=col(/venc/i), cFo=col(/forma/i), cT=col(/valor\s*total/i), cM=col(/divis/i);
+    const lojasCol=[]; cab.forEach((c,i)=>{ if(i<=Math.max(cT,cM)||/restante|categ/i.test(c)||!c) return;
       const idc=(cod[i]||"").startsWith("id:")?cod[i].slice(3):null; const l=(idc&&lojaBy(idc))||lj.find(x=>normTxt(lojaNome(x))===normTxt(c)||normTxt(x.codigo||"")===normTxt(c));
       lojasCol.push({i,nome:c,loja:l||null}); });
     const ini=(cod.some(c=>c.startsWith("id:")))?h+2:h+1;
@@ -1640,7 +1656,9 @@ function lerPlanCmv(wb){
       if(!data||data==="invalida") erros.push("data da compra inválida"); if(venc==="invalida") erros.push("vencimento inválido");
       if(tot==null||isNaN(tot)||tot<=0) erros.push("valor total inválido");
       const forma=FORMAS_CMV.find(f=>normTxt(f)===normTxt(String(row[cFo]??"")))||"Boleto";
-      const d={data,venc:venc==="invalida"?data:venc,descricao:desc,fornecedor:String(row[cF]??"").trim(),forma,modo,total:tot>0?tot:0,partes};
+      const catTxt=cCat>=0?String(row[cCat]??"").trim():""; let categoria="cmv_merc";
+      if(catTxt){ const cc=cfg().categorias.find(c=>c.tipo==="despesa"&&normTxt(c.nome)===normTxt(catTxt)); if(cc) categoria=cc.id; else erros.push(`categoria "${catTxt}" não encontrada no plano de contas`); }
+      const d={data,venc:venc==="invalida"?data:venc,descricao:desc,fornecedor:String(row[cF]??"").trim(),forma,modo,total:tot>0?tot:0,partes,categoria};
       linhas.push({linha:r+1,aba:nome,d,erros,calc:erros.length?null:calcCmv(d)});
     }
   }
@@ -1652,13 +1670,13 @@ async function importarCmvArquivo(file){
     const wb=X.read(await file.arrayBuffer(),{type:"array",cellDates:false});
     const ls=lerPlanCmv(wb); if(!ls.length){ toast("Nenhuma compra encontrada na planilha. Use o modelo (botão Modelo de planilha)."); return; }
     const lj=lojasCmv(); const ok=ls.filter(x=>!x.erros.length), fech=ok.filter(x=>x.calc.ok).length;
-    openModal(`<h2>Importar compras — prévia</h2>
+    openModal(`<h2>Importar rateios — prévia</h2>
       <p class="note" style="margin-top:0">${ls.length} compra(s) na planilha · <b>${ok.length}</b> válida(s) · <b>${fech}</b> fechando 100%${ls.length-ok.length?` · <span class="neg">${ls.length-ok.length} com erro (não serão importadas)</span>`:""}.</p>
       <div class="tbl-wrap" style="max-height:52vh;overflow:auto"><table class="cmv-prev"><thead><tr><th>Linha</th><th>Data</th><th>Descrição</th><th class="r">Total</th>${lj.map(l=>`<th class="r">${esc(lojaNome(l))}</th>`).join("")}<th>Situação</th></tr></thead><tbody>
-      ${ls.map(x=>`<tr class="${x.erros.length?"err-row":""}"><td class="num note">${x.linha}</td><td class="num">${x.d.data&&x.d.data!=="invalida"?dBR(x.d.data):"—"}</td><td>${esc(x.d.descricao||"")}${x.d.fornecedor?`<div class="meta">${esc(x.d.fornecedor)}</div>`:""}</td><td class="r num">${fmt(x.d.total)}</td>
+      ${ls.map(x=>`<tr class="${x.erros.length?"err-row":""}"><td class="num note">${x.linha}</td><td class="num">${x.d.data&&x.d.data!=="invalida"?dBR(x.d.data):"—"}</td><td>${esc(x.d.descricao||"")}<div class="meta">${esc((catBy(x.d.categoria)||{}).nome||"")}${x.d.fornecedor?" · "+esc(x.d.fornecedor):""}</div></td><td class="r num">${fmt(x.d.total)}</td>
         ${lj.map(l=>`<td class="r num">${x.calc&&x.calc.out[l.id]?fmt(x.calc.out[l.id]):"—"}</td>`).join("")}
         <td>${x.erros.length?`<span class="pill st-vencido">${esc(x.erros.join("; "))}</span>`:x.calc.ok?'<span class="pill st-pago">✓ fecha 100%</span>':`<span class="pill st-vence">falta ${esc(x.calc.txtResto)}</span>`}</td></tr>`).join("")}</tbody></table></div>
-      <label class="chkline" style="margin-top:10px"><input type="checkbox" id="impCmvLancar" ${fech?"checked":""} ${fech?"":"disabled"}> Lançar em Contas a pagar as compras que fecham 100% (as demais ficam na tela para você completar)</label>
+      <label class="chkline" style="margin-top:10px"><input type="checkbox" id="impCmvLancar" ${fech?"checked":""} ${fech?"":"disabled"}> Lançar em Contas a pagar os rateios que fecham 100% (as demais ficam na tela para você completar)</label>
       <div class="foot"><div></div><div><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn pri" id="impCmvOk" ${ok.length?"":"disabled"}>Importar ${ok.length} compra(s)</button></div></div>`,true,()=>{
       $("#impCmvOk").addEventListener("click",async e=>{ const b=e.currentTarget; b.disabled=true; const lancar=$("#impCmvLancar").checked;
         let numero=(S.div||[]).reduce((a,x)=>Math.max(a,+x.numero||0),0)+1; const lote="imp_"+rid(); const criadas=[];
@@ -1667,8 +1685,8 @@ async function importarCmvArquivo(file){
             await save("div",id,doc); criadas.push({...doc,id}); }
           let lancadas=0;
           if(lancar){ for(const d of criadas){ if(!calcCmv(d).ok) continue; b.textContent=`Lançando… ${lancadas+1}`; await lancarCmv(d,{disabled:false}); lancadas++; } }
-          diario("Divisão de CMV importada",`${criadas.length} compra(s) importada(s) de planilha${lancadas?`, ${lancadas} lançada(s) em Contas a pagar`:""}`,{cat:"lancamento"});
-          closeModal(); atualizarTabelas("divisoes","lancamentos"); toast(`${criadas.length} compra(s) importada(s)${lancadas?` · ${lancadas} lançada(s)`:""}`);
+          diario("Rateios importados",`${criadas.length} rateio(s) importado(s) de planilha${lancadas?`, ${lancadas} lançada(s) em Contas a pagar`:""}`,{cat:"lancamento"});
+          closeModal(); atualizarTabelas("divisoes","lancamentos"); toast(`${criadas.length} rateio(s) importado(s)${lancadas?` · ${lancadas} lançado(s)`:""}`);
         }catch(ex){ b.disabled=false; b.textContent="Tentar de novo"; toast("Parou no meio: "+(ex.message||"")+` (${criadas.length} já importada(s))`); }
       }); },"all");
   }catch(e){ toast("Não foi possível ler a planilha: "+(e.message||"")); }
@@ -1676,7 +1694,7 @@ async function importarCmvArquivo(file){
 async function lancarTodasCmv(btn){
   const ls=(S.div||[]).filter(d=>d.status!=="lancado"&&calcCmv(d).ok);
   btn.disabled=true; let n=0; for(const d of ls){ btn.textContent=`Lançando… ${n+1}/${ls.length}`; await lancarCmv(d,{disabled:false}); n++; }
-  atualizarTabelas("divisoes","lancamentos"); toast(`${n} compra(s) lançada(s) em Contas a pagar`);
+  atualizarTabelas("divisoes","lancamentos"); toast(`${n} rateio(s) lançado(s) em Contas a pagar`);
 }
 /* ---------- anexos dos lançamentos (boleto, orçamento, nota) ---------- */
 const ANX_MAX=5*1024*1024, ANX_ACEITA=".pdf,.jpg,.jpeg,.png,.webp,.heic,.xlsx,.xls,.csv,.docx,.doc,.txt";
@@ -1726,7 +1744,7 @@ function anexosModal(l){
       $("#anxErr").textContent="Enviando…"; try{ const lista=await anexarArquivos(l.id,fs); $("#anxLista").innerHTML=anexosLinhas({...l,anexos:lista},ed); $("#anxErr").textContent=""; toast("Anexo adicionado"); }catch(e){ $("#anxErr").textContent="Não foi possível enviar: "+msgErro(e); } });
   },"all");
 }
-/* ---------- ordenação por coluna (Contas, Lançamentos, Divisão de CMV) ---------- */
+/* ---------- ordenação por coluna (Contas, Lançamentos, Rateio de despesas) ---------- */
 const SORT_PADRAO={dre:{k:"mes",dir:"desc"},contas:{k:"data",dir:"asc"},lanc:{k:"data",dir:"desc"},cmv:{k:"data",dir:"desc"}};
 const ordemDe = t => (ui.sort&&ui.sort[t])||SORT_PADRAO[t];
 function thS(t,k,txt,cls){ const o=ordemDe(t); return `<th class="${cls||""}"><button type="button" class="th-sort ${o.k===k?"on":""}" data-act="ord" data-t="${t}" data-k="${k}" title="Ordenar por ${esc(txt.toLowerCase())}">${txt} <span>${o.k===k?(o.dir==="desc"?"▼":"▲"):"↕"}</span></button></th>`; }
@@ -1738,6 +1756,74 @@ const ACC_CONTAS={data:l=>l.venc||"",assunto:l=>l.descricao||"",categoria:l=>(ca
 const ACC_LANC={numero:l=>+l.numero||0,data:l=>l.dataLanc||l.venc||"",assunto:l=>l.descricao||"",categoria:l=>(catBy(l.categoria)||{}).nome||"",loja:l=>cenNome(l.centro)||"",pagamento:l=>l.pago||l.venc||"",valor:l=>+l.valor||0,autor:l=>nomeUsr(l.criadoPor)||"",status:l=>ORD_STATUS[statusOf(l)]??2};
 function accCmv(){ const a={numero:d=>+d.numero||0,data:d=>d.data||"",descricao:d=>d.descricao||"",venc:d=>d.venc||"",valor:d=>+d.total||0,restante:d=>calcCmv(d).ok?0:1};
   lojasCmv().forEach(l=>{ a["l_"+l.id]=d=>calcCmv(d).out[l.id]||0; }); return a; }
+/* ---------- Envio de contas (usuário/observador → BPO) ---------- */
+let ENV_PEND=[], ENV_RECEB={};
+function envConversa(tid,lista,podeEnviar,souBpo){
+  const ls=[...lista].sort((a,b)=>String(a.enviadoEm||"").localeCompare(String(b.enviadoEm||"")));
+  const t=S.tenants.find(x=>x.id===tid)||(S.tenant&&S.tenant.id===tid?S.tenant:{})||{};
+  const card=e=>{ const meu=e.enviadoPor===(S.me&&S.me.id); const arqs=Array.isArray(e.arquivos)?e.arquivos:[];
+    return `<div class="env-msg ${meu?"meu":""} ${e.lancadoEm?"lanc":""}"><div class="env-b">
+      <div class="env-t"><b>#${esc(e.numero||"")} · ${esc(e.descricao||"")}</b>${e.lancadoEm?'<span class="pill st-pago">Lançado</span>':""}</div>
+      ${e.valor||e.venc?`<div class="env-v">${e.valor?`<b class="num">${fmt(e.valor)}</b>`:""}${e.valor&&e.venc?" · ":""}${e.venc?"vence "+dBR(e.venc):""}</div>`:""}
+      ${e.obs?`<div class="env-o">${esc(e.obs).replace(/\n/g,"<br>")}</div>`:""}
+      ${arqs.length?arqs.map(a=>`<div class="anx-li"><span class="anx-ico">📎</span><span class="anx-nome"><b>${esc(a.nome||"arquivo")}</b><small>${tamTxt(a.tamanho)}</small></span><button type="button" class="btn sm" data-act="env-baixar" data-id="${a.id}">Baixar</button></div>`).join(""):'<div class="note">Sem arquivo anexado.</div>'}
+      <div class="env-st">
+        <span>✓ Enviado ${dtHora(e.enviadoEm)} por ${esc(e.enviadoPorNome||"")}${e.enviadoPorPapel==="observador"?" (observador)":""}</span>
+        ${e.recebidoEm?`<span class="ok">✓✓ Recebido pelo BPO ${dtHora(e.recebidoEm)}${e.recebidoPorNome?" · "+esc(e.recebidoPorNome):""}</span>`:'<span class="aguarda">Aguardando o BPO abrir</span>'}
+        ${e.lancadoEm?`<span class="ok">🧾 Lançado ${dtHora(e.lancadoEm)}${e.lancadoPorNome?" · "+esc(e.lancadoPorNome):""}</span>`:""}
+      </div>
+      ${souBpo?`<div style="margin-top:6px">${e.lancadoEm?`<button class="icon-btn" data-act="env-lancado" data-id="${e.id}" data-v="0">Desmarcar lançado</button>`:`<button class="btn sm pri" data-act="env-lancado" data-id="${e.id}" data-v="1">Marcar como lançado</button>`}</div>`:""}
+    </div></div>`; };
+  const comp=podeEnviar?`<div class="env-comp"><div class="row3"><div class="field" style="grid-column:span 2"><label for="envD">Qual é a conta?</label><input id="envD" maxlength="300" placeholder="Ex.: Conta de luz de outubro — loja Cond. Jardins"></div>
+      <div class="field"><label for="envV">Valor (opcional)</label><input id="envV" inputmode="decimal" placeholder="0,00"></div></div>
+    <div class="row"><div class="field"><label for="envVe">Vencimento (opcional)</label><input type="date" id="envVe"></div><div class="field"><label for="envO">Observação (opcional)</label><input id="envO" maxlength="1000" placeholder="Ex.: pagar até sexta"></div></div>
+    <div id="envPend"></div>
+    <div class="env-acoes"><label class="btn sm anx-add">📎 Anexar boleto ou documento<input type="file" id="envIn" multiple accept="${ANX_ACEITA}" hidden></label><span class="note">PDF, imagem, Excel ou Word · até 5 MB cada</span><button class="btn pri" data-act="env-enviar" data-t="${tid}">Enviar ao BPO</button></div>
+    <div class="err" id="envErr" role="alert"></div></div>`:"";
+  return `<div class="panel env-box"><h2>${souBpo?`Contas enviadas por ${esc(tNome(t))}`:"Conversa com o BPO"}${!souBpo&&t.bpoNome?`<small>${esc(t.bpoNome)}</small>`:""}</h2>
+    <div class="env-lista" id="envLista">${ls.length?ls.map(card).join(""):'<div class="empty">Nenhuma conta enviada ainda.</div>'}</div>${comp}</div>`;
+}
+function marcarRecebidos(tid,lista){ if(!ehBpo()) return; const t=S.tenants.find(x=>x.id===tid)||(S.tenant&&S.tenant.id===tid?S.tenant:{})||{};
+  if(t.bpoUid!==(S.me&&S.me.id)) return; if(!lista.some(e=>!e.recebidoEm)) return; if(ENV_RECEB[tid]&&Date.now()-ENV_RECEB[tid]<4000) return; ENV_RECEB[tid]=Date.now();
+  FB.sb.rpc("env_receber",{p_tid:tid}).then(()=>atualizarTabelas("envios")); }
+function vEnvios(){
+  const souBpo=bpoTenant(); const pode=!plat()||S.claims.papel==="observador";
+  setTimeout(()=>{ envAtualizar(); marcarRecebidos(S.tid,S.envios||[]); rolarEnv(); },150);
+  return header("Envio de contas",souBpo?"Contas e documentos enviados por este franqueado. Baixe para lançar e marque como lançado.":"Envie ao BPO as contas a pagar com o boleto ou documento. Você acompanha quando ele recebeu e quando lançou.","")+banners()+envConversa(S.tid,S.envios||[],pode,souBpo);
+}
+function vEnviosRede(){
+  const me=S.me&&S.me.id; const ts=S.tenants.filter(t=>t.bpoUid&&(!ehBpo()||t.bpoUid===me)).sort((a,b)=>tNome(a).localeCompare(tNome(b)));
+  if(!ts.length) return header("Envio de contas","Contas enviadas pelos franqueados ao BPO financeiro.","")+'<div class="panel"><div class="empty">Nenhum franqueado com BPO financeiro.</div></div>';
+  if(!ui.envT||!ts.some(t=>t.id===ui.envT)){ const comNovo=ts.find(t=>(S.envRede||[]).some(e=>e.tid===t.id&&!e.recebidoEm)); ui.envT=(comNovo||ts[0]).id; }
+  const lista=(S.envRede||[]).filter(e=>e.tid===ui.envT); const souBpo=ehBpo();
+  setTimeout(()=>{ envAtualizar(); marcarRecebidos(ui.envT,lista); rolarEnv(); },150);
+  const item=t=>{ const es=(S.envRede||[]).filter(e=>e.tid===t.id); const novos=es.filter(e=>!e.recebidoEm).length, pend=es.filter(e=>!e.lancadoEm).length;
+    return `<button class="env-t-item ${ui.envT===t.id?"on":""}" data-act="env-t" data-id="${t.id}"><b>${esc(tNome(t))}</b><small>${es.length} envio(s)${pend?` · ${pend} a lançar`:""}</small>${novos&&souBpo?`<span class="badge">${novos}</span>`:""}</button>`; };
+  return header("Envio de contas",souBpo?"Contas enviadas pelos seus franqueados. Ao abrir a conversa, elas aparecem como recebidas para quem enviou.":"Envie contas ao BPO em nome de um franqueado ou acompanhe as conversas.","")
+    +`<div class="env-grid"><div class="panel env-ts"><h2>Franqueados</h2>${ts.map(item).join("")}</div>${envConversa(ui.envT,lista,S.claims.papel==="observador",souBpo)}</div>`;
+}
+let ENV_ATU=0;
+function envAtualizar(){ if(Date.now()-ENV_ATU<5000) return; ENV_ATU=Date.now(); atualizarTabelas("envios"); }
+setInterval(()=>{ if(ui.view==="envios"||ui.view==="enviosrede"){ ENV_ATU=0; envAtualizar(); } },20000);
+function rolarEnv(){ const l=$("#envLista"); if(l) l.scrollTop=l.scrollHeight; }
+function envPendHTML(){ const b=$("#envPend"); if(b) b.innerHTML=ENV_PEND.map((f,i)=>`<div class="anx-li pend"><span class="anx-ico">📎</span><span class="anx-nome"><b>${esc(f.name)}</b><small>${tamTxt(f.size)} · vai junto com o envio</small></span><button type="button" class="icon-btn" data-act="env-tira" data-v="${i}">Tirar</button></div>`).join(""); }
+async function enviarConta(btn,tid){
+  const err=$("#envErr"); err.textContent=""; const d=$("#envD").value.trim(); if(d.length<3){ err.textContent="Escreva qual é a conta."; $("#envD").focus(); return; }
+  const v=parseMoney($("#envV").value||""); const t0=btn.textContent; btn.disabled=true; btn.textContent="Enviando…";
+  try{ const {data:id,error}=await FB.sb.rpc("env_enviar",{p_tid:tid,p_descricao:d,p_valor:(isFinite(v)&&v>0)?v:null,p_venc:$("#envVe").value||null,p_obs:$("#envO").value||null}); if(error) throw error;
+    for(const f of ENV_PEND){ btn.textContent=`Enviando ${f.name}…`; const {error:e2}=await FB.sb.from("envio_arquivos").insert({id:"arq_"+rid(),tid:(await FB.sb.from("envios").select("tid").eq("id",id).single()).data.tid,envio_id:id,data:{nome:f.name,tipo:f.type||"",tamanho:f.size},conteudo:await lerB64(f)}); if(e2) throw e2; }
+    if(ENV_PEND.length){ const {error:e3}=await FB.sb.rpc("env_arquivos",{p_id:id}); if(e3) throw e3; }
+    ENV_PEND=[]; ["#envD","#envV","#envVe","#envO"].forEach(k=>{ const el=$(k); if(el) el.value=""; }); envPendHTML(); atualizarTabelas("envios"); toast("Conta enviada ao BPO");
+  }catch(e){ err.textContent="Não foi possível enviar: "+msgErro(e); }
+  finally{ btn.disabled=false; btn.textContent=t0; }
+}
+async function baixarEnvArq(aid,btn){
+  const t0=btn?btn.innerHTML:""; if(btn){ btn.disabled=true; btn.textContent="Baixando…"; }
+  try{ const {data,error}=await FB.sb.from("envio_arquivos").select("data,conteudo").eq("id",aid).single(); if(error) throw error;
+    const bin=atob(data.conteudo); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([u8],{type:data.data.tipo||"application/octet-stream"})); const a=document.createElement("a"); a.href=url; a.download=data.data.nome||"documento"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }catch(e){ toast("Não foi possível baixar: "+msgErro(e)); } finally{ if(btn){ btn.disabled=false; btn.innerHTML=t0; } }
+}
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
   const tx=id.startsWith("_tx_"); const caixa=ui.d.regime==="caixa";
@@ -2242,7 +2328,7 @@ function render(){
   if(S.tid&&!S.tenant&&ui.view!=="rede"){ main.innerHTML=`<div class="empty" style="padding-top:20vh">Abrindo o franqueado…</div>`; return; }
   if(ui.cc&&ui.cc!=="matriz"&&ui.cc!=="lojas"&&S.lojas.length&&!lojaBy(ui.cc)) ui.cc="";
   if(S.role==="op"&&(ui.view==="receber"||ui.view==="pagar")) ui.view="painel";
-  const V={painel:vPainel,receber:()=>vContas("receita"),pagar:()=>vContas("despesa"),fluxo:vFluxo,dre:vDre,lancamentos:vLancamentos,cmv:vCmv,fornecedores:vFornecedores,agenda:vAgenda,lojas:vLojas,usuarios:vUsuarios,config:vConfig,rede:vRede,chamados:vChamados,diario:vChamados,taxas:vTaxas,painelrede:vPainelRede,chamadosrede:vChamadosRede,planorede:vPlanoRede,equiperede:vEquipeRede,diariorede:vDiarioRede,meucad:vMeuCadastro}[ui.view];
+  const V={painel:vPainel,receber:()=>vContas("receita"),pagar:()=>vContas("despesa"),fluxo:vFluxo,dre:vDre,lancamentos:vLancamentos,cmv:vCmv,fornecedores:vFornecedores,agenda:vAgenda,lojas:vLojas,usuarios:vUsuarios,config:vConfig,rede:vRede,chamados:vChamados,diario:vChamados,envios:vEnvios,enviosrede:vEnviosRede,taxas:vTaxas,painelrede:vPainelRede,chamadosrede:vChamadosRede,planorede:vPlanoRede,equiperede:vEquipeRede,diariorede:vDiarioRede,meucad:vMeuCadastro}[ui.view];
   if(!V) ui.view="painel";
   main.innerHTML=(V||vPainel)();
   if(ui.view==="lojas") bindMatriz();
@@ -3386,7 +3472,7 @@ function nivel(mod){
   return 0;
 }
 let FB=null, UNSUB=[], UNSUB_REDE=[];
-S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.liberado=false; S.names={};
+S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.liberado=false; S.names={};
 const plat = () => ["master_rede","observador","bpo"].includes(S.claims.papel);
 const ehBpo = () => S.claims.papel==="bpo";
 const temBpo = () => !!(S.tenant&&S.tenant.bpoUid);                              // este franqueado tem BPO
@@ -3543,6 +3629,7 @@ function assinarRede(){
     const iv=setInterval(()=>{ if(!S.tid&&ui.view==="painelrede") carregarIndicadores(); },60000); UNSUB_REDE.push(()=>clearInterval(iv));
     UNSUB_REDE.push(vigiar("rede_diario",{cols:"id,data",ordem:["criado",false],limite:300},rows=>{ S.redeDiario=rows.map(r=>({...r.data,id:r.id})); if(!S.tid) render(); }));
   }
+  UNSUB_REDE.push(vigiar("envios",{cols:"id,tid,data",ordem:["criado",false],limite:800},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._envSig) return; S._envSig=sig; S.envRede=novo; if(!S.tid) render(); else renderNav(); }));
   UNSUB_REDE.push(vigiar("chamados",{cols:"id,tid,data",ordem:["criado",false],limite:500},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._chSig) return; S._chSig=sig; S.chamRede=novo; if(!S.tid) render(); }));
 }
 function abrirTenant(tid){
@@ -3568,6 +3655,7 @@ function abrirTenant(tid){
   sub(S.db.collection(COL.lojas),s=>{ S.lojas=s.docs.map(strip); render(); agendarAuto(); });
   sub(S.db.collection(COL.usr),s=>{ S.usr=s.docs.map(strip); S.names={}; S.usr.forEach(u=>S.names[u.id]=u.nome||u.email||""); if(S.me) S.names[S.me.id]=S.names[S.me.id]||S.me.name; render(); });
   if(gestorFranq()||plat()){
+    sub(S.db.collection("envios").orderBy("enviadoEm","desc").limit(500),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._envSigT) return; S._envSigT=sig; S.envios=novo; render(); });
     sub(S.db.collection("chamados").orderBy("abertoEm","desc").limit(300),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._chSigT) return; S._chSigT=sig; S.cham=novo; render(); });
     sub(S.db.collection("mensagens").orderBy("quando","desc").limit(1500),s=>{ const novo=s.docs.map(strip).reverse(); const mudou=novo.length!==S.msgs.length||(novo.length&&novo[novo.length-1].id!==S.msgs[S.msgs.length-1].id); S.msgs=novo; if(mudou&&ui.view==="chamados") render(); });
     sub(S.db.collection("diario").orderBy("quando","desc").limit(500),s=>{ S.diario=s.docs.map(strip); if(ui.view==="diario") render(); });
@@ -3588,7 +3676,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 66 · 22/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 67 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4458,6 +4546,11 @@ document.addEventListener("click",async e=>{
   if(act==="pix-copiar"){ const v=a.dataset.v; (navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast("Chave Pix copiada"),()=>{ const t=document.createElement("textarea"); t.value=v; document.body.appendChild(t); t.select(); try{ document.execCommand("copy"); toast("Chave Pix copiada"); }catch(e){ toast(v); } t.remove(); }); return; }
   if(act==="rota-tracar"){ tracarRota(a); return; }
   if(act==="rota-limpar"){ ROTA=null; render(); return; }
+  if(act==="env-enviar"){ enviarConta(a,a.dataset.t||S.tid); return; }
+  if(act==="env-baixar"){ baixarEnvArq(id,a); return; }
+  if(act==="env-tira"){ ENV_PEND.splice(+a.dataset.v,1); envPendHTML(); return; }
+  if(act==="env-t"){ ui.envT=id; ENV_PEND=[]; render(); return; }
+  if(act==="env-lancado"){ a.disabled=true; FB.sb.rpc("env_lancado",{p_id:id,p_sim:a.dataset.v==="1"}).then(({error})=>{ if(error){ toast(msgErro(error)); a.disabled=false; return; } atualizarTabelas("envios"); toast(a.dataset.v==="1"?"Marcado como lançado":"Desmarcado"); }); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
   if(act==="anx-baixar"){ baixarAnexo(id,a); return; }
@@ -4469,7 +4562,7 @@ document.addEventListener("click",async e=>{
   if(act==="cmv-modo"&&isAdm()){ const d=(S.div||[]).find(x=>x.id===id); if(d&&d.status!=="lancado"&&(d.modo||"pct")!==a.dataset.v) salvarCmv(d,{modo:a.dataset.v,partes:{}}).then(()=>atualizarTabelas("divisoes")); return; }
   if(act==="cmv-lancar"&&isAdm()){ const d=(S.div||[]).find(x=>x.id===id); if(d) confirmBtn(a,"Confirmar lançamento",()=>lancarCmv(d,a)); return; }
   if(act==="cmv-desfazer"&&isAdm()){ const d=(S.div||[]).find(x=>x.id===id); if(d) confirmBtn(a,"Confirmar: desfazer",()=>desfazerCmv(d,a)); return; }
-  if(act==="cmv-excluir"&&isAdm()){ const d=(S.div||[]).find(x=>x.id===id); if(d) confirmBtn(a,"Confirmar exclusão",()=>del("div",d.id).then(()=>{ atualizarTabelas("divisoes"); toast("Compra excluída"); }).catch(()=>{})); return; }
+  if(act==="cmv-excluir"&&isAdm()){ const d=(S.div||[]).find(x=>x.id===id); if(d) confirmBtn(a,"Confirmar exclusão",()=>del("div",d.id).then(()=>{ atualizarTabelas("divisoes"); toast("Rateio excluído"); }).catch(()=>{})); return; }
   if(act==="ch-sel"){ ui.chSel = ui.chSel===id ? null : id; render(); return; }   // clicar de novo fecha a conversa
   if(act==="ch-filtro"){ ui.chFiltro=a.dataset.v; render(); return; }
   if(act==="ch-novo"&&(masterFranq()||S.claims.papel==="observador")){ novoChamadoFr(S.tid||null); return; }
@@ -4550,6 +4643,7 @@ document.addEventListener("change",e=>{
   if(t.classList&&t.classList.contains("rota-ck")){ rotaCfg().st[t.dataset.st]=t.checked; ROTA=null; render(); return; }
   if(t.id==="rotaPart"){ rotaCfg().partida=t.value; return; }
   if(t.id==="rotaVolta"){ rotaCfg().volta=t.checked; return; }
+  if(t.id==="envIn"){ const fs=[...t.files]; const er=validarAnexos(fs); if(er){ toast(er); t.value=""; return; } ENV_PEND.push(...fs); t.value=""; envPendHTML(); return; }
   if(t.id==="cmvFile"&&t.files&&t.files[0]){ importarCmvArquivo(t.files[0]); return; }
   if(t.classList&&t.classList.contains("cmv-in")&&isAdm()){ const d=(S.div||[]).find(x=>x.id===t.dataset.id); if(d&&d.status!=="lancado") salvarCmv(d,lerCampoCmv(d,t.dataset.c,t.value)).then(()=>atualizarTabelas("divisoes")).catch(()=>{}); return; }
   if(t.dataset&&t.dataset.per){ const k=t.dataset.per, c=t.dataset.c; if(!t.value) return; ui.per=ui.per||{}; ui.per[k]={...(ui.per[k]||{}),modo:perDe(k).modo,[c]:t.value}; saveUi(); render(); if(k==="rede") carregarIndicadores(); return; }
