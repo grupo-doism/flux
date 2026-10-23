@@ -581,6 +581,9 @@ table.cmv select.cmv-cat{max-width:200px;font-size:12px}
 .bpo-lista{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}.bpo-card{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}.bpo-card:has(input:checked){border-color:#00BF63;background:#F2FBF6}.bpo-card>span{flex:1;display:flex;flex-direction:column;gap:3px}.bpo-v{color:#0B5A33;font-weight:800}.bpo-v small{font-weight:400;color:var(--muted)}.bpo-ap{color:var(--ink-2);font-size:12px}
 .ctr-txt{white-space:pre-wrap;font-family:inherit;font-size:12px;line-height:1.5;max-height:42vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--surface-2);margin:6px 0 10px}
 .ctr-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.ctr-item small{display:block}.ctr-item .pill{margin-top:4px;display:inline-block}
+.ctr-enc{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}.ctr-disputa{border:2px solid #E3A008}
+.estrelas-in{display:flex;align-items:center;gap:2px}.estrelas-in button{background:none;border:0;font-size:28px;line-height:1;color:#D7DCE0;cursor:pointer;padding:0 2px}.estrelas-in button.on{color:#F2B705}.estrelas-in .note{margin-left:10px}
+.sd-pedido{background:var(--surface-2);border-radius:8px;padding:8px 10px;margin:0 0 10px;font-size:13px}.bpo-nota{color:#8A5A00;font-weight:600;font-size:12px;margin-left:6px}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -827,16 +830,16 @@ const statusPill = l => `<span class="pill st-${statusOf(l)}">${statusTxt(l)}</s
 const COL = {div:"divisoes",lanc:"lancamentos", forn:"fornecedores", ag:"agenda", lojas:"lojas", usr:"usuarios", rec:"recorrencias"};
 function clean(o){ const r={}; for(const k in o){ if(k!=="id"&&o[k]!==undefined) r[k]=o[k]; } return r; }
 const ROT={div:"Rateio de despesas",lanc:"Lançamento",forn:"Fornecedor",ag:"Compromisso",lojas:"Loja",rec:"Recorrência",usr:"Usuário"};
-function checarEscrita(){ if(S.role==="ro"){ toast("Somente leitura — você não pode alterar dados aqui."); throw new Error("ro"); } }
+function checarEscrita(kind,data){ if(S.role==="ro"&&obsTenant()&&(kind==="ag"||(kind==="lojas"&&lojaFunil(data||{})))) return; if(S.role==="ro"){ toast("Somente leitura — você não pode alterar dados aqui."); throw new Error("ro"); } }
 function logRede(kind,id,modo,data){ if(!masterRede()) return; const am=S.tenant&&S.tenant.acessoMaster; const r=data&&(data.descricao||data.condominio||data.empresa||data.nome)||id; diario("Alteração autorizada",`${ROT[kind]||kind} ${modo}: ${r}`,{cat:"alteracao",chamadoId:(am&&am.chamadoId)||""}); }
 async function save(kind,id,data){
-  checarEscrita(); data=clean(data);
+  checarEscrita(kind,data); data=clean(data);
   const novo=!S[kind]||!S[kind].some(x=>x.id===id);
   try{ await S.db.collection(COL[kind]).doc(id).set(data); }catch(e){ handleErr(e); throw e; }
   logRede(kind,id,novo?"criado":"alterado",data);
 }
 async function del(kind,id){
-  checarEscrita(); const antes=(S[kind]||[]).find(x=>x.id===id);
+  checarEscrita(kind,(S[kind]||[]).find(x=>x.id===id)); const antes=(S[kind]||[]).find(x=>x.id===id);
   try{ await S.db.collection(COL[kind]).doc(id).delete(); }catch(e){ handleErr(e); throw e; }
   logRede(kind,id,"excluído",antes);
 }
@@ -895,7 +898,7 @@ const VIEWS_T = [
   ["sep"],["cmv","Rateio de despesas"],["lancamentos","Lançamentos"],["fornecedores","Fornecedores"],["agenda","Agenda"],["lojas","Lojas"],["sep"],["envios","Envio de contas"],["chamados","Chamados"],["usuarios","Usuários"],["config","Configurações"]
 ];
 function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["rede","Franqueados"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Histórico da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus franqueados"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Franqueados"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]); }
-  const v=[]; if(S.tid) VIEWS_T.forEach(x=>{ if(["chamados","diario","usuarios"].includes(x[0])&&!(gestorFranq()||plat())) return; if(x[0]==="envios"&&!temBpo()) return; if(VIEW_MOD[x[0]]&&nivel(VIEW_MOD[x[0]])<1) return; if(x[0]==="sep"&&(!v.length||v[v.length-1][0]==="sep")) return; v.push(x); }); while(v.length&&v[v.length-1][0]==="sep") v.pop(); return v; }
+  const v=[]; if(S.tid) VIEWS_T.forEach(x=>{ if(["chamados","diario"].includes(x[0])&&!(gestorFranq()||plat()||obsTenant())) return; if(x[0]==="usuarios"&&!(gestorFranq()||plat())) return; if(x[0]==="envios"&&!temBpo()) return; if(VIEW_MOD[x[0]]&&nivel(VIEW_MOD[x[0]])<1) return; if(x[0]==="sep"&&(!v.length||v[v.length-1][0]==="sep")) return; v.push(x); }); while(v.length&&v[v.length-1][0]==="sep") v.pop(); return v; }
 function renderNav(){
   const VIEWS=viewsOk(); const ladoT=plat()?"rede":"franq";
   const pend=S.cham.filter(c=>(c.status==="aberto"&&souAtCh(c))||chNaoLido(c)||(souDonoCh(c)&&c.acesso&&c.acesso.status==="pedido"&&c.status==="atendimento")).length;
@@ -1378,7 +1381,7 @@ const tenantDoCh = c => S.tenants.find(t=>t.id===c.tid)||(S.tid===c.tid?S.tenant
 const souAtCh = c => chDest(c)==="bpo" ? (ehBpo()&&tenantDoCh(c).bpoUid===(S.me&&S.me.id)) : masterRede();   // quem atende este chamado
 const souSolCh = c => c.abertoPor===(S.me&&S.me.id);
 const souDonoCh = c => masterFranq()&&c.tid===S.tid;
-const podeEscreverCh = c => c.status==="atendimento"&&(souAtCh(c)||souSolCh(c)||souDonoCh(c));
+const podeEscreverCh = c => c.status==="atendimento"&&(souAtCh(c)||souSolCh(c)||souDonoCh(c)||(obsTenant()&&c.tid===S.tid));
 const PAPEL_CH={master_rede:"Equipe flux",observador:"Observador",bpo:"BPO financeiro",master:"Usuário",colab:"Usuário"};
 const lidoPor = (c,uid) => (c.lidos||{})[uid] || "";
 const chNaoLido = c => { const me=S.me&&S.me.id; if(!c||!c.ultima||c.ultimaTipo!=="msg") return false;
@@ -1831,7 +1834,7 @@ async function baixarEnvArq(aid,btn){
   }catch(e){ toast("Não foi possível baixar: "+msgErro(e)); } finally{ if(btn){ btn.disabled=false; btn.innerHTML=t0; } }
 }
 /* ---------- Contratação do BPO ---------- */
-const CTR_ST={proposto:["Aguardando o BPO aceitar","st-vence"],aceito:["Aceito — aguardando o BPO pedir acesso","st-vence"],acesso_pedido:["BPO pediu acesso ao sistema","st-vence"],ativo:["Contrato ativo","st-pago"],recusado:["Recusado pelo BPO","st-vencido"],cancelado:["Cancelado","st-aberto"],encerrado:["Encerrado","st-aberto"]};
+const CTR_ST={proposto:["Aguardando o BPO aceitar","st-vence"],aceito:["Aceito — aguardando o BPO pedir acesso","st-vence"],acesso_pedido:["BPO pediu acesso ao sistema","st-vence"],ativo:["Contrato ativo","st-pago"],encerramento_pedido:["Encerramento solicitado","st-vence"],troca_pedida:["Troca de BPO solicitada","st-vence"],troca_disputa:["Troca sem acordo — franqueadora acionada","st-vencido"],disputa:["Sem acordo — franqueadora acionada","st-vencido"],recusado:["Recusado pelo BPO","st-vencido"],cancelado:["Cancelado","st-aberto"],encerrado:["Encerrado","st-aberto"]};
 const brl = c => (c/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 function contratoBpoTexto(o){
   const hoje=new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
@@ -1889,30 +1892,50 @@ function valorExtenso(c){ const r=Math.floor(c/100), cs=c%100;
   const mil=Math.floor(r/1000), resto=r%1000; let t=(mil?(mil===1?"mil":ate999(mil)+" mil")+(resto?(resto<100||resto%100===0?" e ":" ")+ate999(resto):""):ate999(resto))+(r===1?" real":" reais");
   if(cs) t+=" e "+ate999(cs)+(cs===1?" centavo":" centavos"); return t; }
 let CTR_ATU=0; function ctrAtualizar(forca){ if(!forca&&Date.now()-CTR_ATU<5000) return; CTR_ATU=Date.now(); atualizarTabelas("contratos_bpo"); }
-setInterval(()=>{ if(ui.view==="usuarios"||(ui.view==="rede"&&ehBpo())) ctrAtualizar(true); },20000);
-function ctrAtual(){ return (S.ctr||[]).find(c=>["proposto","aceito","acesso_pedido","ativo"].includes(c.status)); }
+setInterval(()=>{ if(ui.view==="usuarios"||(ui.view==="rede"&&(ehBpo()||masterRede()))) ctrAtualizar(true); },20000);
+const CTR_VIVOS=["proposto","aceito","acesso_pedido","ativo","encerramento_pedido","disputa","troca_pedida","troca_disputa"];
+function ctrAtual(){ return (S.ctr||[]).find(c=>CTR_VIVOS.includes(c.status)); }
+function ctrUltimoEncerrado(){ return (S.ctr||[]).filter(c=>c.status==="encerrado").sort((a,b)=>String(b.encerradoEm||"").localeCompare(String(a.encerradoEm||"")))[0]; }
+function blocoEncerramento(c,lado){   // lado: "usuario" ou "bpo"
+  if(c.status==="ativo") return `<button class="btn sm" data-act="ctr-saida" data-m="pedir_troca" data-l="${lado}" data-id="${c.id}">${lado==="usuario"?"Solicitar troca de BPO":"Recomendar troca de BPO"}</button><button class="icon-btn" data-act="ctr-saida" data-m="pedir_enc" data-l="${lado}" data-id="${c.id}">Solicitar encerramento</button>`;
+  if(c.status==="troca_pedida"){
+    if(c.trocaPor===lado) return `<span class="note">Você ${lado==="usuario"?"solicitou a troca":"recomendou a troca"}${c.trocaNovoNome?` para <b>${esc(c.trocaNovoNome)}</b>`:""} em ${dtHora(c.trocaEm)} — aguardando a outra parte</span><button class="icon-btn" data-act="ctr-desistir-troca" data-id="${c.id}">Desistir</button><button class="icon-btn" data-act="ctr-acionar-troca" data-id="${c.id}">Acionar a franqueadora</button>`;
+    return `<span class="note"><b>${esc(c.trocaPorNome||"")}</b> ${c.trocaPor==="bpo"?"recomendou a troca de BPO":"solicitou a troca de BPO"}${c.trocaNovoNome?` para <b>${esc(c.trocaNovoNome)}</b>`:""}: “${esc(c.trocaMotivo||"")}”</span><button class="btn sm pri" data-act="ctr-saida" data-m="concordar_troca" data-l="${lado}" data-id="${c.id}">Concordar com a troca</button><button class="btn sm" data-act="ctr-discordar-troca" data-id="${c.id}">Não concordo</button>`;
+  }
+  if(c.status==="troca_disputa") return `<span class="note">Troca sem acordo — a franqueadora foi acionada e vai decidir. Enquanto isso, o contrato continua valendo.</span>${c.trocaPor===lado?`<button class="icon-btn" data-act="ctr-desistir-troca" data-id="${c.id}">Desistir da troca</button>`:""}`;
+  if(c.status==="encerramento_pedido"){
+    if(c.encPor===lado) return `<span class="note">Você pediu o encerramento em ${dtHora(c.encEm)} — aguardando a outra parte</span><button class="icon-btn" data-act="ctr-desistir" data-id="${c.id}">Desistir</button><button class="icon-btn" data-act="ctr-acionar" data-id="${c.id}">Acionar a franqueadora</button>`;
+    return `<span class="note"><b>${esc(c.encPorNome||"")}</b> pediu o encerramento${c.motivo?`: “${esc(c.motivo)}”`:""}</span><button class="btn sm pri" data-act="ctr-saida" data-m="concordar_enc" data-l="${lado}" data-id="${c.id}">Concordar e encerrar</button><button class="btn sm" data-act="ctr-discordar" data-id="${c.id}">Não concordo</button>`;
+  }
+  if(c.status==="disputa") return `<span class="note">Sem acordo — a franqueadora foi acionada por chamado e vai mediar. Enquanto isso, o contrato continua valendo.</span>${c.encPor===lado?`<button class="icon-btn" data-act="ctr-desistir" data-id="${c.id}">Desistir do encerramento</button>`:""}`;
+  return "";
+}
 function painelBpoUsuario(){
   if(!S.tid||plat()) return ""; setTimeout(()=>ctrAtualizar(),150);
   const c=ctrAtual(); const dono=masterFranq();
   if(!c&&temBpo()) return `<div class="panel ctr-p"><h2>BPO financeiro<small>${esc(S.tenant.bpoNome||"")}</small></h2><p class="note" style="margin:0">Atribuído pela franqueadora.</p></div>`;
-  if(!c) return dono?`<div class="panel ctr-p"><div class="ctr-l"><div><h2 style="margin:0">BPO financeiro</h2><p class="note" style="margin:4px 0 0">Prefere que um profissional faça a parte financeira por você? Contrate um BPO: ele lança as contas, as vendas e as baixas, e você acompanha tudo.</p></div><button class="btn pri" data-act="ctr-contratar">Contratar BPO</button></div></div>`:"";
+  if(!c){ const u=ctrUltimoEncerrado();
+    if(u) return `<div class="panel ctr-p"><div class="ctr-l"><div><h2 style="margin:0">BPO financeiro<small>${esc(u.bpoNome||"")}</small></h2><span class="pill st-aberto" style="margin-top:6px;display:inline-block">Contrato encerrado</span>
+      <p class="note" style="margin:6px 0 0">Encerrado em ${dtHora(u.encerradoEm)}${u.encerradoPorNome?" por "+esc(u.encerradoPorNome):""}. Tudo o que foi lançado continua no sistema.</p></div>
+      <div class="ctr-acoes"><button class="btn sm" data-act="ctr-ver" data-id="${u.id}">Ver contrato</button>${dono?`<button class="btn sm" data-act="ctr-reativar" data-v="${u.bpoUid}">Reativar com ${esc(u.bpoNome||"este BPO")}</button><button class="btn pri" data-act="ctr-contratar">Contratar outro BPO</button>`:""}</div></div></div>`;
+    return dono?`<div class="panel ctr-p"><div class="ctr-l"><div><h2 style="margin:0">BPO financeiro</h2><p class="note" style="margin:4px 0 0">Prefere que um profissional faça a parte financeira por você? Contrate um BPO: ele lança as contas, as vendas e as baixas, e você acompanha tudo.</p></div><button class="btn pri" data-act="ctr-contratar">Contratar BPO</button></div></div>`:""; }
   const [st,cl]=CTR_ST[c.status]||["",""];
   const passos=[["Proposta e contrato aceitos por você",c.propostoEm],["BPO aceitou o contrato",c.aceitoEm],["BPO pediu acesso ao sistema",c.acessoPedidoEm],["Você liberou o acesso",c.liberadoEm]];
   return `<div class="panel ctr-p"><div class="ctr-l"><div><h2 style="margin:0">BPO financeiro<small>${esc(c.bpoNome||"")} · ${brl(c.valor||0)}/mês</small></h2><span class="pill ${cl}" style="margin-top:6px;display:inline-block">${st}</span></div>
     <div class="ctr-acoes">${c.status==="acesso_pedido"&&dono?`<button class="btn pri" data-act="ctr-liberar" data-id="${c.id}">Liberar acesso ao BPO</button>`:""}
       <button class="btn sm" data-act="ctr-ver" data-id="${c.id}">Ver contrato</button>
       ${dono&&["proposto","aceito","acesso_pedido"].includes(c.status)?`<button class="icon-btn" data-act="ctr-cancelar" data-id="${c.id}">Cancelar contratação</button>`:""}
-      ${dono&&c.status==="ativo"?`<button class="icon-btn" data-act="ctr-encerrar" data-id="${c.id}">Encerrar contrato</button>`:""}</div></div>
+      </div></div>${dono&&["ativo","encerramento_pedido","disputa","troca_pedida","troca_disputa"].includes(c.status)?`<div class="ctr-enc">${blocoEncerramento(c,"usuario")}</div>`:""}
     <div class="ctr-passos">${passos.map(([t,q])=>`<div class="${q?"ok":""}"><span>${q?"✓":"○"}</span>${t}${q?`<small>${dtHora(q)}</small>`:""}</div>`).join("")}</div>
     ${c.status==="acesso_pedido"&&dono?'<p class="note" style="margin:8px 0 0">Ao liberar, o BPO passa a lançar e editar o sistema, e os usuários daqui passam a acompanhar (só visualizam, exceto Agenda e Chamados).</p>':""}</div>`;
 }
-async function contratarBpoModal(){
+async function contratarBpoModal(preUid){
   const {data,error}=await FB.sb.rpc("bpos_disponiveis"); if(error){ toast(msgErro(error)); return; }
   const lista=data||[];
   const m=S.tenant&&S.tenant.matriz||{};
   openModal(`<h2>Contratar BPO financeiro</h2>
     ${lista.length?`<p class="note" style="margin-top:0">Escolha o profissional. O valor é mensal e o pagamento é feito diretamente a ele.</p>
-    <div class="bpo-lista">${lista.map(b=>`<label class="bpo-card"><input type="radio" name="bpoEsc" value="${b.uid}" data-nome="${esc(b.nome)}" data-valor="${b.valor}"><span><b>${esc(b.nome)}</b><span class="bpo-v">${brl(b.valor)}<small>/mês</small></span>
+    <div class="bpo-lista">${lista.map(b=>`<label class="bpo-card"><input type="radio" name="bpoEsc" value="${b.uid}" data-nome="${esc(b.nome)}" data-valor="${b.valor}"><span><b>${esc(b.nome)}</b><span class="bpo-v">${brl(b.valor)}<small>/mês</small>${b.avaliacoes?` <span class="bpo-nota">★ ${String(b.nota).replace(".",",")} · ${b.avaliacoes} avaliação(ões)</span>`:""}</span>
       ${b.apresentacao?`<small class="bpo-ap">${esc(b.apresentacao)}</small>`:""}<small class="note">${b.clientes} cliente(s) atendido(s)${b.email?" · "+esc(b.email):""}${b.telefone?" · "+esc(b.telefone):""}</small></span></label>`).join("")}</div>
     <div id="ctrPrev" hidden><span class="flabel">Contrato de prestação de serviços</span><pre class="ctr-txt" id="ctrTxt"></pre>
       <label class="chkline"><input type="checkbox" id="ctrOk"> Li e concordo com o contrato. Entendo que a plataforma é apenas a ferramenta e não é parte deste contrato.</label></div>
@@ -1924,6 +1947,7 @@ async function contratarBpoModal(){
       texto=contratoBpoTexto({franqueado:m.razao||tNome(S.tenant)||"",cnpj:m.cnpj||"",representante:(S.me&&S.me.name)||"",bpo:esc_.nome,valor:esc_.valor,valorExtenso:valorExtenso(esc_.valor)});
       $("#ctrTxt").textContent=texto; $("#ctrPrev").hidden=false; $("#ctrOk").checked=false; $("#ctrConf").disabled=true; $("#ctrPrev").scrollIntoView({behavior:"smooth",block:"start"}); }));
     const ok=$("#ctrOk"); if(ok) ok.addEventListener("change",()=>{ $("#ctrConf").disabled=!ok.checked; });
+    if(preUid){ const r=document.querySelector(`input[name="bpoEsc"][value="${preUid}"]`); if(r){ r.checked=true; r.dispatchEvent(new Event("change")); } else toast("Esse BPO não está disponível no momento — escolha outro."); }
     const bt=$("#ctrConf"); if(bt) bt.addEventListener("click",async()=>{ if(!esc_||!ok.checked) return; bt.disabled=true;
       const {error:e2}=await FB.sb.rpc("ctr_propor",{p_bpo:esc_.uid,p_texto:texto}); if(e2){ $("#ctrErr").textContent=msgErro(e2); bt.disabled=false; return; }
       closeModal(); atualizarTabelas("contratos_bpo"); toast(`Proposta enviada a ${esc_.nome} — aguardando o aceite`); });
@@ -1933,19 +1957,76 @@ function verContrato(c){
   const lin=[["Proposto e aceito pelo usuário",c.propostoEm,c.propostoPorNome],["Aceito pelo BPO",c.aceitoEm,c.aceitoPorNome],["Acesso pedido pelo BPO",c.acessoPedidoEm,""],["Acesso liberado",c.liberadoEm,c.liberadoPorNome],["Recusado pelo BPO",c.recusadoEm,""],["Cancelado",c.canceladoEm,c.canceladoPorNome],["Encerrado",c.encerradoEm,c.encerradoPorNome]].filter(x=>x[1]);
   openModal(`<h2>Contrato de BPO — ${esc(c.bpoNome||"")}</h2><p class="note" style="margin-top:0">${esc(c.franqueado||"")} · ${brl(c.valor||0)}/mês · <span class="pill ${(CTR_ST[c.status]||[])[1]||""}">${(CTR_ST[c.status]||[c.status])[0]}</span></p>
     <div class="ctr-passos" style="margin-bottom:10px">${lin.map(([t,q,n])=>`<div class="ok"><span>✓</span>${t}<small>${dtHora(q)}${n?" · "+esc(n):""}</small></div>`).join("")}</div>
-    ${c.motivo?`<p class="note">Motivo: ${esc(c.motivo)}</p>`:""}
+    ${c.motivo?`<p class="note">Motivo: ${esc(c.motivo)}</p>`:""}${c.nota?`<p class="note">Avaliação do usuário: <span class="nota-g">${estrelas(c.nota)}</span> <b>${c.nota} de 5</b>${c.notaComentario?` — “${esc(c.notaComentario)}”`:""}</p>`:""}
     <pre class="ctr-txt">${esc(c.texto||"")}</pre>
     <div class="foot"><div><button type="button" class="btn sm" data-act="ctr-baixar" data-id="${c.id}">Baixar contrato (.txt)</button></div><div><button type="button" class="btn" data-close>Fechar</button></div></div>`,true,null,"all");
 }
 function painelContratosBpo(){
+  if(masterRede()) return painelContratosMaster();
   if(!ehBpo()) return ""; setTimeout(()=>ctrAtualizar(),150); const ls=(S.ctrRede||[]).filter(c=>["proposto","aceito","acesso_pedido"].includes(c.status));
-  if(!ls.length) return "";
+  const ativos=(S.ctrRede||[]).filter(c=>["ativo","encerramento_pedido","disputa","troca_pedida","troca_disputa"].includes(c.status));
+  const vistos=new Set([...ls,...ativos].map(c=>c.tid)); const encerr=[];
+  (S.ctrRede||[]).filter(c=>c.status==="encerrado").sort((a,b)=>String(b.encerradoEm||"").localeCompare(String(a.encerradoEm||""))).forEach(c=>{ if(!vistos.has(c.tid)){ vistos.add(c.tid); encerr.push(c); } });
+  const blocoAtivos=ativos.length?`<div class="panel ctr-p"><h2>Contratos ativos<small>${ativos.length}</small></h2>${ativos.map(c=>{ const [st,cl]=CTR_ST[c.status]||["",""];
+    return `<div class="ctr-item"><div><b>${esc(c.franqueado||"")}</b><small class="note">${brl(c.valor||0)}/mês · desde ${dtHora(c.liberadoEm)}</small><span class="pill ${cl}">${st}</span></div><div class="ctr-acoes"><button class="btn sm" data-act="ctr-ver" data-id="${c.id}">Contrato</button>${blocoEncerramento(c,"bpo")}</div></div>`; }).join("")}</div>`:"";
+  const blocoEnc=encerr.length?`<div class="panel ctr-p"><h2>Clientes com contrato encerrado<small>${encerr.length}</small></h2>${encerr.map(c=>`<div class="ctr-item"><div><b>${esc(c.franqueado||"")}</b><small class="note">${c.cnpj?fmtDoc(c.cnpj)+" · ":""}encerrado em ${dtHora(c.encerradoEm)}${c.encerradoPorNome?" por "+esc(c.encerradoPorNome):""}</small><span class="pill st-aberto">Contrato encerrado</span></div><div class="ctr-acoes"><button class="btn sm" data-act="ctr-ver" data-id="${c.id}">Ver contrato</button><span class="note">O cliente pode reativar a qualquer momento.</span></div></div>`).join("")}</div>`:"";
+  if(!ls.length) return blocoAtivos+blocoEnc;
   return `<div class="panel ctr-p"><h2>Contratações<small>${ls.length} em andamento</small></h2>${ls.map(c=>{ const [st,cl]=CTR_ST[c.status]||["",""];
     return `<div class="ctr-item"><div><b>${esc(c.franqueado||"")}</b><small class="note">${c.cnpj?fmtDoc(c.cnpj)+" · ":""}${brl(c.valor||0)}/mês · proposto em ${dtHora(c.propostoEm)} por ${esc(c.propostoPorNome||"")}</small><span class="pill ${cl}">${st}</span></div>
       <div class="ctr-acoes"><button class="btn sm" data-act="ctr-ver" data-id="${c.id}">Ler contrato</button>
       ${c.status==="proposto"?`<button class="btn sm pri" data-act="ctr-aceitar" data-id="${c.id}">Aceitar contrato</button><button class="icon-btn" data-act="ctr-recusar" data-id="${c.id}">Recusar</button>`:""}
       ${c.status==="aceito"?`<button class="btn sm pri" data-act="ctr-pedir" data-id="${c.id}">Solicitar acesso ao sistema</button>`:""}
-      ${c.status==="acesso_pedido"?'<span class="note">Aguardando o usuário liberar o acesso</span>':""}</div></div>`; }).join("")}</div>`;
+      ${c.status==="acesso_pedido"?'<span class="note">Aguardando o usuário liberar o acesso</span>':""}</div></div>`; }).join("")}</div>`+blocoAtivos+blocoEnc;
+}
+const estrelasInput = id => `<div class="estrelas-in" id="${id}" role="radiogroup" aria-label="Nota de 1 a 5">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-label="${n} estrela${n>1?"s":""}">★</button>`).join("")}<span class="note" id="${id}Txt">Toque para dar a nota</span></div>`;
+function ligarEstrelas(id,cb){ const box=$("#"+id); if(!box) return; let v=0; const txt=["","Ruim","Fraco","Regular","Bom","Excelente"];
+  box.addEventListener("click",e=>{ const b=e.target.closest("[data-n]"); if(!b) return; v=+b.dataset.n; box.querySelectorAll("[data-n]").forEach(x=>x.classList.toggle("on",+x.dataset.n<=v)); $("#"+id+"Txt").textContent=`${v} de 5 — ${txt[v]}`; cb(v); }); }
+async function saidaModal(c,modo,lado){
+  const troca=modo.includes("troca"), pedir=modo.startsWith("pedir"), usuario=lado==="usuario";
+  const pedeNota=usuario; const escolheNovo=troca&&(pedir||usuario);
+  let bpos=[]; if(escolheNovo){ const {data,error}=await FB.sb.rpc("bpos_disponiveis"); if(error){ toast(msgErro(error)); return; } bpos=(data||[]).filter(b=>b.uid!==c.bpoUid);
+    if(!bpos.length&&(usuario||pedir)){ toast("Não há outro BPO disponível no momento para a troca."); if(usuario) return; } }
+  const m=S.tenant&&S.tenant.matriz||{};
+  const titulo={pedir_enc:"Solicitar encerramento do contrato",concordar_enc:"Concordar com o encerramento",pedir_troca:usuario?"Solicitar troca de BPO":"Recomendar troca de BPO",concordar_troca:"Concordar com a troca de BPO"}[modo];
+  const precisaContrato=troca&&usuario;
+  openModal(`<h2>${titulo}</h2><p class="note" style="margin-top:0">Contrato com <b>${esc(c.bpoNome||"")}</b> · ${esc(c.franqueado||"")}</p>
+    ${pedir?`<div class="field"><label for="sdM">${troca?"Por que trocar?":"Motivos do encerramento"}</label><textarea id="sdM" rows="3" maxlength="1000" placeholder="${troca?"Ex.: preciso de atendimento aos sábados":"Ex.: vou assumir o financeiro; mudança de operação…"}"></textarea></div>`
+      :`<div class="sd-pedido"><b>${esc(troca?c.trocaPorNome:c.encPorNome)}</b>: “${esc((troca?c.trocaMotivo:c.motivo)||"")}”</div>`}
+    ${escolheNovo&&bpos.length?`<div class="field"><span class="flabel">${usuario?"Novo BPO":"Sugerir um colega (opcional)"}</span><div class="bpo-lista">${bpos.map(b=>`<label class="bpo-card"><input type="radio" name="sdNovo" value="${b.uid}" data-nome="${esc(b.nome)}" data-valor="${b.valor}" ${c.trocaNovo===b.uid?"checked":""}><span><b>${esc(b.nome)}</b><span class="bpo-v">${brl(b.valor)}<small>/mês</small>${b.avaliacoes?` <span class="bpo-nota">★ ${String(b.nota).replace(".",",")} · ${b.avaliacoes} avaliação(ões)</span>`:""}</span>${b.apresentacao?`<small class="bpo-ap">${esc(b.apresentacao)}</small>`:""}</span></label>`).join("")}</div></div>`:""}
+    ${precisaContrato?`<div id="sdCtr" hidden><span class="flabel">Contrato com o novo BPO</span><pre class="ctr-txt" id="sdTxt"></pre><label class="chkline"><input type="checkbox" id="sdOk"> Li e concordo com o contrato do novo BPO. A plataforma é apenas a ferramenta e não é parte do contrato.</label></div>`:""}
+    ${pedeNota?`<div class="field"><span class="flabel">Sua nota para ${esc(c.bpoNome||"o BPO")}</span>${estrelasInput("sdEst")}<textarea id="sdC" rows="2" maxlength="1000" placeholder="Comentário sobre o atendimento (opcional)" style="margin-top:6px"></textarea></div>`:""}
+    <p class="note">${troca?"Com o acordo das duas partes, este contrato é encerrado e a proposta vai para o novo BPO, que aceita, pede acesso e você libera. ":"Com o acordo das duas partes, o contrato é encerrado e o acesso do BPO é removido. "}Tudo o que foi lançado continua no sistema. Sem acordo, a franqueadora é acionada para decidir.</p>
+    <div class="err" id="sdErr" role="alert"></div>
+    <div class="foot"><div></div><div><button type="button" class="btn" data-close>Voltar</button><button type="button" class="btn pri" id="sdOkBtn">${pedir?"Enviar pedido":"Confirmar"}</button></div></div>`,false,()=>{
+    let nota=0, novo=c.trocaNovo||null, texto="";
+    const limpa=()=>{ const e=$("#sdErr"); if(e) e.textContent=""; };
+    ligarEstrelas("sdEst",v=>{ nota=v; limpa(); });
+    $(".modal").addEventListener("input",limpa); $(".modal").addEventListener("change",limpa);
+    const atualizaCtr=()=>{ if(!precisaContrato||!novo) return; const r=document.querySelector(`input[name="sdNovo"][value="${novo}"]`); if(!r) return;
+      texto=contratoBpoTexto({franqueado:m.razao||tNome(S.tenant)||c.franqueado||"",cnpj:m.cnpj||c.cnpj||"",representante:(S.me&&S.me.name)||"",bpo:r.dataset.nome,valor:+r.dataset.valor,valorExtenso:valorExtenso(+r.dataset.valor)});
+      $("#sdTxt").textContent=texto; $("#sdCtr").hidden=false; $("#sdOk").checked=false; };
+    document.querySelectorAll('input[name="sdNovo"]').forEach(r=>r.addEventListener("change",()=>{ novo=r.value; atualizaCtr(); })); atualizaCtr();
+    $("#sdOkBtn").addEventListener("click",async e=>{ const b=e.currentTarget, err=$("#sdErr"); err.textContent="";
+      const motivo=pedir?$("#sdM").value.trim():""; const coment=pedeNota?$("#sdC").value.trim():null;
+      if(pedir&&motivo.length<3){ err.textContent=troca?"Escreva por que trocar.":"Escreva os motivos do encerramento."; return; }
+      if(escolheNovo&&usuario&&!novo){ err.textContent="Escolha o novo BPO."; return; }
+      if(precisaContrato&&!$("#sdOk").checked){ err.textContent="Leia e aceite o contrato do novo BPO."; return; }
+      if(pedeNota&&!nota){ err.textContent="Dê uma nota de 1 a 5 estrelas."; return; }
+      const chamadas={
+        pedir_enc:["ctr_pedir_encerramento",{p_id:c.id,p_motivo:motivo,p_nota:usuario?nota:null,p_coment:coment},"Pedido de encerramento enviado"],
+        concordar_enc:["ctr_responder_encerramento",{p_id:c.id,p_concorda:true,p_nota:usuario?nota:null,p_coment:coment},"Contrato encerrado em acordo"],
+        pedir_troca:["ctr_pedir_troca",{p_id:c.id,p_motivo:motivo,p_novo:novo,p_texto:usuario?texto:null,p_nota:usuario?nota:null,p_coment:coment},usuario?"Pedido de troca enviado":"Recomendação de troca enviada"],
+        concordar_troca:["ctr_responder_troca",{p_id:c.id,p_concorda:true,p_novo:usuario?novo:null,p_texto:usuario?texto:null,p_nota:usuario?nota:null,p_coment:coment},"Troca confirmada — a proposta foi para o novo BPO"]}[modo];
+      b.disabled=true; const {error}=await FB.sb.rpc(chamadas[0],chamadas[1]); if(error){ err.textContent=msgErro(error); b.disabled=false; return; }
+      closeModal(); atualizarTabelas("contratos_bpo","tenants"); toast(chamadas[2]); if(!pedir) setTimeout(()=>location.reload(),1200); });
+  },"all");
+}
+function painelContratosMaster(){
+  const ls=(S.ctrRede||[]).filter(c=>["encerramento_pedido","disputa","troca_pedida","troca_disputa"].includes(c.status)); if(!ls.length) return "";
+  return `<div class="panel ctr-p ctr-disputa"><h2>Contratos de BPO para mediar<small>${ls.length}</small></h2>${ls.map(c=>{ const [st,cl]=CTR_ST[c.status]||["",""];
+    const tr=c.status.startsWith("troca");
+    return `<div class="ctr-item"><div><b>${esc(c.franqueado||"")} × ${esc(c.bpoNome||"")}</b><small class="note">${tr?`Troca ${c.trocaPor==="bpo"?"recomendada":"solicitada"} por ${esc(c.trocaPorNome||"")} em ${dtHora(c.trocaEm)}${c.trocaNovoNome?` → ${esc(c.trocaNovoNome)}`:""} — “${esc(c.trocaMotivo||"")}”`:`Encerramento pedido por ${esc(c.encPorNome||"")} em ${dtHora(c.encEm)}${c.motivo?` — “${esc(c.motivo)}”`:""}`}${c.discordaPorNome?` · ${esc(c.discordaPorNome)} não concordou`:""}</small><span class="pill ${cl}">${st}</span></div>
+      <div class="ctr-acoes"><button class="btn sm" data-act="ctr-ver" data-id="${c.id}">Ver contrato</button>${tr?`<button class="btn sm pri" data-act="ctr-troca-master" data-v="1" data-id="${c.id}">Aprovar troca</button><button class="btn sm" data-act="ctr-troca-master" data-v="0" data-id="${c.id}">Manter contrato</button>`:""}<button class="btn sm ${tr?"":"pri"}" data-act="ctr-enc-master" data-id="${c.id}">Encerrar contrato</button></div></div>`; }).join("")}</div>`;
 }
 function painelPerfilBpo(){
   if(!ehBpo()) return ""; const c=S.conta||{}; const v=c.valorBpo!=null?+c.valorBpo:20000;
@@ -2166,18 +2247,18 @@ function vLojas(){
   const vis=ui.lojasVis||"lista";
   const abas=`<div class="seg" style="margin:0 0 14px">${[["lista","Lista e dados da empresa"],["kanban","Kanban"],["mapa","Mapa"]].map(([k,t])=>`<button data-act="lojas-vis" data-v="${k}" aria-pressed="${vis===k}">${t}</button>`).join("")}</div>`;
   if(vis==="lista"){ const h=vLojasLista(); const k=h.indexOf('<div class="grid g2e">'); return k>0?h.slice(0,k)+abas+h.slice(k):abas+h; }
-  const topo=header("Lojas","Acompanhe o funil de expansão: oportunidades, prospecção, lojas ativas, perdidas e inativas.",isAdm()?`<button class="btn pri" data-act="new-loja">+ Nova loja</button>`:"")+banners()+abas;
+  const topo=header("Lojas","Acompanhe o funil de expansão: oportunidades, prospecção, lojas ativas, perdidas e inativas.",isAdm()?`<button class="btn pri" data-act="new-loja">+ Nova loja</button>`:obsTenant()?`<button class="btn pri" data-act="kb-nova" data-st="oportunidade">+ Nova oportunidade</button>`:"")+banners()+(obsTenant()?'<div class="banner lib-banner"><span>Você pode criar e mover as lojas de <b>oportunidade, prospecção e perdidas</b>. Lojas ativas e dados da empresa ficam com o BPO — para mudar algo nelas, peça ao BPO (por Chamados ou Envio de contas).</span></div>':"")+abas;
   return topo+(vis==="kanban"?kanbanLojas():mapaLojasHTML());
 }
 function kanbanLojas(){
-  const ed=isAdm();
+  const ed=isAdm(), obs=obsTenant();
   return `<div class="kanban">${LOJA_ORDEM.map(st=>{ const ls=lojasOrd().filter(l=>lojaStatus(l)===st);
-    return `<div class="kb-col" data-st="${st}"><div class="kb-h"><i style="background:${LOJA_ST[st].cor}"></i><b>${LOJA_ST[st].plural}</b><span class="kb-n">${ls.length}</span>${ed?`<button type="button" class="icon-btn" data-act="kb-nova" data-st="${st}" title="Nova loja em ${LOJA_ST[st].plural.toLowerCase()}">+</button>`:""}</div>
-      <div class="kb-cards">${ls.map(l=>`<div class="kb-card" ${ed?'draggable="true"':""} data-id="${l.id}" data-act="edit-loja" style="border-left-color:${LOJA_ST[st].cor}">
+    return `<div class="kb-col" data-st="${st}"><div class="kb-h"><i style="background:${LOJA_ST[st].cor}"></i><b>${LOJA_ST[st].plural}</b><span class="kb-n">${ls.length}</span>${ed||(obs&&LOJA_FUNIL.includes(st))?`<button type="button" class="icon-btn" data-act="kb-nova" data-st="${st}" title="Nova loja em ${LOJA_ST[st].plural.toLowerCase()}">+</button>`:""}</div>
+      <div class="kb-cards">${ls.map(l=>`<div class="kb-card" ${ed||(obs&&LOJA_FUNIL.includes(st))?'draggable="true"':""} data-id="${l.id}" data-act="edit-loja" style="border-left-color:${LOJA_ST[st].cor}">
         <div class="kb-t"><b>${esc(lojaNome(l))}</b><span class="num note">${esc(l.codigo||"")}</span></div>
         ${l.endereco?`<div class="kb-m">📍 ${esc(l.endereco)}</div>`:""}${l.sindico||l.telefone?`<div class="kb-m">${esc(l.sindico||"")}${l.sindico&&l.telefone?" · ":""}${esc(l.telefone||"")}</div>`:""}
         ${l.obs?`<div class="kb-o">${esc(l.obs).slice(0,110)}${l.obs.length>110?"…":""}</div>`:""}${l.inauguracao?`<div class="kb-m">Inauguração ${dBR(l.inauguracao)}</div>`:""}</div>`).join("")||'<div class="kb-vazio">Arraste uma loja para cá</div>'}</div></div>`; }).join("")}</div>
-    ${ed?'<p class="note" style="margin-top:8px">Arraste os cartões entre as colunas para mudar a situação. Ao soltar em <b>Lojas ativas</b>, abre o cadastro para completar taxas, royalties, cashback, mensalidade e energia.</p>':""}`;
+    ${ed||obs?'<p class="note" style="margin-top:8px">Arraste os cartões entre as colunas para mudar a situação. Ao soltar em <b>Lojas ativas</b>, abre o cadastro para completar taxas, royalties, cashback, mensalidade e energia.</p>':""}`;
 }
 function mapaLojasHTML(){
   const r=(S.cfg&&S.cfg.raioOp)||{}; const ls=S.lojas; const sem=ls.filter(l=>l.endereco&&(l.lat==null||l.lng==null));
@@ -2185,8 +2266,8 @@ function mapaLojasHTML(){
     <div class="mapa-lado">
       <div class="panel"><h2>Legenda</h2>${LOJA_ORDEM.map(st=>`<div class="leg-l"><i style="background:${LOJA_ST[st].cor}"></i>${LOJA_ST[st].plural}<span class="note">${ls.filter(l=>lojaStatus(l)===st&&l.lat!=null).length}</span></div>`).join("")}
         ${sem.length?`<div class="sem-geo"><p class="note" style="margin:10px 0 4px"><b>${sem.length} loja(s) sem localização</b>${isAdm()?" — o sistema procura o endereço sozinho; se não achar, marque no mapa:":""}</p>
-          ${sem.map(l=>`<div class="sg-l"><i style="background:${LOJA_ST[lojaStatus(l)].cor}"></i><span><b>${esc(lojaNome(l))}</b><small>${esc(l.endereco||"")}${l.geoFalhou===l.endereco?' · <span class="neg">endereço não encontrado</span>':""}</small></span>${isAdm()?`<button class="btn sm" data-act="geo-marcar" data-id="${l.id}">📍 Marcar no mapa</button>`:""}</div>`).join("")}
-          ${isAdm()?`<button class="btn sm" data-act="geo-todas" style="margin-top:6px">Procurar endereços de novo</button>`:""}</div>`:""}
+          ${sem.map(l=>`<div class="sg-l"><i style="background:${LOJA_ST[lojaStatus(l)].cor}"></i><span><b>${esc(lojaNome(l))}</b><small>${esc(l.endereco||"")}${l.geoFalhou===l.endereco?' · <span class="neg">endereço não encontrado</span>':""}</small></span>${podeLoja(l)?`<button class="btn sm" data-act="geo-marcar" data-id="${l.id}">📍 Marcar no mapa</button>`:""}</div>`).join("")}
+          ${podeFunil()?`<button class="btn sm" data-act="geo-todas" style="margin-top:6px">Procurar endereços de novo</button>`:""}</div>`:""}
         ${isAdm()&&ls.some(l=>l.lat!=null)?'<p class="note" style="margin:8px 0 0">Dica: arraste um ponto no mapa para ajustar a posição da loja.</p>':""}</div>
       ${painelRota()}
       <div class="panel"><h2>Raio de operação</h2>
@@ -2279,7 +2360,7 @@ async function desenharMapaLojas(){
   new Centro().addTo(MAPA); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(MAPA);
   const pts=[]; const r=(S.cfg&&S.cfg.raioOp)||{};
   S.lojas.filter(l=>l.lat!=null&&l.lng!=null).forEach(l=>{ const st=lojaStatus(l);
-    const mk=L.marker([l.lat,l.lng],{draggable:isAdm(),icon:L.divIcon({className:"pino-loja",html:`<span style="background:${LOJA_ST[st].cor}"></span>`,iconSize:[20,20],iconAnchor:[10,10]})}).addTo(MAPA)
+    const mk=L.marker([l.lat,l.lng],{draggable:podeLoja(l),icon:L.divIcon({className:"pino-loja",html:`<span style="background:${LOJA_ST[st].cor}"></span>`,iconSize:[20,20],iconAnchor:[10,10]})}).addTo(MAPA)
       .bindPopup(`<b>${esc(lojaNome(l))}</b><br>${esc(LOJA_ST[st].nome)}<br><small>${esc(l.endereco||"")}</small>`);
     mk.on("dragend",async()=>{ const p=mk.getLatLng(); try{ await salvarPosLoja(l.id,p.lat,p.lng); toast(`Posição de ${lojaNome(l)} ajustada`); }catch(e){} });
     pts.push([l.lat,l.lng]); });
@@ -2287,8 +2368,8 @@ async function desenharMapaLojas(){
   if(pts.length) MAPA.fitBounds(pts,{padding:[40,40],maxZoom:14}); else MAPA.setView([-23.55,-46.63],11);
   ROTA_CAMADA=null; if(ROTA) desenharRota();
   // procura sozinho, uma vez por sessão, as lojas com endereço e sem localização
-  const falta=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)&&l.geoFalhou!==l.endereco);
-  if(isAdm()&&falta.length&&!GEO_AUTO_FEITO){ GEO_AUTO_FEITO=true; (async()=>{ let ok=0; for(const l of falta){ if(await geocodificarLoja(l.id,l)) ok++; }
+  const falta=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)&&l.geoFalhou!==l.endereco&&podeLoja(l));
+  if(podeFunil()&&falta.length&&!GEO_AUTO_FEITO){ GEO_AUTO_FEITO=true; (async()=>{ let ok=0; for(const l of falta){ if(await geocodificarLoja(l.id,l)) ok++; }
     if(ok) toast(`${ok} loja(s) localizada(s) no mapa`); else if(falta.length) toast("Não encontramos o endereço — use “Marcar no mapa”."); })(); }
   MAPA.on("click",async ev=>{
     if(MARCAR_LOJA){ const id=MARCAR_LOJA; MARCAR_LOJA=null; el.style.cursor=""; try{ await salvarPosLoja(id,ev.latlng.lat,ev.latlng.lng); toast("Loja marcada no mapa"); }catch(e){} return; }
@@ -2353,7 +2434,8 @@ document.addEventListener("dragstart",e=>{ const c=e.target.closest&&e.target.cl
 document.addEventListener("dragend",e=>{ document.querySelectorAll(".arrastando,.kb-alvo").forEach(x=>x.classList.remove("arrastando","kb-alvo")); });
 document.addEventListener("dragover",e=>{ const col=e.target.closest&&e.target.closest(".kb-col"); if(!col) return; e.preventDefault(); document.querySelectorAll(".kb-alvo").forEach(x=>x!==col&&x.classList.remove("kb-alvo")); col.classList.add("kb-alvo"); });
 document.addEventListener("drop",async e=>{ const col=e.target.closest&&e.target.closest(".kb-col"); if(!col) return; e.preventDefault(); col.classList.remove("kb-alvo");
-  const id=e.dataTransfer.getData("text/plain"); const l=S.lojas.find(x=>x.id===id); const st=col.dataset.st; if(!l||!isAdm()||lojaStatus(l)===st) return;
+  const id=e.dataTransfer.getData("text/plain"); const l=S.lojas.find(x=>x.id===id); const st=col.dataset.st; if(!l||lojaStatus(l)===st) return;
+  if(!isAdm()){ if(!(obsTenant()&&lojaFunil(l)&&LOJA_FUNIL.includes(st))){ toast("Lojas ativas e inativas ficam com o BPO — peça a ele para fazer essa mudança."); return; } }
   if(st==="ativa"){ lojaForm(l,"ativa"); return; }
   try{ const {id:_i,...rest}=l; await save("lojas",l.id,{...rest,status:st,ativa:false}); diario("Situação da loja alterada",`${lojaNome(l)}: ${LOJA_ST[lojaStatus(l)].nome} → ${LOJA_ST[st].nome}`,{cat:"alteracao"}); toast(`${lojaNome(l)} → ${LOJA_ST[st].nome}`); }catch(ex){} });
 
@@ -2911,7 +2993,7 @@ function lojaForm(x,statusPreset){
           <div class="field"><label for="lj_uf">UF</label><select id="lj_uf">${opt("","—",(x.end||{}).uf||"")}${UFS.map(u=>opt(u,u,(x.end||{}).uf||"")).join("")}</select></div></div>
         <div class="note" id="cepInfo"></div></div>
       <div class="row">${F("telefone","Telefone","tel")}${F("email","E-mail","email")}</div>
-      <div class="field"><span class="flabel">Situação</span><div class="seg loja-st" id="ljStSeg">${LOJA_ORDEM.map(k=>`<button type="button" data-st="${k}" aria-pressed="${st0===k}"><i style="background:${LOJA_ST[k].cor}"></i>${LOJA_ST[k].nome}</button>`).join("")}</div><input type="hidden" id="lj_status" value="${st0}"></div>
+      <div class="field"><span class="flabel">Situação</span><div class="seg loja-st" id="ljStSeg">${LOJA_ORDEM.filter(k=>isAdm()||LOJA_FUNIL.includes(k)).map(k=>`<button type="button" data-st="${k}" aria-pressed="${st0===k}"><i style="background:${LOJA_ST[k].cor}"></i>${LOJA_ST[k].nome}</button>`).join("")}</div><input type="hidden" id="lj_status" value="${st0}"></div>
       <div class="field"><label for="lj_obs">Observações / próximos passos</label><textarea id="lj_obs" rows="2" placeholder="Ex.: reunião com o síndico dia 10; proposta enviada; motivo da perda…">${esc(x.obs||"")}</textarea></div>
       <div id="ljOper" ${lojaOper({status:st0})?"":"hidden"}>
       <p class="note" style="margin:-4px 0 0">O aniversário da loja aparece todo ano na agenda, na data de inauguração.</p>
@@ -2955,7 +3037,7 @@ function lojaForm(x,statusPreset){
           closeModal(); toast(isNew?"Loja cadastrada":"Loja atualizada"); agendarAuto();
         }catch(ex){}
       });
-    });
+    },(!isAdm()&&obsTenant()&&(isNew||lojaFunil(x)))?"all":undefined);
 }
 
 /* ---------- taxas de venda por loja (com histórico por mês) ---------- */
@@ -3595,6 +3677,7 @@ const VIEW_MOD={}; MODS.forEach(m=>VIEW_MOD[m[2]]=m[0]); VIEW_MOD.taxas="config"
 const MODS_COLAB=MODS.filter(m=>m[0]!=="rec"&&m[0]!=="pag");   // contas a pagar/receber: só o master do franqueado
 function nivel(mod){
   const p=S.claims.papel;
+  if(mod==="ag"&&obsTenant()) return 2;
   if(p==="master"){ if(!temBpo()) return 2; const pf=(S.tenant&&S.tenant.permFranq)||{}; const m=MODS.find(x=>x[0]===mod); return Math.max(1,Math.min(+pf[mod]||1, m?m[3]:2)); }
   if(p==="bpo") return bpoTenant()?2:1;
   if(p==="master_rede") return S.liberado?2:1;
@@ -3612,6 +3695,12 @@ const podeGerirUsr = () => (gestorFranq()&&!temBpo()) || bpoTenant() || (masterR
 const podeMzFn = () => masterRede() || masterFranq() || bpoTenant();
 const masterRede = () => S.claims.papel==="master_rede";
 const masterFranq = () => S.claims.papel==="master";
+// com BPO ativo, os usuários do franqueado (master e colaboradores) acompanham e têm Agenda, Chamados e lojas do funil livres
+const obsTenant = () => !!S.tenant && !!S.tenant.bpoUid && ["master","colab"].includes(S.claims.papel);
+const LOJA_FUNIL=["oportunidade","prospeccao","perdida"];
+const lojaFunil = l => LOJA_FUNIL.includes((l&&l.status&&LOJA_ST&&LOJA_ST[l.status])?l.status:((l&&l.ativa===false)?"inativa":"ativa"));
+const podeFunil = () => isAdm() || obsTenant();
+const podeLoja = l => isAdm() || (obsTenant() && lojaFunil(l));
 const gestorFranq = () => S.claims.papel==="master";
 const tsMs = t => !t?0 : typeof t.toMillis==="function"?t.toMillis() : t.seconds!=null?t.seconds*1000 : new Date(t).getTime()||0;
 const dtHora = t => { const ms=tsMs(t); if(!ms) return "—"; const d=new Date(ms); return d.toLocaleDateString("pt-BR")+" "+pad(d.getHours())+":"+pad(d.getMinutes()); };
@@ -3760,7 +3849,7 @@ function assinarRede(){
     const iv=setInterval(()=>{ if(!S.tid&&ui.view==="painelrede") carregarIndicadores(); },60000); UNSUB_REDE.push(()=>clearInterval(iv));
     UNSUB_REDE.push(vigiar("rede_diario",{cols:"id,data",ordem:["criado",false],limite:300},rows=>{ S.redeDiario=rows.map(r=>({...r.data,id:r.id})); if(!S.tid) render(); }));
   }
-  if(ehBpo()) UNSUB_REDE.push(vigiar("contratos_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:300},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._ctrSig) return; S._ctrSig=sig; S.ctrRede=novo; if(!S.tid) render(); else renderNav(); }));
+  if(ehBpo()||masterRede()) UNSUB_REDE.push(vigiar("contratos_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:300},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._ctrSig) return; S._ctrSig=sig; S.ctrRede=novo; if(!S.tid) render(); else renderNav(); }));
   UNSUB_REDE.push(vigiar("envios",{cols:"id,tid,data",ordem:["criado",false],limite:800},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._envSig) return; S._envSig=sig; S.envRede=novo; if(!S.tid) render(); else renderNav(); }));
   UNSUB_REDE.push(vigiar("chamados",{cols:"id,tid,data",ordem:["criado",false],limite:500},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._chSig) return; S._chSig=sig; S.chamRede=novo; if(!S.tid) render(); }));
 }
@@ -3786,7 +3875,7 @@ function abrirTenant(tid){
   sub(S.db.collection(COL.ag),s=>{ S.ag=s.docs.map(strip); render(); });
   sub(S.db.collection(COL.lojas),s=>{ S.lojas=s.docs.map(strip); render(); agendarAuto(); });
   sub(S.db.collection(COL.usr),s=>{ S.usr=s.docs.map(strip); S.names={}; S.usr.forEach(u=>S.names[u.id]=u.nome||u.email||""); if(S.me) S.names[S.me.id]=S.names[S.me.id]||S.me.name; render(); });
-  if(gestorFranq()||plat()){
+  if(gestorFranq()||plat()||(S.tenant&&S.tenant.bpoUid)){
     sub(S.db.collection("contratos_bpo").orderBy("propostoEm","desc").limit(50),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._ctrSigT) return; S._ctrSigT=sig; S.ctr=novo; render(); });
     sub(S.db.collection("envios").orderBy("enviadoEm","desc").limit(500),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._envSigT) return; S._envSigT=sig; S.envios=novo; render(); });
     sub(S.db.collection("chamados").orderBy("abertoEm","desc").limit(300),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._chSigT) return; S._chSigT=sig; S.cham=novo; render(); });
@@ -3809,7 +3898,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 68 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 71 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4129,7 +4218,7 @@ function vChamados(){
   const aba=ui.chTab==="diario"?"diario":"conversa";
   const franq=!plat(); const lista=S.cham||[]; const c=ui.chSel&&lista.find(x=>x.id===ui.chSel);
   const abas=`<div class="seg ch-abas" role="tablist"><button role="tab" data-act="ch-aba" data-v="conversa" aria-pressed="${aba==="conversa"}">Chamados</button><button role="tab" data-act="ch-aba" data-v="diario" aria-pressed="${aba==="diario"}">Histórico</button></div>`;
-  const topo=header("Chamados", franq?"Precisa de ajuda da franqueadora? Abra um chamado. Quando ela aceitar, vocês conversam por aqui; ao final, encerre e avalie o atendimento.":"Chamados deste franqueado.", (franq&&masterFranq())||S.claims.papel==="observador"?`<button class="btn pri" data-act="ch-novo">+ Abrir chamado</button>`:"")+(aba==="diario"?banners():"")+abas;
+  const topo=header("Chamados", franq?"Precisa de ajuda da franqueadora? Abra um chamado. Quando ela aceitar, vocês conversam por aqui; ao final, encerre e avalie o atendimento.":"Chamados deste franqueado.", (franq&&(masterFranq()||obsTenant()))||S.claims.papel==="observador"?`<button class="btn pri" data-act="ch-novo">+ Abrir chamado</button>`:"")+(aba==="diario"?banners():"")+abas;
   if(aba==="diario") return topo+diarioHTML();
   if(!franq&&c) vigiarMsgsRede(S.tid);
   return topo+`<div class="chat-wrap"><div class="chat-lista">${chLista(lista,franq?"franq":"rede")}</div><div class="chat-pane">${chPane(c,franq?"franq":"rede")}</div></div>`;
@@ -4672,14 +4761,14 @@ document.addEventListener("click",async e=>{
   if(act==="del-ag"&&isAdm()){ const ag=S.ag.find(x=>x.id===id); if(ag) confirmBtn(a,"Confirmar exclusão",()=>del("ag",id).then(()=>{ toast("Compromisso excluído"); }).catch(()=>{})); return; }
   if(act==="ord"){ const t=a.dataset.t, k=a.dataset.k, o=ordemDe(t); ui.sort=ui.sort||{}; ui.sort[t]={k,dir:o.k===k?(o.dir==="desc"?"asc":"desc"):(["data","valor","numero","pagamento","venc","mes","venda","taxa"].includes(k)?"desc":"asc")}; render(); return; }
   if(act==="lojas-vis"){ ui.lojasVis=a.dataset.v; render(); return; }
-  if(act==="kb-nova"&&isAdm()){ lojaForm(null,a.dataset.st); return; }
+  if(act==="kb-nova"&&podeFunil()){ const st=a.dataset.st; if(!isAdm()&&!LOJA_FUNIL.includes(st)){ toast("Só o BPO cadastra lojas ativas."); return; } lojaForm(null,st); return; }
   if(act==="raio-centro"&&isAdm()){ centralizarMapa(); RAIO_MARCANDO=true; const el=$("#mapaLojas"); if(el) el.style.cursor="crosshair"; const i=$("#raioInfo"); if(i) i.textContent="Clique no mapa onde fica o centro do seu raio de operação."; return; }
   if(act==="raio-salvar"&&isAdm()){ const km=+(($("#raioKm")||{}).value)||5; const atual=(S.cfg&&S.cfg.raioOp)||{}; const c=RAIO_TMP||(atual.lat!=null?atual:null);
     if(!c){ toast("Clique em “Marcar centro no mapa” primeiro."); return; } const cfgN={...(S.cfg||{})}; delete cfgN.categorias; cfgN.raioOp={lat:c.lat,lng:c.lng,km};
     saveCfg(cfgN).then(()=>{ RAIO_TMP=null; toast(`Raio de operação salvo: ${km} km`); diario("Raio de operação definido",`${km} km`,{cat:"alteracao"}); }); return; }
   if(act==="raio-limpar"&&isAdm()){ const cfgN={...(S.cfg||{})}; delete cfgN.categorias; delete cfgN.raioOp; saveCfg(cfgN).then(()=>toast("Raio removido")); return; }
-  if(act==="geo-todas"&&isAdm()){ const ls=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)); a.disabled=true; (async()=>{ let ok=0, n=0; for(const l of ls){ n++; a.textContent=`Procurando ${n}/${ls.length}…`; if(await geocodificarLoja(l.id,l)) ok++; } toast(ok?`${ok} de ${ls.length} loja(s) localizada(s)`:"Não encontramos — use “Marcar no mapa”."); a.disabled=false; a.textContent="Procurar endereços de novo"; })(); return; }
-  if(act==="geo-marcar"&&isAdm()){ MARCAR_LOJA=id; const el=$("#mapaLojas"); if(el){ el.style.cursor="crosshair"; el.scrollIntoView({behavior:"smooth",block:"center"}); } const l=S.lojas.find(x=>x.id===id); toast(`Clique no mapa onde fica ${l?lojaNome(l):"a loja"}`); return; }
+  if(act==="geo-todas"&&podeFunil()){ const ls=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)&&podeLoja(l)); a.disabled=true; (async()=>{ let ok=0, n=0; for(const l of ls){ n++; a.textContent=`Procurando ${n}/${ls.length}…`; if(await geocodificarLoja(l.id,l)) ok++; } toast(ok?`${ok} de ${ls.length} loja(s) localizada(s)`:"Não encontramos — use “Marcar no mapa”."); a.disabled=false; a.textContent="Procurar endereços de novo"; })(); return; }
+  if(act==="geo-marcar"&&podeLoja(S.lojas.find(x=>x.id===id)||{})){ MARCAR_LOJA=id; const el=$("#mapaLojas"); if(el){ el.style.cursor="crosshair"; el.scrollIntoView({behavior:"smooth",block:"center"}); } const l=S.lojas.find(x=>x.id===id); toast(`Clique no mapa onde fica ${l?lojaNome(l):"a loja"}`); return; }
   if(act==="pix-copiar"){ const v=a.dataset.v; (navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast("Chave Pix copiada"),()=>{ const t=document.createElement("textarea"); t.value=v; document.body.appendChild(t); t.select(); try{ document.execCommand("copy"); toast("Chave Pix copiada"); }catch(e){ toast(v); } t.remove(); }); return; }
   if(act==="rota-tracar"){ tracarRota(a); return; }
   if(act==="rota-limpar"){ ROTA=null; render(); return; }
@@ -4691,12 +4780,24 @@ document.addEventListener("click",async e=>{
   if(act==="ctr-contratar"&&masterFranq()){ contratarBpoModal(); return; }
   if(act==="ctr-ver"){ const c=(S.ctr||[]).concat(S.ctrRede||[]).find(x=>x.id===id); if(c) verContrato(c); return; }
   if(act==="ctr-baixar"){ const c=(S.ctr||[]).concat(S.ctrRede||[]).find(x=>x.id===id); if(c){ const u=URL.createObjectURL(new Blob([c.texto||""],{type:"text/plain;charset=utf-8"})); const l=document.createElement("a"); l.href=u; l.download=`Contrato-BPO-${(c.franqueado||"").replace(/[^\w]+/g,"-")}.txt`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u),3000); } return; }
-  const ctrRpc=(fn,args,msg)=>{ a.disabled=true; FB.sb.rpc(fn,args).then(({error})=>{ if(error){ toast(msgErro(error)); a.disabled=false; return; } atualizarTabelas("contratos_bpo","tenants"); toast(msg); if(fn==="ctr_liberar"||fn==="ctr_encerrar") setTimeout(()=>location.reload(),1200); }); };
+  const ctrRpc=(fn,args,msg)=>{ a.disabled=true; FB.sb.rpc(fn,args).then(({error})=>{ if(error){ toast(msgErro(error)); a.disabled=false; return; } atualizarTabelas("contratos_bpo","tenants"); toast(msg); if(fn==="ctr_liberar"||fn==="ctr_encerrar_master"||(fn==="ctr_decidir_troca_master"&&args.p_aprova)) setTimeout(()=>location.reload(),1200); }); };
   if(act==="ctr-aceitar"){ confirmBtn(a,"Confirmar: aceito o contrato",()=>ctrRpc("ctr_responder",{p_id:id,p_aceita:true},"Contrato aceito — agora solicite o acesso")); return; }
   if(act==="ctr-recusar"){ confirmBtn(a,"Confirmar recusa",()=>ctrRpc("ctr_responder",{p_id:id,p_aceita:false},"Proposta recusada")); return; }
   if(act==="ctr-pedir"){ ctrRpc("ctr_pedir_acesso",{p_id:id},"Acesso solicitado — aguardando o usuário liberar"); return; }
   if(act==="ctr-liberar"){ confirmBtn(a,"Confirmar: liberar acesso",()=>ctrRpc("ctr_liberar",{p_id:id},"Acesso liberado — o BPO já pode trabalhar")); return; }
   if(act==="ctr-cancelar"){ confirmBtn(a,"Confirmar cancelamento",()=>ctrRpc("ctr_cancelar",{p_id:id},"Contratação cancelada")); return; }
+  if(act==="ctr-saida"){ const c=(S.ctr||[]).concat(S.ctrRede||[]).find(x=>x.id===id); if(c) saidaModal(c,a.dataset.m,a.dataset.l); return; }
+  if(act==="ctr-desistir-troca"){ ctrRpc("ctr_desistir_troca",{p_id:id},"Pedido de troca retirado"); return; }
+  if(act==="ctr-acionar-troca"){ confirmBtn(a,"Confirmar: acionar a franqueadora",()=>ctrRpc("ctr_acionar_master_troca",{p_id:id},"Franqueadora acionada — um chamado foi aberto")); return; }
+  if(act==="ctr-discordar-troca"){ confirmBtn(a,"Confirmar: não concordo",()=>ctrRpc("ctr_responder_troca",{p_id:id,p_concorda:false},"A franqueadora foi acionada para decidir")); return; }
+  if(act==="ctr-troca-master"&&masterRede()){ const ap=a.dataset.v==="1"; const motivo=prompt(ap?"Observação da franqueadora (opcional):":"Por que manter o contrato?",""); if(motivo===null) return; ctrRpc("ctr_decidir_troca_master",{p_id:id,p_aprova:ap,p_motivo:motivo},ap?"Troca aprovada pela franqueadora":"Contrato mantido pela franqueadora"); return; }
+  if(act==="ctr-reativar"&&masterFranq()){ contratarBpoModal(a.dataset.v); return; }
+  if(act==="ctr-pedir-enc"){ const motivo=prompt("Motivo do encerramento (a outra parte vai ver):",""); if(motivo===null) return; ctrRpc("ctr_pedir_encerramento",{p_id:id,p_motivo:motivo},"Pedido de encerramento enviado — aguardando a outra parte"); return; }
+  if(act==="ctr-desistir"){ ctrRpc("ctr_desistir_encerramento",{p_id:id},"Pedido de encerramento retirado"); return; }
+  if(act==="ctr-concordar"){ confirmBtn(a,"Confirmar: encerrar em acordo",()=>ctrRpc("ctr_responder_encerramento",{p_id:id,p_concorda:true},"Contrato encerrado em acordo")); return; }
+  if(act==="ctr-discordar"){ confirmBtn(a,"Confirmar: não concordo",()=>ctrRpc("ctr_responder_encerramento",{p_id:id,p_concorda:false},"A franqueadora foi acionada para mediar")); return; }
+  if(act==="ctr-acionar"){ confirmBtn(a,"Confirmar: acionar a franqueadora",()=>ctrRpc("ctr_acionar_master",{p_id:id},"Franqueadora acionada — um chamado foi aberto")); return; }
+  if(act==="ctr-enc-master"&&masterRede()){ const motivo=prompt("Decisão da franqueadora (registrada no contrato):",""); if(motivo===null) return; ctrRpc("ctr_encerrar_master",{p_id:id,p_motivo:motivo},"Contrato encerrado pela franqueadora"); return; }
   if(act==="ctr-encerrar"){ confirmBtn(a,"Confirmar encerramento",()=>ctrRpc("ctr_encerrar",{p_id:id,p_motivo:null},"Contrato encerrado — o acesso do BPO foi removido")); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
@@ -4712,7 +4813,7 @@ document.addEventListener("click",async e=>{
   if(act==="cmv-excluir"&&isAdm()){ const d=(S.div||[]).find(x=>x.id===id); if(d) confirmBtn(a,"Confirmar exclusão",()=>del("div",d.id).then(()=>{ atualizarTabelas("divisoes"); toast("Rateio excluído"); }).catch(()=>{})); return; }
   if(act==="ch-sel"){ ui.chSel = ui.chSel===id ? null : id; render(); return; }   // clicar de novo fecha a conversa
   if(act==="ch-filtro"){ ui.chFiltro=a.dataset.v; render(); return; }
-  if(act==="ch-novo"&&(masterFranq()||S.claims.papel==="observador")){ novoChamadoFr(S.tid||null); return; }
+  if(act==="ch-novo"&&(masterFranq()||obsTenant()||S.claims.papel==="observador")){ novoChamadoFr(S.tid||null); return; }
   if(act==="ch-aceitar2"&&(()=>{ const c=chamadoPor(id); return c&&souAtCh(c); })()){ rpcCh("ch_aceitar",{p_id:id},"Chamado aceito — atendimento iniciado",a).then(ok=>{ if(ok) ui.chFiltro="atendimento"; }); return; }
   if(act==="ch-cancelar2"){ confirmBtn(a,"Confirmar cancelamento",()=>rpcCh("ch_encerrar",{p_id:id,p_nota:null,p_comentario:""},"Chamado cancelado",a)); return; }
   if(act==="ch-pedir"){ rpcCh("ch_pedir_acesso",{p_id:id},"Pedido de acesso enviado ao franqueado",a); return; }
@@ -4754,7 +4855,7 @@ document.addEventListener("click",async e=>{
   else if(act==="sel-day"){ ui.a.sel=a.dataset.d; if(mkey(ui.a.sel)!==ui.a.mes) ui.a.mes=mkey(ui.a.sel); render(); }
   else if(act==="mes"){ const n=+a.dataset.n; ui.a.mes = n===0?mkey(HOJE):addMonths(ui.a.mes,n); if(n===0) ui.a.sel=HOJE; render(); }
   else if(act==="new-loja"&&isAdm()) lojaForm(null);
-  else if(act==="edit-loja"){ const x=lojaBy(id); if(x){ if(isAdm()) lojaForm(x); else { ui.cc=x.id; saveUi(); ui.view="painel"; render(); } } }
+  else if(act==="edit-loja"){ const x=lojaBy(id)||S.lojas.find(y=>y.id===id); if(x){ if(podeLoja(x)) lojaForm(x); else if(obsTenant()) toast("Esta loja fica com o BPO — peça a ele para alterar."); else { ui.cc=x.id; saveUi(); ui.view="painel"; render(); } } }
   else if(act==="edit-cat"&&isAdm()) catForm(id);
   else if(act==="rel-xlsx") relatorio(a.dataset.k,"xlsx",a);
   else if(act==="rel-pdf") relatorio(a.dataset.k,"pdf",a);
