@@ -584,6 +584,7 @@ table.cmv select.cmv-cat{max-width:200px;font-size:12px}
 .ctr-enc{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}.ctr-disputa{border:2px solid #E3A008}
 .estrelas-in{display:flex;align-items:center;gap:2px}.estrelas-in button{background:none;border:0;font-size:28px;line-height:1;color:#D7DCE0;cursor:pointer;padding:0 2px}.estrelas-in button.on{color:#F2B705}.estrelas-in .note{margin-left:10px}
 .sd-pedido{background:var(--surface-2);border-radius:8px;padding:8px 10px;margin:0 0 10px;font-size:13px}.bpo-nota{color:#8A5A00;font-weight:600;font-size:12px;margin-left:6px}
+.nav-manual{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;color:#B8BDC2;text-decoration:none;font-size:14px}.nav-manual svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.nav-manual small{margin-left:auto;font-size:10px;font-weight:700;color:#00BF63;border:1px solid #00BF63;border-radius:4px;padding:0 4px}.nav-manual:hover{background:rgba(255,255,255,.06);color:#fff}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -908,6 +909,7 @@ function renderNav(){
   const pendRede=(S.chamRede||[]).filter(c=>(c.status==="aberto"&&souAtCh(c))||(c.status==="atendimento"&&chNaoLido(c))).length;
   $("#nav").innerHTML = VIEWS.map(v=> v[0]==="sep" ? '<div class="sep"></div>' :
     `<button data-nav="${v[0]}" ${ui.view===v[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[v[0]]}</svg>${v[1]}${v[0]==="pagar"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa").length}</span>`:""}${v[0]==="receber"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita").length}</span>`:""}${v[0]==="chamados"&&pend?`<span class="badge">${pend}</span>`:""}${v[0]==="chamadosrede"&&pendRede?`<span class="badge">${pendRede}</span>`:""}${v[0]==="enviosrede"&&envNovos?`<span class="badge">${envNovos}</span>`:""}${v[0]==="rede"&&ehBpo()&&(S.ctrRede||[]).some(c=>c.status==="proposto")?`<span class="badge">${(S.ctrRede||[]).filter(c=>c.status==="proposto").length}</span>`:""}${v[0]==="envios"&&envNovosT?`<span class="badge">${envNovosT}</span>`:""}</button>`).join("");
+  $("#nav").insertAdjacentHTML("beforeend",`<div class="sep"></div><a class="nav-manual" href="manual-do-usuario.pdf?v=72" target="_blank" rel="noopener" title="Abrir o manual em PDF para ler, baixar ou imprimir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M9 8h6M9 11h6"/></svg>Manual do usuário <small>PDF</small></a>`);
 }
 
 /* ---------- options builders ---------- */
@@ -3898,7 +3900,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 72 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 73 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
