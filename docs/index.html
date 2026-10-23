@@ -575,6 +575,12 @@ table.cmv select.cmv-cat{max-width:200px;font-size:12px}
 .env-t{display:flex;justify-content:space-between;gap:8px;align-items:center}.env-v{margin-top:3px;font-size:13px}.env-o{margin-top:5px;background:var(--surface-2);border-radius:6px;padding:5px 8px;font-size:12.5px}
 .env-st{display:flex;flex-direction:column;gap:2px;margin-top:8px;font-size:11.5px;color:var(--muted)}.env-st .ok{color:#0B5A33;font-weight:600}.env-st .aguarda{color:#8A5A00}
 .env-comp{border-top:1px solid var(--line);margin-top:6px;padding-top:12px;display:flex;flex-direction:column;gap:8px}.env-comp .row3{display:grid;grid-template-columns:1fr 1fr 170px;gap:10px}.env-comp .row{display:grid;grid-template-columns:190px 1fr;gap:10px}.env-comp .field{margin:0}@media (max-width:700px){.env-comp .row3,.env-comp .row{grid-template-columns:1fr}}.env-acoes{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}.env-acoes .btn.pri{margin-left:auto}
+.ctr-p{margin-bottom:14px}.ctr-l{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.ctr-acoes{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ctr-passos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.ctr-passos>div{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--muted)}.ctr-passos>div.ok{border-color:#BDEFD3;background:#F2FBF6;color:#0B5A33}.ctr-passos span{font-weight:800;margin-right:5px}.ctr-passos small{display:block;font-size:10.5px;opacity:.85}
+@media (max-width:760px){.ctr-passos{grid-template-columns:1fr 1fr}}
+.bpo-lista{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}.bpo-card{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}.bpo-card:has(input:checked){border-color:#00BF63;background:#F2FBF6}.bpo-card>span{flex:1;display:flex;flex-direction:column;gap:3px}.bpo-v{color:#0B5A33;font-weight:800}.bpo-v small{font-weight:400;color:var(--muted)}.bpo-ap{color:var(--ink-2);font-size:12px}
+.ctr-txt{white-space:pre-wrap;font-family:inherit;font-size:12px;line-height:1.5;max-height:42vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--surface-2);margin:6px 0 10px}
+.ctr-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.ctr-item small{display:block}.ctr-item .pill{margin-top:4px;display:inline-block}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -898,7 +904,7 @@ function renderNav(){
   const envNovosT=bpoTenant()?(S.envios||[]).filter(e=>!e.recebidoEm).length:0;
   const pendRede=(S.chamRede||[]).filter(c=>(c.status==="aberto"&&souAtCh(c))||(c.status==="atendimento"&&chNaoLido(c))).length;
   $("#nav").innerHTML = VIEWS.map(v=> v[0]==="sep" ? '<div class="sep"></div>' :
-    `<button data-nav="${v[0]}" ${ui.view===v[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[v[0]]}</svg>${v[1]}${v[0]==="pagar"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa").length}</span>`:""}${v[0]==="receber"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita").length}</span>`:""}${v[0]==="chamados"&&pend?`<span class="badge">${pend}</span>`:""}${v[0]==="chamadosrede"&&pendRede?`<span class="badge">${pendRede}</span>`:""}${v[0]==="enviosrede"&&envNovos?`<span class="badge">${envNovos}</span>`:""}${v[0]==="envios"&&envNovosT?`<span class="badge">${envNovosT}</span>`:""}</button>`).join("");
+    `<button data-nav="${v[0]}" ${ui.view===v[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[v[0]]}</svg>${v[1]}${v[0]==="pagar"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa").length}</span>`:""}${v[0]==="receber"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita").length}</span>`:""}${v[0]==="chamados"&&pend?`<span class="badge">${pend}</span>`:""}${v[0]==="chamadosrede"&&pendRede?`<span class="badge">${pendRede}</span>`:""}${v[0]==="enviosrede"&&envNovos?`<span class="badge">${envNovos}</span>`:""}${v[0]==="rede"&&ehBpo()&&(S.ctrRede||[]).some(c=>c.status==="proposto")?`<span class="badge">${(S.ctrRede||[]).filter(c=>c.status==="proposto").length}</span>`:""}${v[0]==="envios"&&envNovosT?`<span class="badge">${envNovosT}</span>`:""}</button>`).join("");
 }
 
 /* ---------- options builders ---------- */
@@ -1823,6 +1829,131 @@ async function baixarEnvArq(aid,btn){
     const bin=atob(data.conteudo); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
     const url=URL.createObjectURL(new Blob([u8],{type:data.data.tipo||"application/octet-stream"})); const a=document.createElement("a"); a.href=url; a.download=data.data.nome||"documento"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
   }catch(e){ toast("Não foi possível baixar: "+msgErro(e)); } finally{ if(btn){ btn.disabled=false; btn.innerHTML=t0; } }
+}
+/* ---------- Contratação do BPO ---------- */
+const CTR_ST={proposto:["Aguardando o BPO aceitar","st-vence"],aceito:["Aceito — aguardando o BPO pedir acesso","st-vence"],acesso_pedido:["BPO pediu acesso ao sistema","st-vence"],ativo:["Contrato ativo","st-pago"],recusado:["Recusado pelo BPO","st-vencido"],cancelado:["Cancelado","st-aberto"],encerrado:["Encerrado","st-aberto"]};
+const brl = c => (c/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+function contratoBpoTexto(o){
+  const hoje=new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
+  return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE BPO FINANCEIRO
+
+CONTRATANTE: ${o.franqueado}${o.cnpj?", inscrita no CNPJ sob o nº "+fmtDoc(o.cnpj):""}, neste ato representada por ${o.representante}.
+CONTRATADO(A): ${o.bpo}, prestador(a) de serviços de BPO financeiro.
+
+As partes acima identificadas celebram o presente contrato de prestação de serviços, que se regerá pelas cláusulas a seguir.
+
+CLÁUSULA 1 — OBJETO
+1.1. O(A) CONTRATADO(A) prestará à CONTRATANTE serviços de BPO (terceirização de processos) financeiro, compreendendo: lançamento de contas a pagar e a receber, registro de vendas por forma de pagamento, baixa de pagamentos e recebimentos a partir dos comprovantes enviados, cadastro e atualização das taxas de venda e das regras de lançamentos automáticos das lojas, rateio de despesas entre lojas e acompanhamento dos relatórios gerenciais (Fluxo de caixa e DRE).
+1.2. Os serviços serão executados por meio da plataforma flux · Mercado Autônomo, utilizando as informações e os documentos fornecidos pela CONTRATANTE.
+
+CLÁUSULA 2 — PREÇO E PAGAMENTO
+2.1. Pelos serviços, a CONTRATANTE pagará ao(à) CONTRATADO(A) o valor mensal de ${brl(o.valor)} (${o.valorExtenso}).
+2.2. O pagamento será feito diretamente entre as partes, até o dia 10 de cada mês, pela forma que combinarem. A plataforma não intermedeia, não recebe e não repassa nenhum valor.
+2.3. O valor poderá ser reajustado mediante acordo entre as partes, registrado em novo contrato.
+
+CLÁUSULA 3 — OBRIGAÇÕES DA CONTRATANTE
+3.1. Enviar, em tempo hábil, as contas, boletos, notas, comprovantes, relatórios de vendas e demais informações necessárias, preferencialmente pela função "Envio de contas" da plataforma.
+3.2. Conferir as informações lançadas e comunicar qualquer divergência.
+3.3. Efetuar os pagamentos de suas próprias contas, sendo a única responsável por eles, por seus prazos e por suas decisões financeiras.
+
+CLÁUSULA 4 — OBRIGAÇÕES DO(A) CONTRATADO(A)
+4.1. Executar os serviços com diligência, dentro de prazos razoáveis a contar do recebimento dos documentos.
+4.2. Manter sigilo sobre todas as informações da CONTRATANTE, tratando os dados pessoais conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018), e utilizá-los exclusivamente para a execução deste contrato.
+4.3. Não realizar pagamentos, transferências ou movimentações financeiras em nome da CONTRATANTE, salvo autorização expressa e por escrito.
+
+CLÁUSULA 5 — ISENÇÃO DA PLATAFORMA
+5.1. A plataforma flux · Mercado Autônomo é apenas uma ferramenta tecnológica de gestão, colocada à disposição das partes. Ela NÃO é parte deste contrato, não presta os serviços aqui descritos e não tem relação de trabalho, sociedade, representação ou intermediação com nenhuma das partes.
+5.2. A plataforma não responde pela qualidade, pelos prazos, pelos resultados ou pelos valores dos serviços, nem por pagamentos, multas, juros, tributos ou quaisquer prejuízos decorrentes da relação entre as partes, que assumem integralmente essa responsabilidade.
+5.3. Eventuais divergências entre as partes serão resolvidas diretamente entre elas.
+
+CLÁUSULA 6 — ACESSO AO SISTEMA
+6.1. Após o aceite deste contrato pelas duas partes, o(a) CONTRATADO(A) solicitará acesso ao sistema da CONTRATANTE, que poderá liberá-lo. Liberado o acesso, o(a) CONTRATADO(A) passa a lançar e editar as informações, e os usuários da CONTRATANTE passam a acompanhá-las.
+6.2. Todas as ações ficam registradas no Histórico da plataforma.
+
+CLÁUSULA 7 — PRAZO E RESCISÃO
+7.1. Este contrato vigora por prazo indeterminado, a partir da liberação do acesso.
+7.2. Qualquer das partes poderá encerrá-lo a qualquer tempo, preferencialmente com aviso prévio de 30 (trinta) dias, pela função "Encerrar contrato" da plataforma. Com o encerramento, o acesso do(a) CONTRATADO(A) é removido.
+7.3. Os valores referentes ao período já trabalhado permanecem devidos.
+
+CLÁUSULA 8 — FORO
+8.1. Fica eleito o foro da comarca da sede da CONTRATANTE para dirimir questões oriundas deste contrato.
+
+ACEITE ELETRÔNICO
+As partes declaram ter lido e concordado com este contrato. O aceite de cada parte é registrado eletronicamente na plataforma, com nome, data e hora.
+
+Gerado em ${hoje}.`;
+}
+function valorExtenso(c){ const r=Math.floor(c/100), cs=c%100;
+  const u=["zero","um","dois","três","quatro","cinco","seis","sete","oito","nove","dez","onze","doze","treze","quatorze","quinze","dezesseis","dezessete","dezoito","dezenove"], d=["","","vinte","trinta","quarenta","cinquenta","sessenta","setenta","oitenta","noventa"], h=["","cento","duzentos","trezentos","quatrocentos","quinhentos","seiscentos","setecentos","oitocentos","novecentos"];
+  const ate999=n=>{ if(n===100) return "cem"; const p=[]; if(n>=100){ p.push(h[Math.floor(n/100)]); n%=100; } if(n>=20){ p.push(d[Math.floor(n/10)]+(n%10?" e "+u[n%10]:"")); } else if(n>0||!p.length) p.push(u[n]); return p.join(" e "); };
+  const mil=Math.floor(r/1000), resto=r%1000; let t=(mil?(mil===1?"mil":ate999(mil)+" mil")+(resto?(resto<100||resto%100===0?" e ":" ")+ate999(resto):""):ate999(resto))+(r===1?" real":" reais");
+  if(cs) t+=" e "+ate999(cs)+(cs===1?" centavo":" centavos"); return t; }
+let CTR_ATU=0; function ctrAtualizar(forca){ if(!forca&&Date.now()-CTR_ATU<5000) return; CTR_ATU=Date.now(); atualizarTabelas("contratos_bpo"); }
+setInterval(()=>{ if(ui.view==="usuarios"||(ui.view==="rede"&&ehBpo())) ctrAtualizar(true); },20000);
+function ctrAtual(){ return (S.ctr||[]).find(c=>["proposto","aceito","acesso_pedido","ativo"].includes(c.status)); }
+function painelBpoUsuario(){
+  if(!S.tid||plat()) return ""; setTimeout(()=>ctrAtualizar(),150);
+  const c=ctrAtual(); const dono=masterFranq();
+  if(!c&&temBpo()) return `<div class="panel ctr-p"><h2>BPO financeiro<small>${esc(S.tenant.bpoNome||"")}</small></h2><p class="note" style="margin:0">Atribuído pela franqueadora.</p></div>`;
+  if(!c) return dono?`<div class="panel ctr-p"><div class="ctr-l"><div><h2 style="margin:0">BPO financeiro</h2><p class="note" style="margin:4px 0 0">Prefere que um profissional faça a parte financeira por você? Contrate um BPO: ele lança as contas, as vendas e as baixas, e você acompanha tudo.</p></div><button class="btn pri" data-act="ctr-contratar">Contratar BPO</button></div></div>`:"";
+  const [st,cl]=CTR_ST[c.status]||["",""];
+  const passos=[["Proposta e contrato aceitos por você",c.propostoEm],["BPO aceitou o contrato",c.aceitoEm],["BPO pediu acesso ao sistema",c.acessoPedidoEm],["Você liberou o acesso",c.liberadoEm]];
+  return `<div class="panel ctr-p"><div class="ctr-l"><div><h2 style="margin:0">BPO financeiro<small>${esc(c.bpoNome||"")} · ${brl(c.valor||0)}/mês</small></h2><span class="pill ${cl}" style="margin-top:6px;display:inline-block">${st}</span></div>
+    <div class="ctr-acoes">${c.status==="acesso_pedido"&&dono?`<button class="btn pri" data-act="ctr-liberar" data-id="${c.id}">Liberar acesso ao BPO</button>`:""}
+      <button class="btn sm" data-act="ctr-ver" data-id="${c.id}">Ver contrato</button>
+      ${dono&&["proposto","aceito","acesso_pedido"].includes(c.status)?`<button class="icon-btn" data-act="ctr-cancelar" data-id="${c.id}">Cancelar contratação</button>`:""}
+      ${dono&&c.status==="ativo"?`<button class="icon-btn" data-act="ctr-encerrar" data-id="${c.id}">Encerrar contrato</button>`:""}</div></div>
+    <div class="ctr-passos">${passos.map(([t,q])=>`<div class="${q?"ok":""}"><span>${q?"✓":"○"}</span>${t}${q?`<small>${dtHora(q)}</small>`:""}</div>`).join("")}</div>
+    ${c.status==="acesso_pedido"&&dono?'<p class="note" style="margin:8px 0 0">Ao liberar, o BPO passa a lançar e editar o sistema, e os usuários daqui passam a acompanhar (só visualizam, exceto Agenda e Chamados).</p>':""}</div>`;
+}
+async function contratarBpoModal(){
+  const {data,error}=await FB.sb.rpc("bpos_disponiveis"); if(error){ toast(msgErro(error)); return; }
+  const lista=data||[];
+  const m=S.tenant&&S.tenant.matriz||{};
+  openModal(`<h2>Contratar BPO financeiro</h2>
+    ${lista.length?`<p class="note" style="margin-top:0">Escolha o profissional. O valor é mensal e o pagamento é feito diretamente a ele.</p>
+    <div class="bpo-lista">${lista.map(b=>`<label class="bpo-card"><input type="radio" name="bpoEsc" value="${b.uid}" data-nome="${esc(b.nome)}" data-valor="${b.valor}"><span><b>${esc(b.nome)}</b><span class="bpo-v">${brl(b.valor)}<small>/mês</small></span>
+      ${b.apresentacao?`<small class="bpo-ap">${esc(b.apresentacao)}</small>`:""}<small class="note">${b.clientes} cliente(s) atendido(s)${b.email?" · "+esc(b.email):""}${b.telefone?" · "+esc(b.telefone):""}</small></span></label>`).join("")}</div>
+    <div id="ctrPrev" hidden><span class="flabel">Contrato de prestação de serviços</span><pre class="ctr-txt" id="ctrTxt"></pre>
+      <label class="chkline"><input type="checkbox" id="ctrOk"> Li e concordo com o contrato. Entendo que a plataforma é apenas a ferramenta e não é parte deste contrato.</label></div>
+    <div class="err" id="ctrErr" role="alert"></div>
+    <div class="foot"><div></div><div><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn pri" id="ctrConf" disabled>Confirmar contratação</button></div></div>`
+    :`<div class="empty">Nenhum BPO disponível no momento.</div><div class="foot"><div></div><div><button type="button" class="btn" data-close>Fechar</button></div></div>`}`,false,()=>{
+    let esc_=null, texto="";
+    document.querySelectorAll('input[name="bpoEsc"]').forEach(r=>r.addEventListener("change",()=>{ esc_={uid:r.value,nome:r.dataset.nome,valor:+r.dataset.valor};
+      texto=contratoBpoTexto({franqueado:m.razao||tNome(S.tenant)||"",cnpj:m.cnpj||"",representante:(S.me&&S.me.name)||"",bpo:esc_.nome,valor:esc_.valor,valorExtenso:valorExtenso(esc_.valor)});
+      $("#ctrTxt").textContent=texto; $("#ctrPrev").hidden=false; $("#ctrOk").checked=false; $("#ctrConf").disabled=true; $("#ctrPrev").scrollIntoView({behavior:"smooth",block:"start"}); }));
+    const ok=$("#ctrOk"); if(ok) ok.addEventListener("change",()=>{ $("#ctrConf").disabled=!ok.checked; });
+    const bt=$("#ctrConf"); if(bt) bt.addEventListener("click",async()=>{ if(!esc_||!ok.checked) return; bt.disabled=true;
+      const {error:e2}=await FB.sb.rpc("ctr_propor",{p_bpo:esc_.uid,p_texto:texto}); if(e2){ $("#ctrErr").textContent=msgErro(e2); bt.disabled=false; return; }
+      closeModal(); atualizarTabelas("contratos_bpo"); toast(`Proposta enviada a ${esc_.nome} — aguardando o aceite`); });
+  },"all");
+}
+function verContrato(c){
+  const lin=[["Proposto e aceito pelo usuário",c.propostoEm,c.propostoPorNome],["Aceito pelo BPO",c.aceitoEm,c.aceitoPorNome],["Acesso pedido pelo BPO",c.acessoPedidoEm,""],["Acesso liberado",c.liberadoEm,c.liberadoPorNome],["Recusado pelo BPO",c.recusadoEm,""],["Cancelado",c.canceladoEm,c.canceladoPorNome],["Encerrado",c.encerradoEm,c.encerradoPorNome]].filter(x=>x[1]);
+  openModal(`<h2>Contrato de BPO — ${esc(c.bpoNome||"")}</h2><p class="note" style="margin-top:0">${esc(c.franqueado||"")} · ${brl(c.valor||0)}/mês · <span class="pill ${(CTR_ST[c.status]||[])[1]||""}">${(CTR_ST[c.status]||[c.status])[0]}</span></p>
+    <div class="ctr-passos" style="margin-bottom:10px">${lin.map(([t,q,n])=>`<div class="ok"><span>✓</span>${t}<small>${dtHora(q)}${n?" · "+esc(n):""}</small></div>`).join("")}</div>
+    ${c.motivo?`<p class="note">Motivo: ${esc(c.motivo)}</p>`:""}
+    <pre class="ctr-txt">${esc(c.texto||"")}</pre>
+    <div class="foot"><div><button type="button" class="btn sm" data-act="ctr-baixar" data-id="${c.id}">Baixar contrato (.txt)</button></div><div><button type="button" class="btn" data-close>Fechar</button></div></div>`,true,null,"all");
+}
+function painelContratosBpo(){
+  if(!ehBpo()) return ""; setTimeout(()=>ctrAtualizar(),150); const ls=(S.ctrRede||[]).filter(c=>["proposto","aceito","acesso_pedido"].includes(c.status));
+  if(!ls.length) return "";
+  return `<div class="panel ctr-p"><h2>Contratações<small>${ls.length} em andamento</small></h2>${ls.map(c=>{ const [st,cl]=CTR_ST[c.status]||["",""];
+    return `<div class="ctr-item"><div><b>${esc(c.franqueado||"")}</b><small class="note">${c.cnpj?fmtDoc(c.cnpj)+" · ":""}${brl(c.valor||0)}/mês · proposto em ${dtHora(c.propostoEm)} por ${esc(c.propostoPorNome||"")}</small><span class="pill ${cl}">${st}</span></div>
+      <div class="ctr-acoes"><button class="btn sm" data-act="ctr-ver" data-id="${c.id}">Ler contrato</button>
+      ${c.status==="proposto"?`<button class="btn sm pri" data-act="ctr-aceitar" data-id="${c.id}">Aceitar contrato</button><button class="icon-btn" data-act="ctr-recusar" data-id="${c.id}">Recusar</button>`:""}
+      ${c.status==="aceito"?`<button class="btn sm pri" data-act="ctr-pedir" data-id="${c.id}">Solicitar acesso ao sistema</button>`:""}
+      ${c.status==="acesso_pedido"?'<span class="note">Aguardando o usuário liberar o acesso</span>':""}</div></div>`; }).join("")}</div>`;
+}
+function painelPerfilBpo(){
+  if(!ehBpo()) return ""; const c=S.conta||{}; const v=c.valorBpo!=null?+c.valorBpo:20000;
+  return `<div class="panel"><h2>Meu serviço de BPO</h2><form id="fBpoP" class="fcol" novalidate>
+    <div class="row"><div class="field"><label for="bpV">Valor mensal (R$)</label><input id="bpV" inputmode="decimal" value="${moneyIn(v)}"></div>
+      <div class="field"><span class="flabel">Disponibilidade</span><label class="chkline"><input type="checkbox" id="bpD" ${c.disponivel===false?"":"checked"}> Disponível para novos clientes</label></div></div>
+    <div class="field"><label for="bpA">Apresentação (aparece para quem for contratar)</label><textarea id="bpA" rows="3" maxlength="1200" placeholder="Ex.: 8 anos de experiência com varejo e mercados autônomos; atendo de segunda a sábado.">${esc(c.apresentacao||"")}</textarea></div>
+    <div class="err" id="bpErr" role="alert"></div><div><button class="btn pri" type="submit">Salvar</button></div></form></div>`;
 }
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
@@ -3472,7 +3603,7 @@ function nivel(mod){
   return 0;
 }
 let FB=null, UNSUB=[], UNSUB_REDE=[];
-S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.liberado=false; S.names={};
+S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.ctr=[]; S.ctrRede=[]; S.liberado=false; S.names={};
 const plat = () => ["master_rede","observador","bpo"].includes(S.claims.papel);
 const ehBpo = () => S.claims.papel==="bpo";
 const temBpo = () => !!(S.tenant&&S.tenant.bpoUid);                              // este franqueado tem BPO
@@ -3629,6 +3760,7 @@ function assinarRede(){
     const iv=setInterval(()=>{ if(!S.tid&&ui.view==="painelrede") carregarIndicadores(); },60000); UNSUB_REDE.push(()=>clearInterval(iv));
     UNSUB_REDE.push(vigiar("rede_diario",{cols:"id,data",ordem:["criado",false],limite:300},rows=>{ S.redeDiario=rows.map(r=>({...r.data,id:r.id})); if(!S.tid) render(); }));
   }
+  if(ehBpo()) UNSUB_REDE.push(vigiar("contratos_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:300},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._ctrSig) return; S._ctrSig=sig; S.ctrRede=novo; if(!S.tid) render(); else renderNav(); }));
   UNSUB_REDE.push(vigiar("envios",{cols:"id,tid,data",ordem:["criado",false],limite:800},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._envSig) return; S._envSig=sig; S.envRede=novo; if(!S.tid) render(); else renderNav(); }));
   UNSUB_REDE.push(vigiar("chamados",{cols:"id,tid,data",ordem:["criado",false],limite:500},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._chSig) return; S._chSig=sig; S.chamRede=novo; if(!S.tid) render(); }));
 }
@@ -3655,6 +3787,7 @@ function abrirTenant(tid){
   sub(S.db.collection(COL.lojas),s=>{ S.lojas=s.docs.map(strip); render(); agendarAuto(); });
   sub(S.db.collection(COL.usr),s=>{ S.usr=s.docs.map(strip); S.names={}; S.usr.forEach(u=>S.names[u.id]=u.nome||u.email||""); if(S.me) S.names[S.me.id]=S.names[S.me.id]||S.me.name; render(); });
   if(gestorFranq()||plat()){
+    sub(S.db.collection("contratos_bpo").orderBy("propostoEm","desc").limit(50),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._ctrSigT) return; S._ctrSigT=sig; S.ctr=novo; render(); });
     sub(S.db.collection("envios").orderBy("enviadoEm","desc").limit(500),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._envSigT) return; S._envSigT=sig; S.envios=novo; render(); });
     sub(S.db.collection("chamados").orderBy("abertoEm","desc").limit(300),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._chSigT) return; S._chSigT=sig; S.cham=novo; render(); });
     sub(S.db.collection("mensagens").orderBy("quando","desc").limit(1500),s=>{ const novo=s.docs.map(strip).reverse(); const mudou=novo.length!==S.msgs.length||(novo.length&&novo[novo.length-1].id!==S.msgs[S.msgs.length-1].id); S.msgs=novo; if(mudou&&ui.view==="chamados") render(); });
@@ -3676,7 +3809,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 67 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 68 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -3782,7 +3915,7 @@ function vRede(){
   const q=normTxt(ui.rq||"");
   const lista=ts.filter(t=>{ const m=t.matriz||{}; return !q||normTxt([m.razao,t.nome,m.cnpj,digitos(m.cnpj),m.regional,m.franq1,m.franq2,m.franq3].join(" ")).includes(q); });
   const pend=tid=>S.chamRede.filter(c=>c.tid===tid).length;
-  return header("Franqueados",`${ts.length} cadastrado(s) · ${ts.filter(t=>t.ativo!==false).length} ativo(s)`,masterRede()?`<button class="btn pri" data-act="novo-franq">+ Novo franqueado</button>`:"")
+  const __h=header("Franqueados",`${ts.length} cadastrado(s) · ${ts.filter(t=>t.ativo!==false).length} ativo(s)`,masterRede()?`<button class="btn pri" data-act="novo-franq">+ Novo franqueado</button>`:"")
    + `<div class="toolbar"><input type="search" id="frQ" placeholder="Buscar razão social, CNPJ, regional ou franqueado" value="${esc(ui.rq||"")}" style="min-width:320px"></div>
    <div class="tbl-wrap"><table><thead><tr><th>Regional</th><th>Franqueado</th><th>CNPJ (login)</th><th>Sócios franqueados</th><th>Contato</th><th class="r">Lojas</th><th>Último acesso</th>${masterRede()?"<th>BPO financeiro</th>":""}<th>Situação</th><th></th></tr></thead><tbody>
    ${lista.length?lista.map(t=>{ const m=t.matriz||{}; const am=t.acessoMaster; const lib=am&&tsMs(am.ate)>Date.now(); const ua=tsMs(t.ultimoAcesso); const dias=ua?Math.floor((Date.now()-ua)/864e5):null; return `<tr>
@@ -3798,6 +3931,7 @@ function vRede(){
      <td class="r" style="white-space:nowrap">${ehBpo()?`<button class="btn sm pri" data-act="entrar-tenant" data-id="${t.id}" title="Entrar no sistema do franqueado para lançar e editar">Entrar</button>`:`<button class="btn sm" data-act="abrir-aba" data-id="${t.id}" title="Abre a página do franqueado em outra aba, só para leitura">Abrir ↗</button>`}${masterRede()?` <button class="icon-btn" data-act="franq-ativo" data-id="${t.id}" data-v="${t.ativo===false?1:0}">${t.ativo===false?"Reativar":"Suspender"}</button>`:""}</td></tr>`; }).join(""):`<tr><td colspan="9" class="empty">${ts.length?"Nenhum franqueado encontrado.":"Nenhum franqueado cadastrado ainda."}</td></tr>`}
    </tbody></table></div>
    <p class="note" style="margin:10px 0 0">Suspender bloqueia o login de todos os usuários daquele franqueado, sem apagar nenhum dado. "Último acesso" considera logins da equipe do franqueado.</p>`;
+  return __h.replace(/(<\/div><\/div>)/,"$1"+painelContratosBpo());
 }
 function vEquipeRede(){
   const eq=[...S.redeEquipe].sort((a,b)=>(a.papel||"").localeCompare(b.papel||"")||(a.nome||"").localeCompare(b.nome||""));
@@ -3834,9 +3968,12 @@ function vMeuCadastro(){
      <div class="panel" style="align-self:start"><h2>Se esquecer a senha</h2><ol class="steps">
        <li>Na tela de login, clique em <b>Esqueci minha senha</b> e digite seu login. O link chega no e-mail de recuperação ao lado.</li>
        <li>Se perder o acesso a esse e-mail, use a ferramenta de administração (<code>master-rede.js recuperar</code>), explicada no guia de publicação.</li>
-       <li>Em último caso, a conta Google dona do projeto redefine qualquer senha pelo console do Firebase.</li></ol></div></div>`;
+       <li>Em último caso, a conta Google dona do projeto redefine qualquer senha pelo console do Firebase.</li></ol></div></div>`+painelPerfilBpo();
 }
 function bindMeuCadastro(){
+  const fb=$("#fBpoP"); if(fb) fb.addEventListener("submit",async e=>{ e.preventDefault(); const b=e.submitter; const v=parseMoney($("#bpV").value||""); if(!isFinite(v)||v<0){ $("#bpErr").textContent="Informe o valor mensal."; return; }
+    b.disabled=true; const {error}=await FB.sb.rpc("bpo_salvar_perfil",{p_valor:v,p_disponivel:$("#bpD").checked,p_apresentacao:$("#bpA").value}); b.disabled=false;
+    if(error){ $("#bpErr").textContent=msgErro(error); return; } Object.assign(S.conta,{valorBpo:v,disponivel:$("#bpD").checked,apresentacao:$("#bpA").value}); toast("Serviço de BPO salvo"); });
   const f=$("#fMc"); if(!f) return;
   f.addEventListener("submit",async e=>{ e.preventDefault(); const err=$("#mcErr"); const d={nome:$("#mcN").value.trim(),empresa:$("#mcEmp").value.trim(),telefone:$("#mcT").value.trim(),email:$("#mcE").value.trim()};
     if(!d.nome){ err.textContent="Informe o nome."; return; } if(!/^\S+@\S+\.\S+$/.test(d.email)){ err.textContent="E-mail inválido."; return; }
@@ -4376,7 +4513,7 @@ function vUsuarios(){
   const g=podeGerirUsr();
   const us=[...S.usr].sort((a,b)=>(a.perfil==="master"?0:1)-(b.perfil==="master"?0:1)||(a.nome||"").localeCompare(b.nome||""));
   return header("Usuários","Colaboradores deste franqueado. Cada um entra com o próprio CPF e senha, e só vê as telas que o master liberar.",g?`<button class="btn pri" data-act="novo-usuario">+ Novo colaborador</button>`:"")
-   + banners()
+   + banners() + painelBpoUsuario()
    + `<div class="tbl-wrap"><table class="usr-tab"><thead><tr><th>Nome</th><th>Login (CPF/CNPJ)</th><th>Contato</th><th>Aniversário</th><th>Acessos</th><th>Situação</th><th></th></tr></thead><tbody>
      ${us.map(u=>{ const eu=u.id===S.me.id; return `<tr>
        <td><div class="desc">${esc(u.nome||"")}${eu?' <span class="note">(você)</span>':""}</div><div class="meta">${esc(PAPEIS[u.perfil]||u.perfil||"")}</div></td>
@@ -4551,6 +4688,16 @@ document.addEventListener("click",async e=>{
   if(act==="env-tira"){ ENV_PEND.splice(+a.dataset.v,1); envPendHTML(); return; }
   if(act==="env-t"){ ui.envT=id; ENV_PEND=[]; render(); return; }
   if(act==="env-lancado"){ a.disabled=true; FB.sb.rpc("env_lancado",{p_id:id,p_sim:a.dataset.v==="1"}).then(({error})=>{ if(error){ toast(msgErro(error)); a.disabled=false; return; } atualizarTabelas("envios"); toast(a.dataset.v==="1"?"Marcado como lançado":"Desmarcado"); }); return; }
+  if(act==="ctr-contratar"&&masterFranq()){ contratarBpoModal(); return; }
+  if(act==="ctr-ver"){ const c=(S.ctr||[]).concat(S.ctrRede||[]).find(x=>x.id===id); if(c) verContrato(c); return; }
+  if(act==="ctr-baixar"){ const c=(S.ctr||[]).concat(S.ctrRede||[]).find(x=>x.id===id); if(c){ const u=URL.createObjectURL(new Blob([c.texto||""],{type:"text/plain;charset=utf-8"})); const l=document.createElement("a"); l.href=u; l.download=`Contrato-BPO-${(c.franqueado||"").replace(/[^\w]+/g,"-")}.txt`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u),3000); } return; }
+  const ctrRpc=(fn,args,msg)=>{ a.disabled=true; FB.sb.rpc(fn,args).then(({error})=>{ if(error){ toast(msgErro(error)); a.disabled=false; return; } atualizarTabelas("contratos_bpo","tenants"); toast(msg); if(fn==="ctr_liberar"||fn==="ctr_encerrar") setTimeout(()=>location.reload(),1200); }); };
+  if(act==="ctr-aceitar"){ confirmBtn(a,"Confirmar: aceito o contrato",()=>ctrRpc("ctr_responder",{p_id:id,p_aceita:true},"Contrato aceito — agora solicite o acesso")); return; }
+  if(act==="ctr-recusar"){ confirmBtn(a,"Confirmar recusa",()=>ctrRpc("ctr_responder",{p_id:id,p_aceita:false},"Proposta recusada")); return; }
+  if(act==="ctr-pedir"){ ctrRpc("ctr_pedir_acesso",{p_id:id},"Acesso solicitado — aguardando o usuário liberar"); return; }
+  if(act==="ctr-liberar"){ confirmBtn(a,"Confirmar: liberar acesso",()=>ctrRpc("ctr_liberar",{p_id:id},"Acesso liberado — o BPO já pode trabalhar")); return; }
+  if(act==="ctr-cancelar"){ confirmBtn(a,"Confirmar cancelamento",()=>ctrRpc("ctr_cancelar",{p_id:id},"Contratação cancelada")); return; }
+  if(act==="ctr-encerrar"){ confirmBtn(a,"Confirmar encerramento",()=>ctrRpc("ctr_encerrar",{p_id:id,p_motivo:null},"Contrato encerrado — o acesso do BPO foi removido")); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
   if(act==="anx-baixar"){ baixarAnexo(id,a); return; }
