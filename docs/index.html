@@ -830,7 +830,7 @@ const statusPill = l => `<span class="pill st-${statusOf(l)}">${statusTxt(l)}</s
 const COL = {div:"divisoes",lanc:"lancamentos", forn:"fornecedores", ag:"agenda", lojas:"lojas", usr:"usuarios", rec:"recorrencias"};
 function clean(o){ const r={}; for(const k in o){ if(k!=="id"&&o[k]!==undefined) r[k]=o[k]; } return r; }
 const ROT={div:"Rateio de despesas",lanc:"Lançamento",forn:"Fornecedor",ag:"Compromisso",lojas:"Loja",rec:"Recorrência",usr:"Usuário"};
-function checarEscrita(kind,data){ if(S.role==="ro"&&obsTenant()&&(kind==="ag"||(kind==="lojas"&&lojaFunil(data||{})))) return; if(S.role==="ro"){ toast("Somente leitura — você não pode alterar dados aqui."); throw new Error("ro"); } }
+function checarEscrita(kind,data){ if(S.role==="ro"&&obsTenant()&&(kind==="ag"||kind==="forn"||(kind==="lojas"&&lojaFunil(data||{})))) return; if(S.role==="ro"){ toast("Somente leitura — você não pode alterar dados aqui."); throw new Error("ro"); } }
 function logRede(kind,id,modo,data){ if(!masterRede()) return; const am=S.tenant&&S.tenant.acessoMaster; const r=data&&(data.descricao||data.condominio||data.empresa||data.nome)||id; diario("Alteração autorizada",`${ROT[kind]||kind} ${modo}: ${r}`,{cat:"alteracao",chamadoId:(am&&am.chamadoId)||""}); }
 async function save(kind,id,data){
   checarEscrita(kind,data); data=clean(data);
@@ -3677,7 +3677,7 @@ const VIEW_MOD={}; MODS.forEach(m=>VIEW_MOD[m[2]]=m[0]); VIEW_MOD.taxas="config"
 const MODS_COLAB=MODS.filter(m=>m[0]!=="rec"&&m[0]!=="pag");   // contas a pagar/receber: só o master do franqueado
 function nivel(mod){
   const p=S.claims.papel;
-  if(mod==="ag"&&obsTenant()) return 2;
+  if((mod==="ag"||mod==="forn")&&obsTenant()) return 2;
   if(p==="master"){ if(!temBpo()) return 2; const pf=(S.tenant&&S.tenant.permFranq)||{}; const m=MODS.find(x=>x[0]===mod); return Math.max(1,Math.min(+pf[mod]||1, m?m[3]:2)); }
   if(p==="bpo") return bpoTenant()?2:1;
   if(p==="master_rede") return S.liberado?2:1;
@@ -3898,7 +3898,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 71 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 72 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
