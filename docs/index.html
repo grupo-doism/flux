@@ -3900,7 +3900,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 73 · 23/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 74 · 24/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4107,7 +4107,7 @@ function vPainelRede(){
   const regMax=Math.max(1,...Object.values(porReg));
   const semUso=ativos.filter(t=>!(tsMs(t.ultimoAcesso)>Date.now()-30*864e5));
   const negativos=rk.filter(x=>x.r<0&&x.t.ativo!==false);
-  const chamP=S.chamRede.filter(c=>tids.has(c.tid));
+  const chamP=S.chamRede.filter(c=>tids.has(c.tid)&&((c.status==="aberto"&&souAtCh(c))||(c.status==="atendimento"&&chNaoLido(c))));
   const card=(lbl,val,sub,cls,hero)=>`<div class="kpi ${hero?"hero":""}"><span class="lbl">${lbl}</span><span class="val ${cls||""}">${val}</span><span class="sub">${sub||""}</span></div>`;
   const filtroPer=periodoFiltro("rede");
   return header("Painel da rede",`${P.modo==="mes"&&P.atual?new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}):"Vendo "+esc(P.nome)} · soma de ${tens.length} franqueado(s)${ui.rreg?" da regional "+esc(ui.rreg):""}`,
@@ -4134,7 +4134,7 @@ function vPainelRede(){
        <div style="display:flex;flex-direction:column;gap:16px">
          <div class="panel"><h2>Faturamento por regional<small>${esc(P.nome)}</small></h2><div class="list">${Object.entries(porReg).sort((a,b)=>b[1]-a[1]).map(([r,v])=>`<div class="hb" style="grid-template-columns:100px 1fr 120px;padding:5px 0"><span class="hb-l">${r==="Sem regional"?r:"Regional "+esc(r)}</span><span class="hb-t"><i style="width:${v/regMax*100}%;opacity:1"></i></span><span class="hb-v num">${fmt(v)}</span></div>`).join("")||'<div class="empty">—</div>'}</div></div>
          <div class="panel"><h2>Pontos de atenção</h2><div class="list">
-           ${chamP.map(c=>{ const t=S.tenants.find(x=>x.id===c.tid); return `<div class="alerta a-ch clk" data-act="ir-chat" data-id="${c.tid}"><b>Chamado #${esc(c.numero)} aguardando</b><span>${esc(tNome(t))} · ${esc(c.tipo||"")}</span></div>`; }).join("")}
+           ${chamP.map(c=>{ const t=S.tenants.find(x=>x.id===c.tid); return `<div class="alerta a-ch clk" data-act="ir-chat" data-id="${c.tid}"><b>Chamado #${esc(c.numero)} · ${c.status==="aberto"?"aguardando aceite":"mensagem nova"}</b><span>${esc(tNome(t))}${c.assunto||c.tipo?" · "+esc(c.assunto||c.tipo):""}</span></div>`; }).join("")}
            ${negativos.map(x=>`<div class="alerta a-neg clk" data-act="abrir-aba" data-id="${x.t.id}"><b>Resultado negativo · ${esc(P.nome)}</b><span>${esc(tNome(x.t))} · ${fmt(x.r)}</span></div>`).join("")}
            ${semUso.map(t=>`<div class="alerta a-uso clk" data-act="abrir-aba" data-id="${t.id}"><b>Sem acesso há 30+ dias</b><span>${esc(tNome(t))} · ${tsMs(t.ultimoAcesso)?"último em "+dtHora(t.ultimoAcesso):"nunca acessou"}</span></div>`).join("")}
            ${!chamP.length&&!negativos.length&&!semUso.length?'<div class="empty">Nenhum ponto de atenção. 👍</div>':""}
