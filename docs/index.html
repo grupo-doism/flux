@@ -916,7 +916,7 @@ const VIEWS_T = [
   ["painel","Dashboard"],["receber","Contas a receber"],["pagar","Contas a pagar"],["fluxo","Fluxo de caixa"],["dre","DRE financeiro"],
   ["sep"],["cmv","Rateio de despesas"],["lancamentos","Lançamentos"],["fornecedores","Fornecedores"],["agenda","Agenda"],["lojas","Lojas"],["sep"],["envios","Envio de contas"],["chamados","Chamados"],["usuarios","Usuários"],["config","Configurações"]
 ];
-function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["rede","Franqueados"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Histórico da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus franqueados"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Franqueados"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]); }
+function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["chamadosrede","Chamados"],["rede","Franqueados"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Histórico da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus franqueados"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Franqueados"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]); }
   const v=[]; if(S.tid) VIEWS_T.forEach(x=>{ if(["chamados","diario"].includes(x[0])&&!(gestorFranq()||plat()||obsTenant())) return; if(x[0]==="usuarios"&&!(gestorFranq()||plat())) return; if(x[0]==="envios"&&!temBpo()) return; if(VIEW_MOD[x[0]]&&nivel(VIEW_MOD[x[0]])<1) return; if(x[0]==="sep"&&(!v.length||v[v.length-1][0]==="sep")) return; v.push(x); }); while(v.length&&v[v.length-1][0]==="sep") v.pop(); return v; }
 function renderNav(){
   const VIEWS=viewsOk(); const ladoT=plat()?"rede":"franq";
@@ -2095,6 +2095,76 @@ function painelManualMaster(){
     <h3 style="margin:16px 0 6px;font-size:13px">Últimos downloads</h3><div id="manDl"><div class="note">Carregando…</div></div></div>`;
 }
 const RODAPE_LEGAL=`<footer class="rodape-legal">© 2026 flux · Mercado Autônomo. Todos os direitos reservados. Software, telas, textos e documentação protegidos pelas Leis nº 9.609/1998 e nº 9.610/1998. Proibida a reprodução, engenharia reversa, coleta automatizada ou o uso deste sistema, de suas telas, código ou manual — inclusive por ferramentas de inteligência artificial — para copiar, divulgar ou construir sistema igual ou semelhante.</footer>`;
+/* ---------- Franqueados: BPO automático e cobrança do serviço ---------- */
+const COB_ST={emitida:["Em aberto","st-vence"],paga:["Paga — a repassar","st-aberto"],repassada:["Repassada ao BPO","st-pago"],cancelada:["Cancelada","st-vencido"]};
+const ctrDoTenant = t => (S.ctrRede||[]).filter(c=>c.tid===t.id).sort((a,b)=>String(b.propostoEm||"").localeCompare(String(a.propostoEm||"")));
+function celulaBpo(t){
+  const cs=ctrDoTenant(t); const vivo=cs.find(c=>CTR_VIVOS.includes(c.status)&&c.status!=="proposto"&&c.status!=="aceito"&&c.status!=="acesso_pedido")||cs.find(c=>c.id===t.contratoBpo);
+  if(t.bpoUid){ const [st,cl]=vivo?(CTR_ST[vivo.status]||["",""]):["Atribuído pela franqueadora","st-aberto"];
+    return `<b>${esc(t.bpoNome||"")}</b>${vivo&&vivo.valor?`<div class="meta">${brl(vivo.valor)}/mês</div>`:""}<span class="pill ${cl}" style="font-size:10.5px">${st}</span>
+      <div style="margin-top:4px"><button class="btn sm" data-act="cob-nova" data-id="${t.id}">Emitir cobrança</button></div>`; }
+  const pend=cs.find(c=>["proposto","aceito","acesso_pedido"].includes(c.status)); const enc=cs.find(c=>c.status==="encerrado");
+  return `<span class="note">Sem BPO</span>${pend?`<div class="meta">contratação em andamento: ${esc(pend.bpoNome||"")}</div>`:enc?`<div class="meta">contrato encerrado em ${dBR(String(enc.encerradoEm||"").slice(0,10))}</div>`:""}`;
+}
+function proxDia10(comp){ const [y,m]=comp.split("-").map(Number); const d=new Date(y,m,10); return d.toISOString().slice(0,10); }
+function cobrancaModal(tid){
+  const t=S.tenants.find(x=>x.id===tid)||{}; const ctr=ctrDoTenant(t).find(c=>c.id===t.contratoBpo)||ctrDoTenant(t).find(c=>c.status==="ativo")||{};
+  const comp=mkey(HOJE);
+  openModal(`<h2>Emitir cobrança do BPO</h2><p class="note" style="margin-top:0"><b>${esc(tNome(t))}</b> · BPO: ${esc(t.bpoNome||"")}${ctr.valor?` · contrato de ${brl(ctr.valor)}/mês`:""}</p>
+    <form id="fCob" class="fcol" novalidate><div class="row3"><div class="field"><label for="cbComp">Mês de referência</label><input type="month" id="cbComp" value="${comp}"></div>
+      <div class="field"><label for="cbVenc">Vencimento</label><input type="date" id="cbVenc" value="${proxDia10(comp)}"></div>
+      <div class="field"><label for="cbVal">Valor (R$)</label><input id="cbVal" inputmode="decimal" value="${moneyIn(ctr.valor||20000)}"></div></div>
+      <div class="field"><label for="cbObs">Observação (opcional)</label><input id="cbObs" maxlength="300" placeholder="Ex.: pagamento por Pix ou boleto"></div>
+      <p class="note">A franqueadora recebe o valor e repassa ao BPO. A conta a pagar entra automaticamente no sistema do franqueado; ao marcar como paga aqui, ela recebe baixa lá.</p>
+      <div class="err" id="cbErr" role="alert"></div>
+      <div class="foot"><div></div><div><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn pri">Emitir e baixar a cobrança</button></div></div></form>`,false,()=>{
+    $("#cbComp").addEventListener("change",e=>{ if(e.target.value) $("#cbVenc").value=proxDia10(e.target.value); });
+    $("#fCob").addEventListener("submit",async e=>{ e.preventDefault(); const b=e.submitter, err=$("#cbErr"); err.textContent="";
+      const v=parseMoney($("#cbVal").value||""); if(!isFinite(v)||v<=0){ err.textContent="Informe o valor."; return; }
+      b.disabled=true; const {data:id,error}=await FB.sb.rpc("cob_emitir",{p_tid:tid,p_comp:$("#cbComp").value,p_venc:$("#cbVenc").value,p_valor:v,p_obs:$("#cbObs").value.trim()||null});
+      if(error){ err.textContent=msgErro(error); b.disabled=false; return; }
+      closeModal(); toast("Cobrança emitida — a conta já está no sistema do franqueado");
+      const {data:row}=await FB.sb.from("cobrancas_bpo").select("id,tid,data").eq("id",id).single(); if(row) docCobranca({...row.data,id:row.id,tid:row.tid},"cobranca");
+      atualizarTabelas("cobrancas_bpo"); }); },"all");
+}
+async function docCobranca(c,tipo){
+  try{ await loadLib(LIB_PDF,()=>window.jspdf&&window.jspdf.jsPDF); }catch(e){ toast("Não foi possível gerar o PDF agora."); return; }
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"mm",format:"a4"}); const W=210, M=18; const recibo=tipo==="recibo";
+  const T=x=>(typeof pdfTxt==="function"?pdfTxt(x):String(x||""));
+  const ref=c.competencia?c.competencia.split("-").reverse().join("/"):""; const em=S.conta||{};
+  doc.setFillColor(30,30,30); doc.rect(0,0,W,34,"F"); try{ doc.addImage(LOGO_DARK,"PNG",M,10,30,13.8); }catch(e){}
+  doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(17); doc.text(T(recibo?"RECIBO":"COBRANÇA"),M+38,17);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.text(T(`Serviço de BPO financeiro · Nº ${c.numero}`),M+38,24);
+  doc.setFontSize(8.5); doc.text(T(recibo?`Pago em ${dBR(c.pagaEm)}`:`Emitida em ${dBR(String(c.emitidaEm||"").slice(0,10))}`),W-M,17,{align:"right"});
+  doc.setTextColor(30,30,30); let y=46;
+  const bloco=(tit,linhas)=>{ doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(0,140,75); doc.text(T(tit),M,y); y+=5; doc.setTextColor(30,30,30); doc.setFont("helvetica","normal"); doc.setFontSize(10); linhas.filter(Boolean).forEach(l=>{ doc.text(T(l),M,y); y+=5.2; }); y+=4; };
+  bloco(recibo?"RECEBEDOR":"EMITENTE",[em.empresa||em.razao||"flux · Mercado Autônomo — franqueadora",em.login?`CPF/CNPJ: ${fmtDoc(em.login)}`:"",em.email||""]);
+  bloco(recibo?"PAGADOR":"DESTINATÁRIO",[c.franqueado||"",c.cnpj?`CNPJ: ${fmtDoc(c.cnpj)}`:""]);
+  bloco("REFERENTE A",[`Serviço de BPO financeiro prestado por ${c.bpoNome||""}`,`Mês de referência: ${ref}`]);
+  doc.setFillColor(242,251,246); doc.setDrawColor(189,239,211); doc.roundedRect(M,y,W-2*M,recibo?30:34,2,2,"FD"); y+=9;
+  doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(11,90,51); doc.text(T(brl(c.valor)),M+6,y); doc.setFontSize(9.5); doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60);
+  doc.text(T(`(${valorExtenso(c.valor)})`),M+6,y+7);
+  doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30); doc.text(T(recibo?`Pago em ${dBR(c.pagaEm)}`:`Vencimento: ${dBR(c.venc)}`),M+6,y+15); y+=(recibo?30:34)+6;
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(30,30,30);
+  const texto=recibo?`Recebemos de ${c.franqueado||""}${c.cnpj?", CNPJ "+fmtDoc(c.cnpj):""}, a importância de ${brl(c.valor)} (${valorExtenso(c.valor)}), referente ao serviço de BPO financeiro do mês ${ref}, prestado por ${c.bpoNome||""}, dando plena quitação deste valor.`
+    :`Cobrança do serviço de BPO financeiro do mês ${ref}, conforme contrato firmado entre ${c.franqueado||"o franqueado"} e ${c.bpoNome||"o BPO"}. A franqueadora recebe este valor e o repassa ao prestador do serviço.`;
+  doc.splitTextToSize(T(texto),W-2*M).forEach(l=>{ doc.text(l,M,y); y+=5.4; });
+  if(c.obs){ y+=3; doc.setFontSize(9); doc.setTextColor(90,90,90); doc.text(T("Observação: "+c.obs),M,y); y+=6; }
+  if(recibo){ y+=22; doc.setDrawColor(120,120,120); doc.line(W/2-45,y,W/2+45,y); doc.setFontSize(9); doc.setTextColor(60,60,60); doc.text(T(em.nome||"Franqueadora"),W/2,y+5,{align:"center"}); doc.text(T(`${dBR(c.pagaEm)}`),W/2,y+10,{align:"center"}); }
+  doc.setFontSize(7.5); doc.setTextColor(140,140,140); doc.text(T("flux · Mercado Autônomo · documento gerado pelo sistema"),M,287);
+  doc.save(`${recibo?"Recibo":"Cobranca"}-BPO-${String(c.numero).padStart(4,"0")}-${(c.franqueado||"").replace(/[^\w]+/g,"-").slice(0,40)}.pdf`);
+}
+function painelCobrancas(){
+  if(!(masterRede()||ehBpo())) return ""; const ls=[...(S.cobRede||[])].sort((a,b)=>String(b.competencia||"").localeCompare(String(a.competencia||""))||(+b.numero||0)-(+a.numero||0));
+  if(!ls.length&&ehBpo()) return "";
+  const tot=k=>ls.filter(c=>c.status===k).reduce((a,c)=>a+(+c.valor||0),0);
+  return `<div class="panel" style="margin-top:14px"><h2>${ehBpo()?"Cobranças e repasses dos seus clientes":"Cobranças de BPO"}<small>em aberto ${brl(tot("emitida"))} · a repassar ${brl(tot("paga"))} · repassado ${brl(tot("repassada"))}</small></h2>
+    ${ls.length?`<div class="tbl-wrap"><table><thead><tr><th>Nº</th><th>Franqueado</th><th>BPO</th><th>Referência</th><th>Vencimento</th><th class="r">Valor</th><th>Situação</th><th></th></tr></thead><tbody>
+    ${ls.map(c=>{ const [st,cl]=COB_ST[c.status]||["",""]; return `<tr><td class="num note">${esc(c.numero)}</td><td>${esc(c.franqueado||"")}</td><td>${esc(c.bpoNome||"")}</td><td class="num">${c.competencia?c.competencia.split("-").reverse().join("/"):""}</td><td class="num">${dBR(c.venc)}</td><td class="r num">${fmt(c.valor)}</td>
+      <td><span class="pill ${cl}">${st}</span>${c.pagaEm?`<div class="meta">pago ${dBR(c.pagaEm)}</div>`:""}${c.repassadaEm?`<div class="meta">repassado ${dBR(c.repassadaEm)}</div>`:""}</td>
+      <td class="r" style="white-space:nowrap">${masterRede()?`${c.status!=="cancelada"?`<button class="icon-btn" data-act="cob-pdf" data-id="${c.id}">Cobrança</button>`:""}${c.status==="emitida"?`<button class="btn sm pri" data-act="cob-pagar" data-id="${c.id}">Marcar paga</button><button class="icon-btn" data-act="cob-cancelar" data-id="${c.id}">Cancelar</button>`:""}${["paga","repassada"].includes(c.status)?`<button class="btn sm" data-act="cob-recibo" data-id="${c.id}">Recibo</button>`:""}${c.status==="paga"?`<button class="btn sm pri" data-act="cob-repassar" data-id="${c.id}">Marcar repassada</button>`:""}`:""}</td></tr>`; }).join("")}</tbody></table></div>`
+    :'<div class="empty">Nenhuma cobrança emitida ainda. Use “Emitir cobrança” na coluna BPO financeiro.</div>'}</div>`;
+}
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
   const tx=id.startsWith("_tx_"); const caixa=ui.d.regime==="caixa";
@@ -3745,7 +3815,7 @@ function nivel(mod){
   return 0;
 }
 let FB=null, UNSUB=[], UNSUB_REDE=[];
-S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.ctr=[]; S.ctrRede=[]; S.liberado=false; S.names={};
+S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.ctr=[]; S.ctrRede=[]; S.cobRede=[]; S.liberado=false; S.names={};
 const plat = () => ["master_rede","observador","bpo"].includes(S.claims.papel);
 const ehBpo = () => S.claims.papel==="bpo";
 const temBpo = () => !!(S.tenant&&S.tenant.bpoUid);                              // este franqueado tem BPO
@@ -3908,6 +3978,7 @@ function assinarRede(){
     const iv=setInterval(()=>{ if(!S.tid&&ui.view==="painelrede") carregarIndicadores(); },60000); UNSUB_REDE.push(()=>clearInterval(iv));
     UNSUB_REDE.push(vigiar("rede_diario",{cols:"id,data",ordem:["criado",false],limite:300},rows=>{ S.redeDiario=rows.map(r=>({...r.data,id:r.id})); if(!S.tid) render(); }));
   }
+  if(ehBpo()||masterRede()) UNSUB_REDE.push(vigiar("cobrancas_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:600},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._cobSig) return; S._cobSig=sig; S.cobRede=novo; if(!S.tid) render(); }));
   if(ehBpo()||masterRede()) UNSUB_REDE.push(vigiar("contratos_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:300},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._ctrSig) return; S._ctrSig=sig; S.ctrRede=novo; if(!S.tid) render(); else renderNav(); }));
   UNSUB_REDE.push(vigiar("envios",{cols:"id,tid,data",ordem:["criado",false],limite:800},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._envSig) return; S._envSig=sig; S.envRede=novo; if(!S.tid) render(); else renderNav(); }));
   UNSUB_REDE.push(vigiar("chamados",{cols:"id,tid,data",ordem:["criado",false],limite:500},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._chSig) return; S._chSig=sig; S.chamRede=novo; if(!S.tid) render(); }));
@@ -3957,7 +4028,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 76 · 24/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 77 · 24/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4074,12 +4145,12 @@ function vRede(){
      <td>${esc(m.telefone||"")}${m.telefone2?`<div class="meta">${esc(m.telefone2)}</div>`:""}<div class="meta">${esc(m.email||"")}</div></td>
      <td class="r num">${+t.nLojasAtivas||0}<span class="note">/${+t.nLojas||0}</span></td>
      <td>${ua?`<div>${dtHora(t.ultimoAcesso)}</div><div class="meta ${dias>=30?"neg":""}">${dias===0?"hoje":dias===1?"ontem":`há ${dias} dias`}</div>`:'<span class="note">nunca acessou</span>'}</td>
-     ${masterRede()?`<td><select class="bpo-sel" data-tid="${t.id}" aria-label="BPO financeiro de ${esc(tNome(t))}">${opt("","— sem BPO —",t.bpoUid||"")}${S.redeEquipe.filter(c=>c.papel==="bpo"&&c.ativo!==false).map(c=>opt(c.id,c.nome,t.bpoUid||"")).join("")}</select></td>`:""}
+     ${masterRede()?`<td>${celulaBpo(t)}</td>`:""}
      <td>${t.ativo===false?'<span class="pill st-vencido">Suspenso</span>':'<span class="pill st-pago">Ativo</span>'}${lib?`<div class="meta">edição liberada até ${dtHora(am.ate)}</div>`:""}${pend(t.id)?`<div class="meta" style="color:var(--warn);font-weight:600">${pend(t.id)} chamado(s) pendente(s)</div>`:""}</td>
      <td class="r" style="white-space:nowrap">${ehBpo()?`<button class="btn sm pri" data-act="entrar-tenant" data-id="${t.id}" title="Entrar no sistema do franqueado para lançar e editar">Entrar</button>`:`<button class="btn sm" data-act="abrir-aba" data-id="${t.id}" title="Abre a página do franqueado em outra aba, só para leitura">Abrir ↗</button>`}${masterRede()?` <button class="icon-btn" data-act="franq-ativo" data-id="${t.id}" data-v="${t.ativo===false?1:0}">${t.ativo===false?"Reativar":"Suspender"}</button>`:""}</td></tr>`; }).join(""):`<tr><td colspan="9" class="empty">${ts.length?"Nenhum franqueado encontrado.":"Nenhum franqueado cadastrado ainda."}</td></tr>`}
    </tbody></table></div>
    <p class="note" style="margin:10px 0 0">Suspender bloqueia o login de todos os usuários daquele franqueado, sem apagar nenhum dado. "Último acesso" considera logins da equipe do franqueado.</p>`;
-  return __h.replace(/(<\/div><\/div>)/,"$1"+painelContratosBpo());
+  return __h.replace(/(<\/div><\/div>)/,"$1"+painelContratosBpo())+painelCobrancas();
 }
 function vEquipeRede(){
   const eq=[...S.redeEquipe].sort((a,b)=>(a.papel||"").localeCompare(b.papel||"")||(a.nome||"").localeCompare(b.nome||""));
@@ -4865,6 +4936,13 @@ document.addEventListener("click",async e=>{
     a.disabled=true; a.textContent="Publicando…";
     lerB64(f[0]).then(b64=>FB.sb.rpc("manual_publicar",{p_nome:f[0].name,p_versao:$("#manVer").value.trim(),p_conteudo:b64})).then(({error})=>{ a.disabled=false; a.textContent="Publicar manual";
       if(error){ err.textContent=msgErro(error); return; } toast("Manual publicado — os usuários já podem baixar"); render(); }); return; }
+  if(act==="cob-nova"&&masterRede()){ cobrancaModal(id); return; }
+  if(act==="cob-pdf"||act==="cob-recibo"){ const c=(S.cobRede||[]).find(x=>x.id===id); if(c) docCobranca(c,act==="cob-recibo"?"recibo":"cobranca"); return; }
+  if(act==="cob-pagar"&&masterRede()){ const d=prompt("Data do pagamento (dd/mm/aaaa):",dBR(HOJE)); if(d===null) return; const m=d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(!m){ toast("Data inválida."); return; }
+    a.disabled=true; FB.sb.rpc("cob_pagar",{p_id:id,p_data:`${m[3]}-${m[2]}-${m[1]}`}).then(({error})=>{ a.disabled=false; if(error){ toast(msgErro(error)); return; } atualizarTabelas("cobrancas_bpo"); toast("Pagamento registrado — a conta do franqueado recebeu baixa"); }); return; }
+  if(act==="cob-repassar"&&masterRede()){ const d=prompt("Data do repasse ao BPO (dd/mm/aaaa):",dBR(HOJE)); if(d===null) return; const m=d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(!m){ toast("Data inválida."); return; }
+    a.disabled=true; FB.sb.rpc("cob_repassar",{p_id:id,p_data:`${m[3]}-${m[2]}-${m[1]}`}).then(({error})=>{ a.disabled=false; if(error){ toast(msgErro(error)); return; } atualizarTabelas("cobrancas_bpo"); toast("Repasse registrado"); }); return; }
+  if(act==="cob-cancelar"&&masterRede()){ confirmBtn(a,"Confirmar cancelamento",()=>FB.sb.rpc("cob_cancelar",{p_id:id,p_motivo:null}).then(({error})=>{ if(error){ toast(msgErro(error)); return; } atualizarTabelas("cobrancas_bpo"); toast("Cobrança cancelada — a conta saiu do sistema do franqueado"); })); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
   if(act==="anx-baixar"){ baixarAnexo(id,a); return; }
