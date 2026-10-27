@@ -883,8 +883,14 @@ function handleErr(e){
   if(code==="permission-denied") toast("Seu perfil não tem permissão para gravar estes dados.");
   else if(code==="quota_exceeded") toast("Limite de registros do banco atingido. Exclua registros antigos para continuar.");
   else if(code==="invalid_argument"||code==="permission_denied") toast("Seu perfil não tem permissão para gravar estes dados.");
-  else toast("Não foi possível salvar. Tente de novo em instantes.");
+  else if(/row-level security|permission denied|42501/i.test(msgErro(e))) toast("Sem permissão para gravar estes dados. Se acabou de atualizar o sistema, confira se todos os scripts SQL foram rodados no Supabase.");
+  else toast("Não foi possível salvar: "+msgErro(e));
 }
+// rede de segurança: nenhum erro passa em silêncio
+let _ultErro=0;
+function avisarErro(msg){ const m=String(msg||""); if(!m||/ResizeObserver|Script error|WebSocket|realtime|AbortError|NetworkError when attempting to fetch resource|Load failed/i.test(m)) return; if(Date.now()-_ultErro<4000) return; _ultErro=Date.now(); try{ toast("Algo não saiu como esperado: "+m.slice(0,160)); }catch(e){} }
+window.addEventListener("error",ev=>avisarErro(ev.message||(ev.error&&ev.error.message)));
+window.addEventListener("unhandledrejection",ev=>avisarErro((ev.reason&&(ev.reason.message||ev.reason))||""));
 function strip(doc){ const d=doc.data(); return {...d,id:doc.id}; }
 
 function queueNames(){}
@@ -3207,7 +3213,7 @@ function lojaForm(x,statusPreset){
           if(mudouEnd&&d.endereco) geocodificarLoja(lid,d);
           if(typeof txMud!=="undefined"&&txMud.length) diario("Taxas da loja alteradas",`${d.condominio}: ${txMud.join(" · ")} — ${txEsc==="so"?"somente "+mlabel(txMes):txEsc==="adiante"?"de "+mlabel(txMes)+" em diante":"todos os meses"}`,{cat:"alteracao"});
           closeModal(); toast(isNew?"Loja cadastrada":"Loja atualizada"); agendarAuto();
-        }catch(ex){}
+        }catch(ex){ const er=$("#ljErr"); if(er){ er.textContent="Não foi possível salvar a loja: "+msgErro(ex); er.scrollIntoView({block:"center"}); } console.error(ex); }
       });
     },(!isAdm()&&obsTenant()&&(isNew||lojaFunil(x)))?"all":undefined);
 }
@@ -4072,7 +4078,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 80 · 27/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 81 · 27/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
