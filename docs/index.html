@@ -4078,7 +4078,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 81 · 27/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 82 · 27/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4686,7 +4686,7 @@ const numPct = v => { if(v==null||v==="") return null; const n=Number(String(v).
 // histórico: { credito:[{desde:"2026-10",pct:3.19}, ...], ... } — "0000-00" = vale para todos os meses anteriores
 let _hK=null,_hV=null;
 function histTaxas(){
-  if(_hK===S.cfg) return _hV;
+  if(_hK===S.cfg&&_hV) return _hV;
   const c=S.cfg||{}; const h=(c.taxasHist&&typeof c.taxasHist==="object")?c.taxasHist:{}; const base=Array.isArray(c.taxas)?c.taxas:[]; const out={};
   const ids=new Set([...TAXAS_PADRAO.map(x=>x.id),...base.map(x=>x.id),...Object.keys(h)]);
   ids.forEach(id=>{ let arr=Array.isArray(h[id])?h[id].map(e=>({desde:e.desde,pct:e.pct==null?null:+e.pct})):null;
