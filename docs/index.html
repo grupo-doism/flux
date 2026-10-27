@@ -603,6 +603,12 @@ table.cmv select.cmv-cat{max-width:200px;font-size:12px}
 .nav-manual{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;color:#B8BDC2;text-decoration:none;font-size:14px}.nav-manual svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.nav-manual small{margin-left:auto;font-size:10px;font-weight:700;color:#00BF63;border:1px solid #00BF63;border-radius:4px;padding:0 4px}.nav-manual:hover{background:rgba(255,255,255,.06);color:#fff}
 .auth-wrap{flex-direction:column}.aviso-site{max-width:440px;margin:14px auto 0;padding:0 8px;font-size:10.5px;line-height:1.5;color:#8A9096;text-align:center}
 .rodape-legal{margin:36px 0 6px;padding-top:12px;border-top:1px solid var(--line);font-size:10.5px;line-height:1.5;color:var(--muted);text-align:center}
+.kb-ganha{margin-top:6px;width:100%;justify-content:center;border-color:#00BF63;color:#0B5A33;font-weight:700}.kb-ganha:hover{background:#E3F8EC}
+.bases-faixa{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:8px 10px;border:1px dashed #C4B5FD;border-radius:10px;background:#F7F4FF}.base-chip{border:1px solid #C4B5FD;background:#fff;color:#5B21B6;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}
+.pino-base span{display:flex;width:24px;height:24px;border-radius:6px;background:#7C3AED;color:#fff;align-items:center;justify-content:center;font-weight:800;font-size:15px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45)}
+.pg-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px}.pg-top .flabel{margin:0}
+.emp-l{display:grid;grid-template-columns:1fr 2fr auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}.emp-l input{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px}
+.emp-sel,.reg-sel{font:inherit;font-size:12px;padding:3px 6px;border:1px solid var(--line);border-radius:6px;max-width:170px;display:block}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -787,7 +793,8 @@ const lojaNome = x => x ? (x.condominio||x.nome||"Loja sem nome") : "";
 const lojasOrd = () => [...S.lojas].sort((a,b)=>(a.codigo||"").localeCompare(b.codigo||"")||lojaNome(a).localeCompare(lojaNome(b)));
 // funil de lojas: só ativas e inativas são lojas da operação (lançamentos, filtros, CMV, indicadores)
 const LOJA_ST={oportunidade:{nome:"Oportunidade",plural:"Oportunidades",cor:"#F2C200"},prospeccao:{nome:"Em prospecção",plural:"Em prospecção",cor:"#2F80ED"},
-  ativa:{nome:"Ativa",plural:"Lojas ativas",cor:"#00BF63"},perdida:{nome:"Oportunidade perdida",plural:"Oportunidades perdidas",cor:"#9AA0A6"},inativa:{nome:"Inativa",plural:"Lojas inativas",cor:"#1E1E1E"}};
+  ativa:{nome:"Ativa",plural:"Lojas ativas",cor:"#00BF63"},perdida:{nome:"Oportunidade perdida",plural:"Oportunidades perdidas",cor:"#9AA0A6"},inativa:{nome:"Inativa",plural:"Lojas inativas",cor:"#1E1E1E"},
+  base:{nome:"Matriz / CD",plural:"Matriz e CDs",cor:"#7C3AED"}};
 const LOJA_ORDEM=["oportunidade","prospeccao","ativa","perdida","inativa"];
 const lojaStatus = l => (l&&l.status&&LOJA_ST[l.status])?l.status:((l&&l.ativa===false)?"inativa":"ativa");
 const lojaOper = l => ["ativa","inativa"].includes(lojaStatus(l));
@@ -849,7 +856,7 @@ const statusPill = l => `<span class="pill st-${statusOf(l)}">${statusTxt(l)}</s
 const COL = {div:"divisoes",lanc:"lancamentos", forn:"fornecedores", ag:"agenda", lojas:"lojas", usr:"usuarios", rec:"recorrencias"};
 function clean(o){ const r={}; for(const k in o){ if(k!=="id"&&o[k]!==undefined) r[k]=o[k]; } return r; }
 const ROT={div:"Rateio de despesas",lanc:"Lançamento",forn:"Fornecedor",ag:"Compromisso",lojas:"Loja",rec:"Recorrência",usr:"Usuário"};
-function checarEscrita(kind,data){ if(S.role==="ro"&&obsTenant()&&(kind==="ag"||kind==="forn"||(kind==="lojas"&&lojaFunil(data||{})))) return; if(S.role==="ro"){ toast("Somente leitura — você não pode alterar dados aqui."); throw new Error("ro"); } }
+function checarEscrita(kind,data){ if(S.role==="ro"&&obsTenant()&&(kind==="ag"||kind==="forn"||kind==="lojas")) return; if(S.role==="ro"){ toast("Somente leitura — você não pode alterar dados aqui."); throw new Error("ro"); } }
 function logRede(kind,id,modo,data){ if(!masterRede()) return; const am=S.tenant&&S.tenant.acessoMaster; const r=data&&(data.descricao||data.condominio||data.empresa||data.nome)||id; diario("Alteração autorizada",`${ROT[kind]||kind} ${modo}: ${r}`,{cat:"alteracao",chamadoId:(am&&am.chamadoId)||""}); }
 async function save(kind,id,data){
   checarEscrita(kind,data); data=clean(data);
@@ -2376,24 +2383,28 @@ function vLojas(){
   const vis=ui.lojasVis||"lista";
   const abas=`<div class="seg" style="margin:0 0 14px">${[["lista","Lista e dados da empresa"],["kanban","Kanban"],["mapa","Mapa"]].map(([k,t])=>`<button data-act="lojas-vis" data-v="${k}" aria-pressed="${vis===k}">${t}</button>`).join("")}</div>`;
   if(vis==="lista"){ const h=vLojasLista(); const k=h.indexOf('<div class="grid g2e">'); return k>0?h.slice(0,k)+abas+h.slice(k):abas+h; }
-  const topo=header("Lojas","Acompanhe o funil de expansão: oportunidades, prospecção, lojas ativas, perdidas e inativas.",isAdm()?`<button class="btn pri" data-act="new-loja">+ Nova loja</button>`:obsTenant()?`<button class="btn pri" data-act="kb-nova" data-st="oportunidade">+ Nova oportunidade</button>`:"")+banners()+(obsTenant()?'<div class="banner lib-banner"><span>Você pode criar e mover as lojas de <b>oportunidade, prospecção e perdidas</b>. Lojas ativas e dados da empresa ficam com o BPO — para mudar algo nelas, peça ao BPO (por Chamados ou Envio de contas).</span></div>':"")+abas;
+  const topo=header("Lojas","Acompanhe o funil de expansão: oportunidades, prospecção, lojas ativas, perdidas e inativas.",isAdm()?`<button class="btn pri" data-act="new-loja">+ Nova loja</button>`:obsTenant()?`<button class="btn pri" data-act="kb-nova" data-st="oportunidade">+ Nova oportunidade</button>`:"")+banners()+abas;
   return topo+(vis==="kanban"?kanbanLojas():mapaLojasHTML());
 }
 function kanbanLojas(){
   const ed=isAdm(), obs=obsTenant();
-  return `<div class="kanban">${LOJA_ORDEM.map(st=>{ const ls=lojasOrd().filter(l=>lojaStatus(l)===st);
+  const bases=lojasOrd().filter(l=>lojaStatus(l)==="base");
+  return `<div class="bases-faixa"><b>Matriz e CDs</b>${bases.map(l=>`<button class="base-chip" data-act="edit-loja" data-id="${l.id}">⌂ ${esc(lojaNome(l))}</button>`).join("")||'<span class="note">nenhuma cadastrada</span>'}${ed||obs?`<button class="icon-btn" data-act="kb-nova" data-st="base">+ Matriz / CD</button>`:""}</div>
+  <div class="kanban">${LOJA_ORDEM.map(st=>{ const ls=lojasOrd().filter(l=>lojaStatus(l)===st);
     return `<div class="kb-col" data-st="${st}"><div class="kb-h"><i style="background:${LOJA_ST[st].cor}"></i><b>${LOJA_ST[st].plural}</b><span class="kb-n">${ls.length}</span>${ed||(obs&&LOJA_FUNIL.includes(st))?`<button type="button" class="icon-btn" data-act="kb-nova" data-st="${st}" title="Nova loja em ${LOJA_ST[st].plural.toLowerCase()}">+</button>`:""}</div>
       <div class="kb-cards">${ls.map(l=>`<div class="kb-card" ${ed||(obs&&LOJA_FUNIL.includes(st))?'draggable="true"':""} data-id="${l.id}" data-act="edit-loja" style="border-left-color:${LOJA_ST[st].cor}">
         <div class="kb-t"><b>${esc(lojaNome(l))}</b><span class="num note">${esc(l.codigo||"")}</span></div>
         ${l.endereco?`<div class="kb-m">📍 ${esc(l.endereco)}</div>`:""}${l.sindico||l.telefone?`<div class="kb-m">${esc(l.sindico||"")}${l.sindico&&l.telefone?" · ":""}${esc(l.telefone||"")}</div>`:""}
-        ${l.obs?`<div class="kb-o">${esc(l.obs).slice(0,110)}${l.obs.length>110?"…":""}</div>`:""}${l.inauguracao?`<div class="kb-m">Inauguração ${dBR(l.inauguracao)}</div>`:""}</div>`).join("")||'<div class="kb-vazio">Arraste uma loja para cá</div>'}</div></div>`; }).join("")}</div>
+        ${l.unidades||l.cashPrev||l.energiaPrev?`<div class="kb-m">${l.unidades?esc(l.unidades)+" un.":""}${l.cashPrev?" · cashback "+pctTxt(l.cashPrev)+"%":""}${l.energiaPrev?" · energia "+fmt(l.energiaPrev):""}</div>`:""}
+        ${l.obs?`<div class="kb-o">${esc(l.obs).slice(0,110)}${l.obs.length>110?"…":""}</div>`:""}${l.inauguracao?`<div class="kb-m">Inauguração ${dBR(l.inauguracao)}</div>`:""}
+        ${(ed||obs)&&(st==="oportunidade"||st==="prospeccao")?`<button type="button" class="btn sm kb-ganha" data-act="loja-ganha" data-id="${l.id}">Loja ganha ✓</button>`:""}</div>`).join("")||'<div class="kb-vazio">Arraste uma loja para cá</div>'}</div></div>`; }).join("")}</div>
     ${ed||obs?'<p class="note" style="margin-top:8px">Arraste os cartões entre as colunas para mudar a situação. Ao soltar em <b>Lojas ativas</b>, abre o cadastro para completar taxas, royalties, cashback, mensalidade e energia.</p>':""}`;
 }
 function mapaLojasHTML(){
   const r=(S.cfg&&S.cfg.raioOp)||{}; const ls=S.lojas; const sem=ls.filter(l=>l.endereco&&(l.lat==null||l.lng==null));
   return `<div class="mapa-wrap"><div id="mapaLojas" class="mapa"></div>
     <div class="mapa-lado">
-      <div class="panel"><h2>Legenda</h2>${LOJA_ORDEM.map(st=>`<div class="leg-l"><i style="background:${LOJA_ST[st].cor}"></i>${LOJA_ST[st].plural}<span class="note">${ls.filter(l=>lojaStatus(l)===st&&l.lat!=null).length}</span></div>`).join("")}
+      <div class="panel"><h2>Legenda</h2>${[...LOJA_ORDEM,"base"].map(st=>`<div class="leg-l"><i style="background:${LOJA_ST[st].cor}"></i>${LOJA_ST[st].plural}<span class="note">${ls.filter(l=>lojaStatus(l)===st&&l.lat!=null).length}</span></div>`).join("")}
         ${sem.length?`<div class="sem-geo"><p class="note" style="margin:10px 0 4px"><b>${sem.length} loja(s) sem localização</b>${isAdm()?" — o sistema procura o endereço sozinho; se não achar, marque no mapa:":""}</p>
           ${sem.map(l=>`<div class="sg-l"><i style="background:${LOJA_ST[lojaStatus(l)].cor}"></i><span><b>${esc(lojaNome(l))}</b><small>${esc(l.endereco||"")}${l.geoFalhou===l.endereco?' · <span class="neg">endereço não encontrado</span>':""}</small></span>${podeLoja(l)?`<button class="btn sm" data-act="geo-marcar" data-id="${l.id}">📍 Marcar no mapa</button>`:""}</div>`).join("")}
           ${podeFunil()?`<button class="btn sm" data-act="geo-todas" style="margin-top:6px">Procurar endereços de novo</button>`:""}</div>`:""}
@@ -2406,7 +2417,7 @@ function mapaLojasHTML(){
     </div></div>`;
 }
 let MAPA=null, RAIO_TMP=null, RAIO_MARCANDO=false, ROTA=null, ROTA_CAMADA=null;
-const ROTA_PADRAO={st:{ativa:true,prospeccao:true,oportunidade:true,perdida:false,inativa:false},partida:"raio",volta:true};
+const ROTA_PADRAO={st:{ativa:true,prospeccao:true,oportunidade:true,perdida:false,inativa:false,base:false},partida:"raio",volta:true};
 const rotaCfg = () => { ui.rota=ui.rota||JSON.parse(JSON.stringify(ROTA_PADRAO)); return ui.rota; };
 const minTxt = sg => { const m=Math.round(sg/60); return m<60?`${m} min`:`${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")} min`; };
 const kmTxt = mt => (mt/1000).toLocaleString("pt-BR",{maximumFractionDigits:1})+" km";
@@ -2417,7 +2428,7 @@ function painelRota(){
     <div class="rota-st">${["ativa","prospeccao","oportunidade","perdida","inativa"].map(st=>`<label class="chkline"><input type="checkbox" class="rota-ck" data-st="${st}" ${c.st[st]?"checked":""}><i style="background:${LOJA_ST[st].cor}"></i>${LOJA_ST[st].plural}</label>`).join("")}</div>
     <div class="field"><label for="rotaPart">Partida</label><select id="rotaPart">
       ${r.lat!=null?opt("raio","Centro do raio de operação",c.partida):""}${opt("gps","Minha localização atual",c.partida)}
-      ${comPos.map(l=>opt("l:"+l.id,lojaNome(l),c.partida)).join("")}</select></div>
+      ${comPos.filter(l=>lojaStatus(l)==="base").map(l=>opt("l:"+l.id,"⌂ "+lojaNome(l),c.partida)).join("")}${comPos.filter(l=>lojaStatus(l)!=="base").map(l=>opt("l:"+l.id,lojaNome(l),c.partida)).join("")}</select></div>
     <label class="chkline"><input type="checkbox" id="rotaVolta" ${c.volta?"checked":""}> Voltar ao ponto de partida no fim</label>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm pri" data-act="rota-tracar" ${n?"":"disabled"}>Traçar rota (${n} loja${n===1?"":"s"})</button>${ROTA?'<button class="icon-btn" data-act="rota-limpar">Limpar rota</button>':""}</div>
     <div id="rotaRes">${ROTA?rotaResumoHTML():""}</div></div>`;
@@ -2489,7 +2500,7 @@ async function desenharMapaLojas(){
   new Centro().addTo(MAPA); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(MAPA);
   const pts=[]; const r=(S.cfg&&S.cfg.raioOp)||{};
   S.lojas.filter(l=>l.lat!=null&&l.lng!=null).forEach(l=>{ const st=lojaStatus(l);
-    const mk=L.marker([l.lat,l.lng],{draggable:podeLoja(l),icon:L.divIcon({className:"pino-loja",html:`<span style="background:${LOJA_ST[st].cor}"></span>`,iconSize:[20,20],iconAnchor:[10,10]})}).addTo(MAPA)
+    const mk=L.marker([l.lat,l.lng],{draggable:podeLoja(l),icon:st==="base"?L.divIcon({className:"pino-base",html:"<span>⌂</span>",iconSize:[26,26],iconAnchor:[13,13]}):L.divIcon({className:"pino-loja",html:`<span style="background:${LOJA_ST[st].cor}"></span>`,iconSize:[20,20],iconAnchor:[10,10]})}).addTo(MAPA)
       .bindPopup(`<b>${esc(lojaNome(l))}</b><br>${esc(LOJA_ST[st].nome)}<br><small>${esc(l.endereco||"")}</small>`);
     mk.on("dragend",async()=>{ const p=mk.getLatLng(); try{ await salvarPosLoja(l.id,p.lat,p.lng); toast(`Posição de ${lojaNome(l)} ajustada`); }catch(e){} });
     pts.push([l.lat,l.lng]); });
@@ -3105,8 +3116,8 @@ function lojaForm(x,statusPreset){
   const isNew=!x; x=x||{}; const st0=statusPreset||lojaStatus(isNew?{status:"ativa"}:x);
   const usos=isNew?0:S.lanc.filter(l=>l.centro===x.id).length+S.ag.filter(a=>a.lojaId===x.id).length;
   const F=(k,l,t)=>`<div class="field"><label for="lj_${k}">${l}</label><input type="${t||"text"}" id="lj_${k}" value="${esc(x[k]||"")}"></div>`;
-  openModal(`<h2>${isNew?"Nova loja":esc(lojaNome(x))}</h2>
-    <div class="cod-line">Código <b class="num">${esc(isNew?proxCodigo(S.lojas,"L",3):(x.codigo||"—"))}</b> · <span id="ljTipo">${lojaOper({status:st0})?"centro de custo":"funil de expansão"}</span></div>
+  openModal(`<h2>${isNew?(st0==="base"?"Nova matriz / CD":"Nova loja"):esc(lojaNome(x))}</h2>
+    <div class="cod-line">Código <b class="num">${esc(isNew?proxCodigo(S.lojas,"L",3):(x.codigo||"—"))}</b> · <span id="ljTipo">${st0==="base"?"base (matriz ou CD) — só para o mapa":lojaOper({status:st0})?"centro de custo":"funil de expansão"}</span></div>
     ${statusPreset==="ativa"&&!isNew&&!lojaOper(x)?`<div class="banner lib-banner" style="margin:6px 0 0">Loja passando para <b>Ativa</b>: confira os dados e preencha as taxas da maquininha, royalties, cashback, mensalidade e energia abaixo.</div>`:""}
     <form id="fLj" novalidate class="fcol">
       <div class="row">${F("condominio","Nome do condomínio")}${F("cnpj","CNPJ do condomínio")}</div>
@@ -3122,9 +3133,13 @@ function lojaForm(x,statusPreset){
           <div class="field"><label for="lj_uf">UF</label><select id="lj_uf">${opt("","—",(x.end||{}).uf||"")}${UFS.map(u=>opt(u,u,(x.end||{}).uf||"")).join("")}</select></div></div>
         <div class="note" id="cepInfo"></div></div>
       <div class="row">${F("telefone","Telefone","tel")}${F("email","E-mail","email")}</div>
-      <div class="field"><span class="flabel">Situação</span><div class="seg loja-st" id="ljStSeg">${LOJA_ORDEM.filter(k=>isAdm()||LOJA_FUNIL.includes(k)).map(k=>`<button type="button" data-st="${k}" aria-pressed="${st0===k}"><i style="background:${LOJA_ST[k].cor}"></i>${LOJA_ST[k].nome}</button>`).join("")}</div><input type="hidden" id="lj_status" value="${st0}"></div>
+      <div class="field"><span class="flabel">Situação</span><div class="seg loja-st" id="ljStSeg">${[...LOJA_ORDEM,"base"].filter(k=>isAdm()||LOJA_FUNIL.includes(k)).map(k=>`<button type="button" data-st="${k}" aria-pressed="${st0===k}"><i style="background:${LOJA_ST[k].cor}"></i>${LOJA_ST[k].nome}</button>`).join("")}</div><input type="hidden" id="lj_status" value="${st0}"></div>
+      <div class="row3 opo-row" ${st0==="base"?"hidden":""}><div class="field"><label for="lj_unidades">Nº de unidades</label><input id="lj_unidades" inputmode="numeric" value="${esc(x.unidades||"")}" placeholder="Ex.: 240 apartamentos"></div>
+        <div class="field"><label for="lj_cashPrev">Cashback previsto (%)</label><input id="lj_cashPrev" inputmode="decimal" value="${x.cashPrev!=null&&x.cashPrev!==""?pctTxt(x.cashPrev):""}" placeholder="Ex.: 5"></div>
+        <div class="field"><label for="lj_energiaPrev">Energia prevista (R$/mês)</label><input id="lj_energiaPrev" inputmode="decimal" value="${x.energiaPrev?moneyIn(x.energiaPrev):""}" placeholder="0,00 ou em branco"></div></div>
       <div class="field"><label for="lj_obs">Observações / próximos passos</label><textarea id="lj_obs" rows="2" placeholder="Ex.: reunião com o síndico dia 10; proposta enviada; motivo da perda…">${esc(x.obs||"")}</textarea></div>
       <div id="ljOper" ${lojaOper({status:st0})?"":"hidden"}>
+      ${(x.cashPrev||x.energiaPrev||x.unidades)?`<div class="banner lib-banner" style="margin:4px 0 8px"><span>Previsto na oportunidade: ${x.unidades?esc(x.unidades)+" unidades · ":""}${x.cashPrev?"cashback "+pctTxt(x.cashPrev)+"% · ":""}${x.energiaPrev?"energia "+fmt(x.energiaPrev)+"/mês":""}. Use como referência nas regras abaixo.</span></div>`:""}
       <p class="note" style="margin:-4px 0 0">O aniversário da loja aparece todo ano na agenda, na data de inauguração.</p>
       ${taxasLojaHTML(isNew?null:x)}
       ${autoLojaHTML(x.auto)}
@@ -3136,15 +3151,16 @@ function lojaForm(x,statusPreset){
     </form>`,false,()=>{
       bindAutoLoja(); bindTaxasLoja(isNew?null:x); bindCep();
       $("#ljStSeg").addEventListener("click",ev=>{ const b=ev.target.closest("[data-st]"); if(!b) return; const v=b.dataset.st; $("#lj_status").value=v;
-        $("#ljStSeg").querySelectorAll("[data-st]").forEach(y=>y.setAttribute("aria-pressed",y.dataset.st===v)); $("#ljOper").hidden=!lojaOper({status:v}); $("#ljTipo").textContent=lojaOper({status:v})?"centro de custo":"funil de expansão"; });
+        $("#ljStSeg").querySelectorAll("[data-st]").forEach(y=>y.setAttribute("aria-pressed",y.dataset.st===v)); $("#ljOper").hidden=!lojaOper({status:v}); $("#ljTipo").textContent=v==="base"?"base (matriz ou CD) — só para o mapa":lojaOper({status:v})?"centro de custo":"funil de expansão"; const o=$(".opo-row"); if(o) o.hidden=v==="base"; });
       const bd=$("#ljDel"); if(bd) bd.addEventListener("click",()=>confirmBtn(bd,"Confirmar exclusão",async()=>{ try{ await del("lojas",x.id); if(ui.cc===x.id){ ui.cc=""; saveUi(); } closeModal(); toast("Loja excluída"); }catch(e){} }));
       $("#fLj").addEventListener("submit",async e=>{ e.preventDefault();
         const d={}; ["condominio","cnpj","sindico","inauguracao","telefone","email","obs"].forEach(k=>d[k]=$("#lj_"+k).value.trim());
         d.end={cep:fmtCep($("#lj_cep").value),rua:$("#lj_rua").value.trim(),num:$("#lj_num").value.trim(),comp:$("#lj_comp").value.trim(),bairro:$("#lj_bairro").value.trim(),cidade:$("#lj_cidade").value.trim(),uf:$("#lj_uf").value};
         d.endereco=montaEndereco(d.end)||(x.endereco||"");
         d.status=$("#lj_status").value; d.ativa=d.status==="ativa"; const oper=lojaOper(d);
+        d.unidades=$("#lj_unidades").value.trim(); const cp=pctNum($("#lj_cashPrev").value||""); d.cashPrev=($("#lj_cashPrev").value.trim()&&isFinite(cp))?cp:null; const ep=parseMoney($("#lj_energiaPrev").value||""); d.energiaPrev=(isFinite(ep)&&ep>0)?ep:null;
         const err=$("#ljErr");
-        const req=oper?[["condominio","o nome do condomínio"],["sindico","o nome do síndico"],["telefone","o telefone"]]:[["condominio","o nome do condomínio"]];
+        const req=oper?[["condominio","o nome do condomínio"],["sindico","o nome do síndico"],["telefone","o telefone"]]:[["condominio",d.status==="base"?"o nome da matriz / CD":"o nome do condomínio"]];
         const reqEnd=[["rua","a rua / avenida"],["num","o número (ou s/n)"],["cidade","a cidade"],["uf","a UF"]];
         for(const [k,t] of reqEnd){ if(!d.end[k]){ err.textContent="Informe "+t+" do endereço."; $("#lj_"+k).focus(); return; } }
         if(d.end.cep&&digitos(d.end.cep).length!==8){ err.textContent="O CEP deve ter 8 dígitos."; $("#lj_cep").focus(); return; }
@@ -3806,7 +3822,7 @@ const VIEW_MOD={}; MODS.forEach(m=>VIEW_MOD[m[2]]=m[0]); VIEW_MOD.taxas="config"
 const MODS_COLAB=MODS.filter(m=>m[0]!=="rec"&&m[0]!=="pag");   // contas a pagar/receber: só o master do franqueado
 function nivel(mod){
   const p=S.claims.papel;
-  if((mod==="ag"||mod==="forn")&&obsTenant()) return 2;
+  if((mod==="ag"||mod==="forn"||mod==="lojas")&&obsTenant()) return 2;
   if(p==="master"){ if(!temBpo()) return 2; const pf=(S.tenant&&S.tenant.permFranq)||{}; const m=MODS.find(x=>x[0]===mod); return Math.max(1,Math.min(+pf[mod]||1, m?m[3]:2)); }
   if(p==="bpo") return bpoTenant()?2:1;
   if(p==="master_rede") return S.liberado?2:1;
@@ -3815,7 +3831,7 @@ function nivel(mod){
   return 0;
 }
 let FB=null, UNSUB=[], UNSUB_REDE=[];
-S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.ctr=[]; S.ctrRede=[]; S.cobRede=[]; S.liberado=false; S.names={};
+S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.ctr=[]; S.ctrRede=[]; S.cobRede=[]; S.empresas=[]; S.liberado=false; S.names={};
 const plat = () => ["master_rede","observador","bpo"].includes(S.claims.papel);
 const ehBpo = () => S.claims.papel==="bpo";
 const temBpo = () => !!(S.tenant&&S.tenant.bpoUid);                              // este franqueado tem BPO
@@ -3978,6 +3994,7 @@ function assinarRede(){
     const iv=setInterval(()=>{ if(!S.tid&&ui.view==="painelrede") carregarIndicadores(); },60000); UNSUB_REDE.push(()=>clearInterval(iv));
     UNSUB_REDE.push(vigiar("rede_diario",{cols:"id,data",ordem:["criado",false],limite:300},rows=>{ S.redeDiario=rows.map(r=>({...r.data,id:r.id})); if(!S.tid) render(); }));
   }
+  UNSUB_REDE.push(vigiar("empresas_rede",{cols:"id,data"},rows=>{ S.empresas=rows.map(r=>({...r.data,id:r.id})).sort((a,b)=>String(a.nome).localeCompare(String(b.nome))); if(!S.tid) render(); }));
   if(ehBpo()||masterRede()) UNSUB_REDE.push(vigiar("cobrancas_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:600},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._cobSig) return; S._cobSig=sig; S.cobRede=novo; if(!S.tid) render(); }));
   if(ehBpo()||masterRede()) UNSUB_REDE.push(vigiar("contratos_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:300},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._ctrSig) return; S._ctrSig=sig; S.ctrRede=novo; if(!S.tid) render(); else renderNav(); }));
   UNSUB_REDE.push(vigiar("envios",{cols:"id,tid,data",ordem:["criado",false],limite:800},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._envSig) return; S._envSig=sig; S.envRede=novo; if(!S.tid) render(); else renderNav(); }));
@@ -4028,7 +4045,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 77 · 24/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 78 · 25/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no franqueado</span><select id="tenSel" aria-label="Trocar de franqueado">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4132,13 +4149,13 @@ function mzValidar(e,px,err){
 function vRede(){
   const ts=[...S.tenants].sort((a,b)=>(+(a.matriz&&a.matriz.regional)||999)-(+(b.matriz&&b.matriz.regional)||999)||tNome(a).localeCompare(tNome(b)));
   const q=normTxt(ui.rq||"");
-  const lista=ts.filter(t=>{ const m=t.matriz||{}; return !q||normTxt([m.razao,t.nome,m.cnpj,digitos(m.cnpj),m.regional,m.franq1,m.franq2,m.franq3].join(" ")).includes(q); });
+  const lista=ts.filter(t=>{ const m=t.matriz||{}; if(ui.remp&&empDe(t)!==ui.remp) return false; if(ui.rreg&&String(m.regional||"")!==ui.rreg) return false; return !q||normTxt([m.razao,t.nome,m.cnpj,digitos(m.cnpj),m.regional,empNome(empDe(t)),m.franq1,m.franq2,m.franq3].join(" ")).includes(q); });
   const pend=tid=>S.chamRede.filter(c=>c.tid===tid).length;
   const __h=header("Franqueados",`${ts.length} cadastrado(s) · ${ts.filter(t=>t.ativo!==false).length} ativo(s)`,masterRede()?`<button class="btn pri" data-act="novo-franq">+ Novo franqueado</button>`:"")
-   + `<div class="toolbar"><input type="search" id="frQ" placeholder="Buscar razão social, CNPJ, regional ou franqueado" value="${esc(ui.rq||"")}" style="min-width:320px"></div>
-   <div class="tbl-wrap"><table><thead><tr><th>Regional</th><th>Franqueado</th><th>CNPJ (login)</th><th>Sócios franqueados</th><th>Contato</th><th class="r">Lojas</th><th>Último acesso</th>${masterRede()?"<th>BPO financeiro</th>":""}<th>Situação</th><th></th></tr></thead><tbody>
+   + `<div class="toolbar"><input type="search" id="frQ" placeholder="Buscar razão social, CNPJ, empresa, regional ou franqueado" value="${esc(ui.rq||"")}" style="min-width:300px">${filtrosEmpresa()}${masterRede()?`<button class="btn" data-act="empresas" style="align-self:flex-end">Empresas e regionais</button>`:""}</div>
+   <div class="tbl-wrap"><table><thead><tr><th>Empresa · regional</th><th>Franqueado</th><th>CNPJ (login)</th><th>Sócios franqueados</th><th>Contato</th><th class="r">Lojas</th><th>Último acesso</th>${masterRede()?"<th>BPO financeiro</th>":""}<th>Situação</th><th></th></tr></thead><tbody>
    ${lista.length?lista.map(t=>{ const m=t.matriz||{}; const am=t.acessoMaster; const lib=am&&tsMs(am.ate)>Date.now(); const ua=tsMs(t.ultimoAcesso); const dias=ua?Math.floor((Date.now()-ua)/864e5):null; return `<tr>
-     <td><span class="loja-cod num" style="display:inline-block;min-width:44px">${esc(m.regional||"—")}</span></td>
+     <td>${celulaEmpresa(t)}</td>
      <td><button type="button" class="link-btn desc" data-act="${ehBpo()?"entrar-tenant":"abrir-aba"}" data-id="${t.id}" title="${ehBpo()?"Entrar para lançar e editar":"Abrir em outra aba, só para leitura"}">${esc(tNome(t))}${ehBpo()?"":" ↗"}</button>${t.nome&&t.nome!==m.razao?`<div class="meta">${esc(t.nome)}</div>`:""}</td>
      <td class="num">${esc(m.cnpj||"—")}</td>
      <td>${esc([m.franq1,m.franq2,m.franq3].filter(Boolean).join(", ")||"—")}</td>
@@ -4202,7 +4219,24 @@ function bindMeuCadastro(){
 
 /* ---------- painel master (consolidado da rede) ---------- */
 const diasTxt = t => { const ms=tsMs(t); if(!ms) return "nunca acessou"; const d=Math.floor((Date.now()-ms)/864e5); return d<=0?"acessou hoje":d===1?"acessou ontem":`acessou há ${d} dias`; };
-function redeFiltrada(){ const reg=ui.rreg||""; return S.tenants.filter(t=>!reg||String((t.matriz&&t.matriz.regional)||"")===reg); }
+const empDe = t => (t&&t.matriz&&t.matriz.empresaId)||"";
+const empNome = id => (S.empresas.find(e=>e.id===id)||{}).nome||"";
+function regsDaEmpresa(emp){ const e=S.empresas.find(x=>x.id===emp); const daLista=e?(e.regionais||[]):[]; const dosFranq=S.tenants.filter(t=>!emp||empDe(t)===emp).map(t=>String((t.matriz&&t.matriz.regional)||"")).filter(Boolean);
+  return [...new Set([...daLista,...dosFranq])].sort((a,b)=>(+a||0)-(+b||0)||a.localeCompare(b)); }
+function redeFiltrada(){ const reg=ui.rreg||"", emp=ui.remp||""; return S.tenants.filter(t=>(!emp||empDe(t)===emp)&&(!reg||String((t.matriz&&t.matriz.regional)||"")===reg)); }
+function filtrosEmpresa(){ return `<div class="field"><label for="reSel">Empresa</label><select id="reSel">${opt("","Todas as empresas",ui.remp||"")}${S.empresas.map(e=>opt(e.id,e.nome,ui.remp||"")).join("")}</select></div>
+  <div class="field"><label for="rrSel">Regional</label><select id="rrSel">${opt("","Todas as regionais",ui.rreg||"")}${regsDaEmpresa(ui.remp||"").map(r=>opt(r,"Regional "+r,ui.rreg||"")).join("")}</select></div>`; }
+function empresasModal(){
+  const linha=e=>`<div class="emp-l" data-id="${e?e.id:""}"><input class="emp-n" value="${esc(e?e.nome:"")}" placeholder="Nome da empresa (rede / marca)"><input class="emp-r" value="${esc(e?(e.regionais||[]).join(", "):"")}" placeholder="Regionais separadas por vírgula — ex.: SP-Capital, SP-Interior, RJ">
+    <button type="button" class="btn sm pri" data-act="emp-salvar">Salvar</button>${e?`<button type="button" class="icon-btn" data-act="emp-excluir">Excluir</button>`:""}</div>`;
+  openModal(`<h2>Empresas e regionais</h2><p class="note" style="margin-top:0">Cadastre as empresas (redes ou marcas) e as regionais de cada uma. Depois, ligue cada franqueado à sua empresa e regional na lista de Franqueados.</p>
+    <div id="empLista">${S.empresas.map(linha).join("")}${linha(null)}</div><div class="err" id="empErr" role="alert"></div>
+    <div class="foot"><div></div><div><button type="button" class="btn" data-close>Fechar</button></div></div>`,true,null,"all");
+}
+function celulaEmpresa(t){ const m=t.matriz||{}; const emp=empDe(t);
+  if(!masterRede()) return `<span class="note">${esc(empNome(emp)||"—")}</span><div><span class="loja-cod num">${esc(m.regional||"—")}</span></div>`;
+  return `<select class="emp-sel" data-tid="${t.id}" aria-label="Empresa de ${esc(tNome(t))}">${opt("","— empresa —",emp)}${S.empresas.map(e=>opt(e.id,e.nome,emp)).join("")}</select>
+    <select class="reg-sel" data-tid="${t.id}" aria-label="Regional de ${esc(tNome(t))}" style="margin-top:4px">${opt("","— regional —",m.regional||"")}${regsDaEmpresa(emp).map(r=>opt(r,r,m.regional||"")).join("")}</select>`; }
 function somaRes(mes,campo,tids,filtro){ let t=0; for(const r of S.resumos){ if(!tids.has(r.tid)) continue; if(mes&&r.mes!==mes) continue; if(filtro&&!filtro(r.mes)) continue; t+=(+r[campo]||0); } return t; }
 function fluxoRede(tids){
   const cur=mkey(HOJE), out=[];
@@ -4238,8 +4272,8 @@ function vPainelRede(){
   const chamP=S.chamRede.filter(c=>tids.has(c.tid)&&((c.status==="aberto"&&souAtCh(c))||(c.status==="atendimento"&&chNaoLido(c))));
   const card=(lbl,val,sub,cls,hero)=>`<div class="kpi ${hero?"hero":""}"><span class="lbl">${lbl}</span><span class="val ${cls||""}">${val}</span><span class="sub">${sub||""}</span></div>`;
   const filtroPer=periodoFiltro("rede");
-  return header("Painel da rede",`${P.modo==="mes"&&P.atual?new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}):"Vendo "+esc(P.nome)} · soma de ${tens.length} franqueado(s)${ui.rreg?" da regional "+esc(ui.rreg):""}`,
-      `<div class="field"><label for="rrSel">Regional</label><select id="rrSel">${opt("","Todas as regionais",ui.rreg||"")}${regs.map(r=>opt(r,"Regional "+r,ui.rreg||"")).join("")}</select></div><button class="btn" data-act="recalc" title="Busca os números mais recentes de todos os franqueados">Atualizar números</button>`)
+  return header("Painel da rede",`${P.modo==="mes"&&P.atual?new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}):"Vendo "+esc(P.nome)} · soma de ${tens.length} franqueado(s)${ui.remp?" · "+esc(empNome(ui.remp)):""}${ui.rreg?" · regional "+esc(ui.rreg):""}`,
+      `${filtrosEmpresa()}<button class="btn" data-act="recalc" title="Busca os números mais recentes de todos os franqueados">Atualizar números</button>`)
    + `<div class="toolbar dash-per">${filtroPer}</div>`
    + `<div class="sec-lbl">A rede</div><div class="kpis">
        ${card("Franqueados ativos",`${ativos.length}<span class="val-sub">/${tens.length}</span>`,`${tens.length-ativos.length} suspenso(s)`,"",true)}
@@ -4752,9 +4786,10 @@ function vUsuarios(){
    <p class="note" style="margin:10px 0 0">O login do master é o CNPJ da matriz. Colaboradores entram com o CPF. As mudanças de acesso valem na hora. <b>Contas a pagar, Contas a receber, Chamados, Diário e Usuários são exclusivos do master.</b></p>`;
 }
 function permGrid(p){
-  return `<div class="perm-grid"><div class="pg-h"><span>Tela</span><span>Não acessa</span><span>Só leitura</span><span>Pode editar</span></div>
+  return `<div class="pg-atalhos pg-top"><span class="flabel">Tipo de acesso</span><button type="button" class="btn sm" data-pm="2">Acesso total</button><button type="button" class="btn sm" data-pm="1">Observador (só vê)</button><button type="button" class="btn sm" data-pm="0">Sem acesso</button><span class="note">ou personalize tela a tela abaixo</span></div>
+  <div class="perm-grid"><div class="pg-h"><span>Tela</span><span>Não acessa</span><span>Só leitura</span><span>Pode editar</span></div>
     ${MODS_COLAB.map(([k,n,,mx])=>{ const v=Math.min(+((p||{})[k])||0,mx); return `<div class="pg-r"><span>${esc(n)}</span>${[0,1,2].map(l=>l>mx?`<span class="pg-na" title="Esta tela é só de consulta">—</span>`:`<label><input type="radio" name="pm_${k}" value="${l}" ${v===l?"checked":""} aria-label="${esc(n)}: ${NIV_TXT[l]}"></label>`).join("")}</div>`; }).join("")}
-    <div class="pg-atalhos"><span class="note">Marcar tudo:</span><button type="button" class="btn sm" data-pm="0">Não acessa</button><button type="button" class="btn sm" data-pm="1">Só leitura</button><button type="button" class="btn sm" data-pm="2">Pode editar</button></div></div>`;
+    </div>`;
 }
 function lerPerm(){ const o={}; MODS_COLAB.forEach(([k])=>{ const r=document.querySelector(`input[name="pm_${k}"]:checked`); o[k]=r?+r.value:0; }); return o; }
 function colabModal(u){
@@ -4891,12 +4926,13 @@ document.addEventListener("click",async e=>{
   if(act==="del-ag"&&isAdm()){ const ag=S.ag.find(x=>x.id===id); if(ag) confirmBtn(a,"Confirmar exclusão",()=>del("ag",id).then(()=>{ toast("Compromisso excluído"); }).catch(()=>{})); return; }
   if(act==="ord"){ const t=a.dataset.t, k=a.dataset.k, o=ordemDe(t); ui.sort=ui.sort||{}; ui.sort[t]={k,dir:o.k===k?(o.dir==="desc"?"asc":"desc"):(["data","valor","numero","pagamento","venc","mes","venda","taxa"].includes(k)?"desc":"asc")}; render(); return; }
   if(act==="lojas-vis"){ ui.lojasVis=a.dataset.v; render(); return; }
-  if(act==="kb-nova"&&podeFunil()){ const st=a.dataset.st; if(!isAdm()&&!LOJA_FUNIL.includes(st)){ toast("Só o BPO cadastra lojas ativas."); return; } lojaForm(null,st); return; }
+  if(act==="kb-nova"&&podeFunil()){ lojaForm(null,a.dataset.st); return; }
+  if(act==="loja-ganha"&&podeFunil()){ const l=S.lojas.find(x=>x.id===id); if(l) lojaForm(l,"ativa"); return; }
   if(act==="raio-centro"&&isAdm()){ centralizarMapa(); RAIO_MARCANDO=true; const el=$("#mapaLojas"); if(el) el.style.cursor="crosshair"; const i=$("#raioInfo"); if(i) i.textContent="Clique no mapa onde fica o centro do seu raio de operação."; return; }
   if(act==="raio-salvar"&&isAdm()){ const km=+(($("#raioKm")||{}).value)||5; const atual=(S.cfg&&S.cfg.raioOp)||{}; const c=RAIO_TMP||(atual.lat!=null?atual:null);
-    if(!c){ toast("Clique em “Marcar centro no mapa” primeiro."); return; } const cfgN={...(S.cfg||{})}; delete cfgN.categorias; cfgN.raioOp={lat:c.lat,lng:c.lng,km};
-    saveCfg(cfgN).then(()=>{ RAIO_TMP=null; toast(`Raio de operação salvo: ${km} km`); diario("Raio de operação definido",`${km} km`,{cat:"alteracao"}); }); return; }
-  if(act==="raio-limpar"&&isAdm()){ const cfgN={...(S.cfg||{})}; delete cfgN.categorias; delete cfgN.raioOp; saveCfg(cfgN).then(()=>toast("Raio removido")); return; }
+    if(!c){ toast("Clique em “Marcar centro no mapa” primeiro."); return; } const raio={lat:c.lat,lng:c.lng,km};
+    FB.sb.rpc("salvar_raio_tenant",{p_tid:S.tid,p_raio:raio}).then(({error})=>{ if(error){ toast(msgErro(error)); return; } S.cfg=S.cfg||{}; S.cfg.raioOp=raio; RAIO_TMP=null; atualizarTabelas("config"); render(); toast(`Raio de operação salvo: ${km} km`); diario("Raio de operação definido",`${km} km`,{cat:"alteracao"}); }); return; }
+  if(act==="raio-limpar"&&isAdm()){ FB.sb.rpc("salvar_raio_tenant",{p_tid:S.tid,p_raio:null}).then(({error})=>{ if(error){ toast(msgErro(error)); return; } if(S.cfg) delete S.cfg.raioOp; atualizarTabelas("config"); render(); toast("Raio removido"); }); return; }
   if(act==="geo-todas"&&podeFunil()){ const ls=S.lojas.filter(l=>l.endereco&&(l.lat==null||l.lng==null)&&podeLoja(l)); a.disabled=true; (async()=>{ let ok=0, n=0; for(const l of ls){ n++; a.textContent=`Procurando ${n}/${ls.length}…`; if(await geocodificarLoja(l.id,l)) ok++; } toast(ok?`${ok} de ${ls.length} loja(s) localizada(s)`:"Não encontramos — use “Marcar no mapa”."); a.disabled=false; a.textContent="Procurar endereços de novo"; })(); return; }
   if(act==="geo-marcar"&&podeLoja(S.lojas.find(x=>x.id===id)||{})){ MARCAR_LOJA=id; const el=$("#mapaLojas"); if(el){ el.style.cursor="crosshair"; el.scrollIntoView({behavior:"smooth",block:"center"}); } const l=S.lojas.find(x=>x.id===id); toast(`Clique no mapa onde fica ${l?lojaNome(l):"a loja"}`); return; }
   if(act==="pix-copiar"){ const v=a.dataset.v; (navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast("Chave Pix copiada"),()=>{ const t=document.createElement("textarea"); t.value=v; document.body.appendChild(t); t.select(); try{ document.execCommand("copy"); toast("Chave Pix copiada"); }catch(e){ toast(v); } t.remove(); }); return; }
@@ -4943,6 +4979,10 @@ document.addEventListener("click",async e=>{
   if(act==="cob-repassar"&&masterRede()){ const d=prompt("Data do repasse ao BPO (dd/mm/aaaa):",dBR(HOJE)); if(d===null) return; const m=d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(!m){ toast("Data inválida."); return; }
     a.disabled=true; FB.sb.rpc("cob_repassar",{p_id:id,p_data:`${m[3]}-${m[2]}-${m[1]}`}).then(({error})=>{ a.disabled=false; if(error){ toast(msgErro(error)); return; } atualizarTabelas("cobrancas_bpo"); toast("Repasse registrado"); }); return; }
   if(act==="cob-cancelar"&&masterRede()){ confirmBtn(a,"Confirmar cancelamento",()=>FB.sb.rpc("cob_cancelar",{p_id:id,p_motivo:null}).then(({error})=>{ if(error){ toast(msgErro(error)); return; } atualizarTabelas("cobrancas_bpo"); toast("Cobrança cancelada — a conta saiu do sistema do franqueado"); })); return; }
+  if(act==="empresas"&&masterRede()){ empresasModal(); return; }
+  if(act==="emp-salvar"&&masterRede()){ const l=a.closest(".emp-l"); const nome=l.querySelector(".emp-n").value.trim(); const regs=l.querySelector(".emp-r").value.split(",").map(x=>x.trim()).filter(Boolean);
+    a.disabled=true; FB.sb.rpc("empresa_salvar",{p_id:l.dataset.id||null,p_nome:nome,p_regionais:regs}).then(({error})=>{ a.disabled=false; if(error){ $("#empErr").textContent=msgErro(error); return; } atualizarTabelas("empresas_rede"); toast("Empresa salva"); setTimeout(()=>{ if($("#empLista")) empresasModal(); },700); }); return; }
+  if(act==="emp-excluir"&&masterRede()){ const l=a.closest(".emp-l"); confirmBtn(a,"Confirmar exclusão",()=>FB.sb.rpc("empresa_excluir",{p_id:l.dataset.id}).then(({error})=>{ if(error){ $("#empErr").textContent=msgErro(error); return; } atualizarTabelas("empresas_rede"); toast("Empresa excluída"); setTimeout(()=>{ if($("#empLista")) empresasModal(); },700); })); return; }
   if(act==="cmv-sort"){ const k=a.dataset.k; const cur=ui.cmvSort||{k:"data",dir:"desc"}; ui.cmvSort={k,dir:cur.k===k&&cur.dir==="desc"?"asc":"desc"}; render(); return; }
   if(act==="anexos"){ const l=S.lanc.find(x=>x.id===id); if(l) anexosModal(l); return; }
   if(act==="anx-baixar"){ baixarAnexo(id,a); return; }
@@ -5048,6 +5088,10 @@ document.addEventListener("change",e=>{
   if(t.id==="dashAno"){ ui.dash={...(ui.dash||{}),modo:"ano",ano:t.value}; render(); return; }
   if(t.id==="txMes"){ if(taxasRasc&&!confirm("Há alterações não salvas nas taxas. Trocar de mês e descartar?")){ t.value=mesTx(); return; } taxasRasc=null; ui.txMes=t.value||mkey(HOJE); render(); return; }
   if(t.id==="rrSel"){ ui.rreg=t.value; render(); return; }
+  if(t.id==="reSel"){ ui.remp=t.value; ui.rreg=""; render(); return; }
+  if((t.classList.contains("emp-sel")||t.classList.contains("reg-sel"))&&masterRede()){ const tid=t.dataset.tid; const tr=t.closest("td"); const emp=tr.querySelector(".emp-sel").value; let reg=tr.querySelector(".reg-sel").value;
+    if(t.classList.contains("emp-sel")&&reg&&!regsDaEmpresa(emp).includes(reg)) reg="";
+    FB.sb.rpc("franq_definir_empresa",{p_tid:tid,p_empresa:emp||null,p_regional:reg||null}).then(({error})=>{ if(error){ toast(msgErro(error)); return; } atualizarTabelas("tenants"); toast("Empresa / regional atualizada"); }); return; }
   if(t.id==="dgCat"){ ui.dg=ui.dg||{}; ui.dg.cat=t.value; render(); return; }
   if(t.dataset&&t.dataset.vlanc){ if(S.role==="ro"){ toast("Somente leitura."); render(); return; } const l=S.lanc.find(x=>x.id===t.dataset.vlanc); const v=parseMoney(t.value); if(!l||!t.value.trim()) return; if(!(v>0)){ toast("Valor inválido — use números, ex.: 1.250,00"); return; } save("lanc",l.id,{...l,valor:v,valorPendente:false,atualizado:new Date().toISOString()}).then(()=>toast(`Valor de ${mlabel(compOf(l))} salvo: ${fmt(v)}`)).catch(()=>{}); return; }
   if($("#modalRoot").contains(t)||t.closest("#fMz")) return;
