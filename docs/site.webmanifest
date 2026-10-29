@@ -1,6 +1,6 @@
 {
-  "name": "flux · Controle de Contas",
-  "short_name": "flux",
+  "name": "Fluxxu · Controle Financeiro",
+  "short_name": "Fluxxu",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

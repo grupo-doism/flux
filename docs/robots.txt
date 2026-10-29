@@ -1,5 +1,5 @@
-# flux · Mercado Autônomo — sistema privado e conteúdo protegido.
-# © 2026 flux · Mercado Autônomo. Todos os direitos reservados.
+# Fluxxu · Controle Financeiro — sistema privado e conteúdo protegido.
+# © 2026 Fluxxu · Controle Financeiro. Todos os direitos reservados.
 # É proibida a coleta automatizada, a indexação e o uso deste conteúdo para treinar
 # ou alimentar sistemas de inteligência artificial.
 
