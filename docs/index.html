@@ -617,6 +617,7 @@ table.cmv select.cmv-cat{max-width:200px;font-size:12px}
 .cob-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#E8F7EF;border:1px solid #9FE3BF;color:#0B5A33}.cob-b-acoes{display:flex;gap:6px}
 .cb-rec{border:1px dashed var(--line);border-radius:8px;padding:8px 10px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}.cb-rec .field{margin:0}
 .cob-cli{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:12.5px}.cob-cli-l{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0}
+.plano-faixa{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:0 0 14px;padding:10px 14px;border-radius:10px;background:#F2FBF6;border:1px solid #BDEFD3;color:#0B5A33;font-size:13px}.plano-faixa.cheio{background:#FFF4D6;border-color:#F1D48A;color:#6B4A00}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -938,7 +939,7 @@ const VIEWS_T = [
   ["sep"],["cmv","Rateio de despesas"],["lancamentos","Lançamentos"],["fornecedores","Fornecedores"],["agenda","Agenda"],["lojas","Lojas"],["sep"],["envios","Envio de contas"],["chamados","Chamados"],["usuarios","Usuários"],["config","Configurações"]
 ];
 function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["chamadosrede","Chamados"],["rede","Clientes"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Histórico da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus clientes"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Clientes"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]); }
-  const v=[]; if(S.tid) VIEWS_T.forEach(x=>{ if(["chamados","diario"].includes(x[0])&&!(gestorFranq()||plat()||obsTenant())) return; if(x[0]==="usuarios"&&!(gestorFranq()||plat())) return; if(x[0]==="envios"&&!temBpo()) return; if(VIEW_MOD[x[0]]&&nivel(VIEW_MOD[x[0]])<1) return; if(x[0]==="sep"&&(!v.length||v[v.length-1][0]==="sep")) return; v.push(x); }); while(v.length&&v[v.length-1][0]==="sep") v.pop(); return v; }
+  const v=[]; if(S.tid) VIEWS_T.forEach(x=>{ if(["chamados","diario"].includes(x[0])&&!(gestorFranq()||plat()||obsTenant())) return; if(x[0]==="usuarios"&&!(gestorFranq()||plat())) return; if(x[0]==="envios"&&!temBpo()) return; if(x[0]==="cmv"&&lojasCmv().length<2) return; if(VIEW_MOD[x[0]]&&nivel(VIEW_MOD[x[0]])<1) return; if(x[0]==="sep"&&(!v.length||v[v.length-1][0]==="sep")) return; v.push(x); }); while(v.length&&v[v.length-1][0]==="sep") v.pop(); return v; }
 function renderNav(){
   const VIEWS=viewsOk(); const ladoT=plat()?"rede":"franq";
   const pend=S.cham.filter(c=>(c.status==="aberto"&&souAtCh(c))||chNaoLido(c)||(souDonoCh(c)&&c.acesso&&c.acesso.status==="pedido"&&c.status==="atendimento")).length;
@@ -2222,6 +2223,10 @@ function painelCobrancas(){
       <td class="r" style="white-space:nowrap">${masterRede()?`${c.status!=="cancelada"?`<button class="icon-btn" data-act="cob-pdf" data-id="${c.id}">Cobrança</button>`:""}${c.status==="emitida"?`<button class="btn sm pri" data-act="cob-pagar" data-id="${c.id}">Marcar paga</button><button class="icon-btn" data-act="cob-cancelar" data-id="${c.id}">Cancelar</button>`:""}${["paga","repassada"].includes(c.status)?`<button class="btn sm" data-act="cob-recibo" data-id="${c.id}">Recibo</button>`:""}${c.status==="paga"?`<button class="btn sm pri" data-act="cob-repassar" data-id="${c.id}">Marcar repassada</button>`:""}`:""}</td></tr>`; }).join("")}</tbody></table></div>`
     :'<div class="empty">Nenhuma cobrança emitida ainda. Use “Emitir cobrança” na coluna BPO financeiro.</div>'}</div>`;
 }
+/* ---------- plano do cliente (pelo número de lojas ativas) ---------- */
+function planoCliente(nLojas){ const n=nLojas!=null?nLojas:lojasCmv().length; const p=n>=6?"Rede":n>=2?"Crescimento":"Essencial";
+  const lim=(S.tenant&&S.tenant.limiteColab!=null&&S.tenant.limiteColab!=="")?+S.tenant.limiteColab:(p==="Essencial"?2:p==="Crescimento"?5:null); return {plano:p,lim,lojas:n}; }
+const colabsAtivos = () => (S.usr||[]).filter(u=>u.perfil!=="master"&&u.ativo!==false).length;
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
   const tx=id.startsWith("_tx_"); const caixa=ui.d.regime==="caixa";
@@ -4095,7 +4100,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 85 · 29/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 86 · 29/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no cliente</span><select id="tenSel" aria-label="Trocar de cliente">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4210,7 +4215,7 @@ function vRede(){
      <td class="num">${esc(m.cnpj||"—")}</td>
      <td>${esc([m.franq1,m.franq2,m.franq3].filter(Boolean).join(", ")||"—")}</td>
      <td>${esc(m.telefone||"")}${m.telefone2?`<div class="meta">${esc(m.telefone2)}</div>`:""}<div class="meta">${esc(m.email||"")}</div></td>
-     <td class="r num">${+t.nLojasAtivas||0}<span class="note">/${+t.nLojas||0}</span></td>
+     <td class="r num">${+t.nLojasAtivas||0}<span class="note">/${+t.nLojas||0}</span><div class="meta">${planoCliente(+t.nLojasAtivas||0).plano}</div></td>
      <td>${ua?`<div>${dtHora(t.ultimoAcesso)}</div><div class="meta ${dias>=30?"neg":""}">${dias===0?"hoje":dias===1?"ontem":`há ${dias} dias`}</div>`:'<span class="note">nunca acessou</span>'}</td>
      ${masterRede()?`<td>${celulaBpo(t)}</td>`:""}
      <td>${t.ativo===false?'<span class="pill st-vencido">Suspenso</span>':'<span class="pill st-pago">Ativo</span>'}${lib?`<div class="meta">edição liberada até ${dtHora(am.ate)}</div>`:""}${pend(t.id)?`<div class="meta" style="color:var(--warn);font-weight:600">${pend(t.id)} chamado(s) pendente(s)</div>`:""}</td>
@@ -4815,8 +4820,9 @@ function resumoPerm(u){
 function vUsuarios(){
   const g=podeGerirUsr();
   const us=[...S.usr].sort((a,b)=>(a.perfil==="master"?0:1)-(b.perfil==="master"?0:1)||(a.nome||"").localeCompare(b.nome||""));
-  return header("Usuários","Colaboradores deste cliente. Cada um entra com o próprio CPF e senha, e só vê as telas que o master liberar.",g?`<button class="btn pri" data-act="novo-usuario">+ Novo colaborador</button>`:"")
-   + banners() + painelBpoUsuario()
+  const PL=planoCliente(), nC=colabsAtivos(), cheio=PL.lim!=null&&nC>=PL.lim;
+  return header("Usuários","Colaboradores deste cliente. Cada um entra com o próprio CPF e senha, e só vê as telas que o master liberar.",g&&!cheio?`<button class="btn pri" data-act="novo-usuario">+ Novo colaborador</button>`:"")
+   + banners() + `<div class="plano-faixa ${cheio?"cheio":""}"><span>Plano <b>${PL.plano}</b> · ${PL.lojas} loja(s) ativa(s) · <b>${nC}</b> ${PL.lim!=null?`de <b>${PL.lim}</b> colaboradores`:"colaboradores (ilimitado)"}</span>${cheio?'<span>Limite do plano atingido. Para incluir mais colaboradores, fale com a equipe Fluxxu ou ative mais lojas (2 a 5 lojas: até 5; 6 ou mais: ilimitado).</span>':""}</div>` + painelBpoUsuario()
    + `<div class="tbl-wrap"><table class="usr-tab"><thead><tr><th>Nome</th><th>Login (CPF/CNPJ)</th><th>Contato</th><th>Aniversário</th><th>Acessos</th><th>Situação</th><th></th></tr></thead><tbody>
      ${us.map(u=>{ const eu=u.id===S.me.id; return `<tr>
        <td><div class="desc">${esc(u.nome||"")}${eu?' <span class="note">(você)</span>':""}</div><div class="meta">${esc(PAPEIS[u.perfil]||u.perfil||"")}</div></td>
@@ -5080,6 +5086,7 @@ document.addEventListener("click",async e=>{
   if(act==="ch-negar"&&masterFranq()){ const c=S.cham.find(x=>x.id===id); if(c) responderChamado(c,"negado"); return; }
   if(act==="ch-cancelar"&&(masterRede()||masterFranq())){ const c=S.cham.concat(S.chatCham||[]).find(x=>x.id===id); if(c) confirmBtn(a,"Confirmar cancelamento",()=>responderChamado(c,"cancelado")); return; }
   if(act==="encerrar-acesso"&&(masterFranq()||masterRede())){ confirmBtn(a,"Confirmar encerramento",encerrarAcesso); return; }
+  if(act==="novo-usuario"&&(()=>{ const PL=planoCliente(); return PL.lim!=null&&colabsAtivos()>=PL.lim; })()){ toast("Limite de colaboradores do seu plano atingido."); return; }
   if(act==="novo-usuario"&&podeGerirUsr()){ colabModal(null); return; }
   if(act==="edit-colab"&&podeGerirUsr()){ const u=S.usr.find(x=>x.id===id); if(u) colabModal(u); return; }
   if(act==="usr-senha"&&podeGerirUsr()){ const u=S.usr.find(x=>x.id===id); if(u) senhaColabModal(u); return; }
