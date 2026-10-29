@@ -623,6 +623,7 @@ table.cmv select.cmv-cat{max-width:200px;font-size:12px}
 .conv-msgs{max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:6px 2px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:10px}
 .conv-m{display:flex;flex-direction:column;align-items:flex-start;gap:2px}.conv-m.eu{align-items:flex-end}.conv-b{max-width:78%;background:var(--surface-2);border-radius:12px;padding:8px 12px;font-size:13.5px}.conv-m.eu .conv-b{background:#E3F8EC}.conv-m small{font-size:10.5px;color:var(--muted)}
 .conv-sis{text-align:center;font-size:11.5px;color:var(--muted)}.conv-in{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}.conv-in textarea{flex:1;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.imp-erro td{background:#FFF1F0}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -1006,8 +1007,8 @@ function dreCalc(ini,fim,regime,cc){
     const bc=byCen[l.centro]?l.centro:""; if(v>0) byCen[bc].rec+=v; else byCen[bc].gas+=-v;
     // taxa de cartão automática: % cadastrada em "Minhas taxas" sobre cada venda da modalidade
     const modal = l.tipo==="receita" && modalDe(l.categoria);
-    if(modal&&pctEmLoja(l.centro,modal,compOf(l))==null){ const kk=(l.centro||"")+"|"+modal; (semTaxa[kk]=semTaxa[kk]||new Set()).add(compOf(l)); }
-    if(modal){ const pc=taxaPct(modal,compOf(l),l.centro); if(pc){ const fee=-Math.round(l.valor*pc/100); const tid="_tx_"+modal;
+    if(modal&&(l.taxaPct==null||l.taxaPct==="")&&pctEmLoja(l.centro,modal,compOf(l))==null){ const kk=(l.centro||"")+"|"+modal; (semTaxa[kk]=semTaxa[kk]||new Set()).add(compOf(l)); }
+    if(modal){ const pc=(l.taxaPct!=null&&l.taxaPct!=="")?+l.taxaPct:taxaPct(modal,compOf(l),l.centro); if(pc){ const fee=-Math.round(l.valor*pc/100); const tid="_tx_"+modal;
       byCat[tid]=byCat[tid]||{g:"deducao",m:{},t:0,it:[]}; byCat[tid].m[k]=(byCat[tid].m[k]||0)+fee; byCat[tid].t+=fee; byCat[tid].it.push({l,k,v:fee,pc}); byCen[bc].gas+=-fee; } }
   }
   const gsum=(g,k)=>Object.values(byCat).filter(c=>c.g===g).reduce((a,c)=>a+(k?(c.m[k]||0):c.t),0);
@@ -1294,7 +1295,7 @@ function vContas(tipo){
   const totVenc=rows.filter(l=>statusOf(l)==="vencido").reduce((a,l)=>a+l.valor,0);
   const seg=(k,v,t)=>`<button data-f="c.${k}" data-v="${v}" aria-pressed="${f[k]===v}">${t}</button>`;
   return header(rec?"Contas a receber":"Contas a pagar", `${esc(ccLabel(ui.cc))} · ${rec?"registre o recebimento quando o dinheiro entrar.":"registre o pagamento quando o dinheiro sair."}`,
-      `${relBtns(tipo,{pdf:false})}<button class="btn pri" data-act="new-lanc" data-tipo="${tipo}">+ Novo lançamento</button>`)
+      `${rec?`<button class="btn" data-act="rec-modelo" title="Planilha para preencher os recebimentos">${DL_ICON}Modelo de planilha</button>${isAdm()?`<button class="btn" data-act="rec-importar">${DL_ICON.replace('M12 4v11M7 10l5 5 5-5','M12 15V4M7 9l5-5 5 5')}Importar recebimentos</button><input type="file" id="recFile" accept=".xlsx,.xls,.csv" hidden>`:""}`:""}${relBtns(tipo,{pdf:false})}<button class="btn pri" data-act="new-lanc" data-tipo="${tipo}">+ Novo lançamento</button>`)
     + banners()
     + `<div class="toolbar">${ccSelect()}</div>
       <div class="stats-row" style="margin-bottom:14px">
@@ -1315,7 +1316,7 @@ function vContas(tipo){
         <tbody>${rows.length?rows.map(l=>{ const fo=fornBy(l.fornecedorId); return `<tr class="${ui.selC[l.id]?"sel-on":""}">
           ${isAdm()?`<td class="sel-col">${!l.pago&&!(l.valorPendente&&!l.valor)?`<input type="checkbox" class="sel-c" data-id="${l.id}" ${ui.selC[l.id]?"checked":""} aria-label="Selecionar ${esc(l.descricao)}">`:""}</td>`:""}
           <td class="num">${dBR(l.venc)}${l.pago?`<div class="meta">${rec?"recebido":"pago"} ${dShort(l.pago)}</div>`:""}</td>
-          <td><div class="desc">${esc(l.descricao)}${recTag(l)}${exTag(l)}</div><div class="meta">${l.numero?"#"+l.numero:""}${fo?(l.numero?" · ":"")+esc(fornNome(fo))+(fo.codigo?" ("+esc(fo.codigo)+")":""):""}</div>${l.pix&&!l.pago?`<button type="button" class="pix-cp" data-act="pix-copiar" data-v="${esc(l.pix)}" title="Copiar a chave Pix">Pix: ${esc(l.pix.length>28?l.pix.slice(0,26)+"…":l.pix)} <b>📋 Copiar</b></button>`:""}</td>
+          <td><div class="desc">${esc(l.descricao)}${recTag(l)}${exTag(l)}</div><div class="meta">${l.numero?"#"+l.numero:""}${fo?(l.numero?" · ":"")+esc(fornNome(fo))+(fo.codigo?" ("+esc(fo.codigo)+")":""):""}${l.pagador?" · "+esc(l.pagador):""}${l.taxaPct!=null&&l.taxaPct!==""?" · taxa "+pctTxt(l.taxaPct)+"%":""}</div>${l.pix&&!l.pago?`<button type="button" class="pix-cp" data-act="pix-copiar" data-v="${esc(l.pix)}" title="Copiar a chave Pix">Pix: ${esc(l.pix.length>28?l.pix.slice(0,26)+"…":l.pix)} <b>📋 Copiar</b></button>`:""}</td>
           <td><span class="cat-tag">${esc(catBy(l.categoria)?.nome||"Sem categoria")}</span></td>
           <td>${lojaTag(l.centro)}</td>
           <td>${esc(l.forma||"—")}</td>
@@ -2279,6 +2280,108 @@ function painelConversasBpo(){
   return `<div class="panel ctr-p"><h2>Conversas com futuros clientes<small>${ls.filter(c=>c.status==="pedida").length} pedido(s) novo(s)</small></h2>${ls.map(c=>{ const [st,cl]=CONV_ST[c.status]||["",""];
     return `<div class="ctr-item"><div><b>${esc(c.cliente||"")}</b>${convNova(c,"bpo")?' <span class="badge">nova mensagem</span>':""}<small class="note">pedido por ${esc(c.pedidaPorNome||"")} em ${dtHora(c.pedidaEm)}</small><span class="pill ${cl}">${st}</span></div>
       <div class="ctr-acoes">${c.status==="pedida"?`<button class="btn sm" data-act="conv-abrir" data-id="${c.id}">Ler mensagem</button><button class="btn sm pri" data-act="conv-resp" data-id="${c.id}" data-v="1">Aceitar conversa</button><button class="icon-btn" data-act="conv-resp" data-id="${c.id}" data-v="0">Recusar</button>`:`<button class="btn sm ${convNova(c,"bpo")?"pri":""}" data-act="conv-abrir" data-id="${c.id}">Abrir conversa</button>`}</div></div>`; }).join("")}</div>`;
+}
+/* ---------- Contas a receber: modelo de planilha e importação de recebimentos ---------- */
+const FORMAS_REC=[["Dinheiro",null],["Pix","rec_pix"],["Débito","rec_debito"],["Crédito","rec_credito"],["Crédito antecipado","rec_credito_antecip"],["Boleto",null],["Transferência",null],["Voucher",null],["Outros",null]];
+function catRecPadrao(){ const cs=cfg().categorias.filter(c=>c.tipo==="receita"&&!modalDe(c.id)); return (cs.find(c=>/dinheir|produto|venda/i.test(c.nome))||cs.find(c=>/outr/i.test(c.nome))||cs[0]||{}).id||null; }
+function dataPlan(v){ if(v==null||v==="") return null; if(typeof v==="number"){ const d=new Date(Math.round((v-25569)*864e5)); return d.toISOString().slice(0,10); }
+  const t=String(v).trim(); let m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if(m){ const y=m[3].length===2?"20"+m[3]:m[3]; return `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`; }
+  m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[1]}-${m[2]}-${m[3]}`:"invalida"; }
+async function baixarModeloRec(btn){
+  const t0=btn.innerHTML; btn.disabled=true; btn.textContent="Gerando…";
+  try{
+    await loadLib(LIB_XLSX_ESTILO,()=>window.XLSX&&window.XLSX.utils&&window.XLSX.style_version); const X=window.XLSX;
+    const F="Arial", fino={style:"thin",color:{rgb:"D5DAE0"}}, borda={top:fino,bottom:fino,left:fino,right:fino};
+    const st={tit:{font:{name:F,bold:true,sz:15,color:{rgb:"00BF63"}},fill:{fgColor:{rgb:"1E1E1E"}},alignment:{vertical:"center",indent:1}},
+      sub:{font:{name:F,sz:9,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"1E1E1E"}},alignment:{indent:1}},
+      cab:{font:{name:F,bold:true,sz:10,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"1E1E1E"}},alignment:{horizontal:"center",vertical:"center",wrapText:true},border:borda},
+      ex:{font:{name:F,sz:10,italic:true,color:{rgb:"888888"}},fill:{fgColor:{rgb:"F2F2F2"}},border:borda},
+      exN:{font:{name:F,sz:10,italic:true,color:{rgb:"888888"}},fill:{fgColor:{rgb:"F2F2F2"}},border:borda,numFmt:"#,##0.00"},
+      inp:{font:{name:F,sz:10,color:{rgb:"0000FF"}},fill:{fgColor:{rgb:"FFF6C9"}},border:borda},
+      ins:{font:{name:F,sz:10,color:{rgb:"333333"}},alignment:{wrapText:true,vertical:"top"}}, insT:{font:{name:F,bold:true,sz:12,color:{rgb:"1E1E1E"}}}};
+    const COLS=["Data","Já recebido? (Sim/Não)","Pagador","Descrição","Loja","Forma de recebimento","Valor (R$)","Taxa (%)","Categoria","Observação"];
+    const lj=lojasCmv(); const loja1=lj[0]?lojaNome(lj[0]):"[nome da loja]";
+    const ws={}; const put=(r,c,v,s_)=>{ ws[X.utils.encode_cell({r,c})]={v,t:typeof v==="number"?"n":"s",s:s_}; };
+    put(0,0,"Fluxxu · Recebimentos — modelo de importação",st.tit); for(let c=1;c<COLS.length;c++) put(0,c,"",st.tit);
+    put(1,0,"Preencha a partir da linha 5 (as linhas cinza são exemplos — apague ou substitua). Veja a aba “Como preencher”.",st.sub); for(let c=1;c<COLS.length;c++) put(1,c,"",st.sub);
+    COLS.forEach((h,c)=>put(3,c,h,st.cab));
+    const ex=[["05/11/2026","Sim","Vendas do dia","Vendas no cartão de crédito",loja1,"Crédito",2350.4,"","",""],
+              ["05/11/2026","Sim","Vendas do dia","Vendas no Pix",loja1,"Pix",890,0.99,"",""],
+              ["10/11/2026","Não","Condomínio Jardins","Repasse de cashback",loja1,"Transferência",400,"","Outras receitas","Cobrar até dia 10"]];
+    ex.forEach((e,k)=>e.forEach((v,c)=>put(4+k,c,v,typeof v==="number"?st.exN:st.ex)));
+    for(let r=7;r<207;r++) for(let c=0;c<COLS.length;c++) put(r,c,"",st.inp);
+    ws["!ref"]=X.utils.encode_range({s:{r:0,c:0},e:{r:206,c:COLS.length-1}});
+    ws["!cols"]=[{wch:12},{wch:13},{wch:24},{wch:30},{wch:22},{wch:19},{wch:13},{wch:9},{wch:22},{wch:26}];
+    ws["!rows"]=[{hpt:28},{hpt:16},{hpt:6},{hpt:30}]; ws["!merges"]=[{s:{r:0,c:0},e:{r:0,c:COLS.length-1}},{s:{r:1,c:0},e:{r:1,c:COLS.length-1}}]; ws["!freeze"]={xSplit:0,ySplit:4};
+    const recs=cfg().categorias.filter(c=>c.tipo==="receita").map(c=>c.nome);
+    const linhas=[["Como preencher",st.insT],
+      ["Data: dd/mm/aaaa. Se “Já recebido?” = Sim, é a data em que o dinheiro entrou; se = Não, é o vencimento.",st.ins],
+      ["Já recebido?: Sim (entra como recebido) ou Não (fica em aberto em Contas a receber).",st.ins],
+      ["Pagador: quem pagou ou vai pagar (cliente, condomínio, operadora…). Opcional.",st.ins],
+      ["Descrição: o que é o recebimento. Em branco, o sistema usa a forma e o pagador.",st.ins],
+      [`Loja: o nome ou o código da loja, exatamente como no sistema. Lojas: ${lj.map(l=>lojaNome(l)+(l.codigo?" ("+l.codigo+")":"")).join(", ")||"—"}.`,st.ins],
+      [`Forma de recebimento: ${FORMAS_REC.map(f=>f[0]).join(", ")}.`,st.ins],
+      ["Valor: o valor bruto recebido (antes da taxa), só números. Ex.: 1250,90.",st.ins],
+      ["Taxa (%): opcional. A taxa da maquininha nesta venda. Em branco, o sistema usa a taxa cadastrada na loja para essa forma.",st.ins],
+      [`Categoria: opcional. Em branco, o sistema escolhe pela forma (crédito, débito, Pix…). Categorias de receita: ${recs.join(", ")}.`,st.ins],
+      ["Depois de preencher: Contas a receber → Importar recebimentos → escolha este arquivo. Você vê uma prévia antes de lançar.",st.ins]];
+    const wi={}; linhas.forEach(([t,s_],r)=>{ wi[X.utils.encode_cell({r,c:0})]={v:t,t:"s",s:s_}; }); wi["!ref"]=X.utils.encode_range({s:{r:0,c:0},e:{r:linhas.length-1,c:0}}); wi["!cols"]=[{wch:120}];
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Recebimentos"); X.utils.book_append_sheet(wb,wi,"Como preencher");
+    X.writeFile(wb,"Modelo-Recebimentos-Fluxxu.xlsx");
+  }catch(e){ toast("Não foi possível gerar o modelo: "+msgErro(e)); } finally{ btn.disabled=false; btn.innerHTML=t0; }
+}
+function lerPlanRec(wb){
+  const X=window.XLSX; const lj=lojasCmv(); const out=[];
+  for(const nome of wb.SheetNames){
+    const rows=X.utils.sheet_to_json(wb.Sheets[nome],{header:1,raw:true,defval:null,blankrows:true});
+    const h=rows.findIndex(r=>r&&r.some(c=>/^valor/i.test(String(c||"").trim()))&&r.some(c=>/^forma/i.test(String(c||"").trim()))); if(h<0) continue;
+    const cab=rows[h].map(c=>String(c||"").trim()); const col=re=>cab.findIndex(c=>re.test(c));
+    const cD=col(/^data/i), cR=col(/recebid/i), cP=col(/^pagador/i), cDe=col(/^descri/i), cL=col(/^loja/i), cF=col(/^forma/i), cV=col(/^valor/i), cT=col(/^taxa/i), cC=col(/^categ/i), cO=col(/^obs/i);
+    for(let r=h+1;r<rows.length;r++){
+      const row=rows[r]||[]; const v=x=>x>=0?row[x]:null;
+      if([v(cD),v(cP),v(cDe),v(cF),v(cV)].every(x=>x==null||String(x).trim()==="")) continue;
+      const erros=[]; const data=dataPlan(v(cD)); if(!data||data==="invalida") erros.push("data inválida");
+      const valor=typeof v(cV)==="number"?Math.round(v(cV)*100):parseMoney(String(v(cV)??"")); if(!(isFinite(valor)&&valor>0)) erros.push("valor inválido");
+      const fTxt=String(v(cF)??"").trim(); const f=FORMAS_REC.find(x=>normTxt(x[0])===normTxt(fTxt)); if(!f) erros.push(`forma "${fTxt||"—"}" não reconhecida`);
+      const lTxt=String(v(cL)??"").trim(); let loja=null;
+      if(lTxt){ loja=lj.find(l=>normTxt(lojaNome(l))===normTxt(lTxt)||normTxt(l.codigo||"")===normTxt(lTxt)); if(!loja) erros.push(`loja "${lTxt}" não encontrada`); }
+      else if(lj.length===1) loja=lj[0]; else erros.push("informe a loja");
+      let cat=f&&f[1]; const cTxt=String(v(cC)??"").trim();
+      if(cTxt){ const cc=cfg().categorias.find(c=>c.tipo==="receita"&&normTxt(c.nome)===normTxt(cTxt)); if(cc) cat=cc.id; else erros.push(`categoria "${cTxt}" não encontrada`); }
+      if(!cat) cat=catRecPadrao();
+      const tRaw=v(cT); let taxa=null; if(tRaw!=null&&String(tRaw).trim()!==""){ taxa=typeof tRaw==="number"?tRaw:pctNum(String(tRaw)); if(!isFinite(taxa)||taxa<0||taxa>30){ erros.push("taxa inválida"); taxa=null; } }
+      const recebido=/^s/i.test(String(v(cR)??"").trim());
+      const pag=String(v(cP)??"").trim(); const desc=String(v(cDe)??"").trim()||[f?f[0]:"Recebimento",pag].filter(Boolean).join(" — ");
+      out.push({linha:r+1,erros,d:{data,valor,forma:f?f[0]:fTxt,cat,loja,taxa,recebido,pagador:pag,descricao:desc,obs:String(v(cO)??"").trim()}});
+    }
+  }
+  return out;
+}
+async function importarRecArquivo(file){
+  try{
+    await loadLib(LIB_XLSX_ESTILO,()=>window.XLSX&&window.XLSX.utils); const X=window.XLSX;
+    const wb=X.read(await file.arrayBuffer(),{type:"array",cellDates:false});
+    const ls=lerPlanRec(wb); if(!ls.length){ toast("Nenhum recebimento encontrado. Use o Modelo de planilha."); return; }
+    const ok=ls.filter(x=>!x.erros.length); const tot=ok.reduce((a,x)=>a+x.d.valor,0);
+    openModal(`<h2>Importar recebimentos — prévia</h2>
+      <p class="note" style="margin-top:0">${ls.length} linha(s) · <b>${ok.length}</b> pronta(s) para lançar · total <b>${fmt(tot)}</b>${ls.length-ok.length?` · <span class="neg">${ls.length-ok.length} com erro (não serão lançadas)</span>`:""}</p>
+      <div class="tbl-wrap" style="max-height:52vh;overflow:auto"><table><thead><tr><th>Linha</th><th>Data</th><th>Situação</th><th>Pagador / descrição</th><th>Loja</th><th>Forma</th><th class="r">Valor</th><th class="r">Taxa</th><th></th></tr></thead><tbody>
+      ${ls.map(x=>`<tr class="${x.erros.length?"imp-erro":""}"><td class="num note">${x.linha}</td><td class="num">${x.d.data&&x.d.data!=="invalida"?dBR(x.d.data):"—"}</td><td>${x.d.recebido?'<span class="pill st-pago">Recebido</span>':'<span class="pill st-aberto">Em aberto</span>'}</td>
+        <td><div class="desc">${esc(x.d.descricao)}</div>${x.d.pagador?`<div class="meta">${esc(x.d.pagador)}</div>`:""}</td><td>${x.d.loja?esc(lojaNome(x.d.loja)):"—"}</td><td>${esc(x.d.forma||"")}<div class="meta">${esc((catBy(x.d.cat)||{}).nome||"")}</div></td>
+        <td class="r num">${isFinite(x.d.valor)?fmt(x.d.valor):"—"}</td><td class="r num">${x.d.taxa!=null?pctTxt(x.d.taxa)+"%":'<span class="note">da loja</span>'}</td><td>${x.erros.length?`<span class="neg">${esc(x.erros.join("; "))}</span>`:'<span class="pos">✓</span>'}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="err" id="impRecErr" role="alert"></div>
+      <div class="foot"><div></div><div><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn pri" id="impRecOk" ${ok.length?"":"disabled"}>Lançar ${ok.length} recebimento(s)</button></div></div>`,true,()=>{
+      $("#impRecOk").addEventListener("click",async e=>{ const b=e.currentTarget; b.disabled=true; let n=0;
+        try{ let numero=Math.max(proxNumero(),S._numReserva||0); const lote="imp_rec_"+Date.now().toString(36);
+          for(const x of ok){ const d=x.d; b.textContent=`Lançando ${++n}/${ok.length}…`;
+            await save("lanc",newId("lanc"),{tipo:"receita",descricao:d.descricao,valor:d.valor,categoria:d.cat,centro:d.loja.id,dataLanc:d.data,venc:d.data,competencia:d.data.slice(0,7),
+              forma:d.forma,pago:d.recebido?d.data:null,pagador:d.pagador||null,taxaPct:d.taxa,obs:d.obs||"",numero:numero++,parcela:"",importLote:lote}); }
+          S._numReserva=numero; diario("Recebimentos importados por planilha",`${ok.length} recebimento(s) · ${fmt(tot)}`,{cat:"lancamento"});
+          closeModal(); toast(`${ok.length} recebimento(s) lançado(s) em Contas a receber`);
+        }catch(err){ $("#impRecErr").textContent="Parou na linha "+n+": "+msgErro(err)+". As anteriores já foram lançadas."; b.textContent="Fechar"; }
+      }); },"all");
+  }catch(e){ toast("Não foi possível ler a planilha: "+msgErro(e)); }
 }
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
@@ -4155,7 +4258,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 87 · 29/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 88 · 29/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no cliente</span><select id="tenSel" aria-label="Trocar de cliente">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -5101,6 +5204,8 @@ document.addEventListener("click",async e=>{
   if(act==="conv-resp"&&ehBpo()){ const ac=a.dataset.v==="1"; a.disabled=true; FB.sb.rpc("conv_responder",{p_id:id,p_aceita:ac}).then(({error})=>{ a.disabled=false; if(error){ toast(msgErro(error)); return; } atualizarTabelas("conversas_bpo"); toast(ac?"Conversa aceita — o cliente já pode falar com você":"Pedido recusado");
       if(ac){ const c=(S.convRede||[]).find(x=>x.id===id); if(c){ c.status="aberta"; closeModal(); convModal(c,"bpo"); } } else closeModal(); }); return; }
   if(act==="conv-enc"){ confirmBtn(a,"Confirmar: encerrar conversa",()=>FB.sb.rpc("conv_encerrar",{p_id:id}).then(({error})=>{ if(error){ toast(msgErro(error)); return; } closeModal(); atualizarTabelas("conversas_bpo"); toast("Conversa encerrada"); })); return; }
+  if(act==="rec-modelo"){ baixarModeloRec(a); return; }
+  if(act==="rec-importar"&&isAdm()){ const f=$("#recFile"); if(f){ f.value=""; f.click(); } return; }
   if(act==="cob-baixar-cli"||act==="cob-recibo-cli"){ const c=(S.cobT||[]).find(x=>x.id===id); if(c) docCobranca(c,act==="cob-recibo-cli"?"recibo":"cobranca"); return; }
   if(act==="cob-ver-conta"){ const c=(S.cobT||[]).find(x=>x.id===id); ui.view="pagar"; ui.c=ui.c||{}; if(c&&c.venc) ui.c.mes=c.venc.slice(0,7); ui.c.status="abertos"; ui.c.q=""; render(); return; }
   if(act==="cob-nova"&&masterRede()){ cobrancaModal(id); return; }
@@ -5208,6 +5313,7 @@ document.addEventListener("change",e=>{
   if(t.classList&&t.classList.contains("rota-ck")){ rotaCfg().st[t.dataset.st]=t.checked; ROTA=null; render(); return; }
   if(t.id==="rotaPart"){ rotaCfg().partida=t.value; return; }
   if(t.id==="rotaVolta"){ rotaCfg().volta=t.checked; return; }
+  if(t.id==="recFile"&&t.files&&t.files[0]){ importarRecArquivo(t.files[0]); return; }
   if(t.id==="manFile"){ const n=$("#manNome"); if(n) n.textContent=t.files[0]?`${t.files[0].name} · ${tamTxt(t.files[0].size)}`:""; return; }
   if(t.id==="envLoja"){ const tod=t.value==="__todas"; const box=$("#envRat"); if(box) box.hidden=!tod; const o=$("#envVObs"); if(o) o.textContent=tod?"(obrigatório no rateio)":"(opcional)"; envAtualizaRat(); return; }
   if(t.id==="envIn"){ const fs=[...t.files]; const er=validarAnexos(fs); if(er){ toast(er); t.value=""; return; } ENV_PEND.push(...fs); t.value=""; envPendHTML(); return; }
