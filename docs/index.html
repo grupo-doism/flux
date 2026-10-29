@@ -618,6 +618,11 @@ table.cmv select.cmv-cat{max-width:200px;font-size:12px}
 .cb-rec{border:1px dashed var(--line);border-radius:8px;padding:8px 10px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}.cb-rec .field{margin:0}
 .cob-cli{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:12.5px}.cob-cli-l{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0}
 .plano-faixa{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:0 0 14px;padding:10px 14px;border-radius:10px;background:#F2FBF6;border:1px solid #BDEFD3;color:#0B5A33;font-size:13px}.plano-faixa.cheio{background:#FFF4D6;border-color:#F1D48A;color:#6B4A00}
+.bpo-l{display:block;font-size:12px;color:var(--ink-2)}.bpo-cv{font-size:12px;margin-top:2px}.bpo-cv summary{cursor:pointer;color:#0B7A45;font-weight:600}.bpo-cv div{margin-top:6px;padding:8px 10px;background:var(--surface-2);border-radius:8px;white-space:normal}
+.bpo-acoes{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.conv-msgs{max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:6px 2px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:10px}
+.conv-m{display:flex;flex-direction:column;align-items:flex-start;gap:2px}.conv-m.eu{align-items:flex-end}.conv-b{max-width:78%;background:var(--surface-2);border-radius:12px;padding:8px 12px;font-size:13.5px}.conv-m.eu .conv-b{background:#E3F8EC}.conv-m small{font-size:10.5px;color:var(--muted)}
+.conv-sis{text-align:center;font-size:11.5px;color:var(--muted)}.conv-in{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}.conv-in textarea{flex:1;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -948,7 +953,7 @@ function renderNav(){
   const envNovosT=bpoTenant()?(S.envios||[]).filter(e=>!e.recebidoEm).length:0;
   const pendRede=(S.chamRede||[]).filter(c=>(c.status==="aberto"&&souAtCh(c))||(c.status==="atendimento"&&chNaoLido(c))).length;
   $("#nav").innerHTML = VIEWS.map(v=> v[0]==="sep" ? '<div class="sep"></div>' :
-    `<button data-nav="${v[0]}" ${ui.view===v[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[v[0]]}</svg>${v[1]}${v[0]==="pagar"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa").length}</span>`:""}${v[0]==="receber"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita").length}</span>`:""}${v[0]==="chamados"&&pend?`<span class="badge">${pend}</span>`:""}${v[0]==="chamadosrede"&&pendRede?`<span class="badge">${pendRede}</span>`:""}${v[0]==="enviosrede"&&envNovos?`<span class="badge">${envNovos}</span>`:""}${v[0]==="rede"&&ehBpo()&&(S.ctrRede||[]).some(c=>c.status==="proposto")?`<span class="badge">${(S.ctrRede||[]).filter(c=>c.status==="proposto").length}</span>`:""}${v[0]==="envios"&&envNovosT?`<span class="badge">${envNovosT}</span>`:""}</button>`).join("");
+    `<button data-nav="${v[0]}" ${ui.view===v[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[v[0]]}</svg>${v[1]}${v[0]==="pagar"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="despesa").length}</span>`:""}${v[0]==="receber"&&S.lanc.some(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita")?`<span class="badge">${S.lanc.filter(l=>!l.pago&&l.venc<HOJE&&l.tipo==="receita").length}</span>`:""}${v[0]==="chamados"&&pend?`<span class="badge">${pend}</span>`:""}${v[0]==="chamadosrede"&&pendRede?`<span class="badge">${pendRede}</span>`:""}${v[0]==="enviosrede"&&envNovos?`<span class="badge">${envNovos}</span>`:""}${v[0]==="rede"&&ehBpo()&&((S.ctrRede||[]).some(c=>c.status==="proposto")||(S.convRede||[]).some(c=>c.status==="pedida"||convNova(c,"bpo")))?`<span class="badge">${(S.ctrRede||[]).filter(c=>c.status==="proposto").length+(S.convRede||[]).filter(c=>c.status==="pedida"||convNova(c,"bpo")).length}</span>`:""}${v[0]==="envios"&&envNovosT?`<span class="badge">${envNovosT}</span>`:""}</button>`).join("");
   $("#nav").insertAdjacentHTML("beforeend",`<div class="sep"></div><a class="nav-manual" href="#" data-act="manual-baixar" title="Abrir o manual em PDF (cópia identificada com o seu nome)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M9 8h6M9 11h6"/></svg>Manual do usuário <small>PDF</small></a><button class="nav-conta" data-act="trocar-senha">Trocar senha</button><button class="nav-conta nav-sair" data-act="sair">Sair</button>`);
 }
 
@@ -2009,7 +2014,13 @@ async function contratarBpoModal(preUid){
   openModal(`<h2>Contratar BPO financeiro</h2>
     ${lista.length?`<p class="note" style="margin-top:0">Escolha o profissional. O valor é mensal e o pagamento é feito diretamente a ele.</p>
     <div class="bpo-lista">${lista.map(b=>`<label class="bpo-card"><input type="radio" name="bpoEsc" value="${b.uid}" data-nome="${esc(b.nome)}" data-valor="${b.valor}"><span><b>${esc(b.nome)}</b><span class="bpo-v">${brl(b.valor)}<small>/mês</small>${b.avaliacoes?` <span class="bpo-nota">★ ${String(b.nota).replace(".",",")} · ${b.avaliacoes} avaliação(ões)</span>`:""}</span>
-      ${b.apresentacao?`<small class="bpo-ap">${esc(b.apresentacao)}</small>`:""}<small class="note">${b.clientes} cliente(s) atendido(s)${b.email?" · "+esc(b.email):""}${b.telefone?" · "+esc(b.telefone):""}</small></span></label>`).join("")}</div>
+      ${b.apresentacao?`<small class="bpo-ap">${esc(b.apresentacao)}</small>`:""}
+      ${b.formacao?`<small class="bpo-l"><b>Formação:</b> ${esc(b.formacao)}</small>`:""}
+      ${b.regiao?`<small class="bpo-l"><b>Atende:</b> ${esc(b.regiao)}</small>`:""}
+      <small class="bpo-l"><b>Contato:</b> ${[b.email?esc(b.email):"",b.telefone?esc(b.telefone):""].filter(Boolean).join(" · ")||"—"}${b.linkedin&&/^https?:\/\//.test(b.linkedin)?` · <a href="${esc(b.linkedin)}" target="_blank" rel="noopener">LinkedIn ↗</a>`:""}</small>
+      <small class="note">${b.clientes} cliente(s) atendido(s)</small>
+      ${b.curriculo?`<details class="bpo-cv"><summary>Ver currículo</summary><div>${esc(b.curriculo).replace(/\n/g,"<br>")}</div></details>`:""}
+      <span class="bpo-acoes"><button type="button" class="btn sm" data-act="conv-pedir" data-v="${b.uid}" data-n="${esc(b.nome)}">💬 Conversar antes de contratar</button><span class="note">ou selecione para ver o contrato</span></span></span></label>`).join("")}</div>
     <div id="ctrPrev" hidden><span class="flabel">Contrato de prestação de serviços</span><pre class="ctr-txt" id="ctrTxt"></pre>
       <label class="chkline"><input type="checkbox" id="ctrOk"> Li e concordo com o contrato. Entendo que a plataforma é apenas a ferramenta e não é parte deste contrato.</label></div>
     <div class="err" id="ctrErr" role="alert"></div>
@@ -2106,7 +2117,14 @@ function painelPerfilBpo(){
   return `<div class="panel"><h2>Meu serviço de BPO</h2><form id="fBpoP" class="fcol" novalidate>
     <div class="row"><div class="field"><label for="bpV">Valor mensal (R$)</label><input id="bpV" inputmode="decimal" value="${moneyIn(v)}"></div>
       <div class="field"><span class="flabel">Disponibilidade</span><label class="chkline"><input type="checkbox" id="bpD" ${c.disponivel===false?"":"checked"}> Disponível para novos clientes</label></div></div>
-    <div class="field"><label for="bpA">Apresentação (aparece para quem for contratar)</label><textarea id="bpA" rows="3" maxlength="1200" placeholder="Ex.: 8 anos de experiência com varejo e mercados autônomos; atendo de segunda a sábado.">${esc(c.apresentacao||"")}</textarea></div>
+    <div class="field"><label for="bpA">Apresentação curta (aparece no topo do seu perfil)</label><textarea id="bpA" rows="2" maxlength="1200" placeholder="Ex.: 8 anos de experiência com varejo; atendo de segunda a sábado.">${esc(c.apresentacao||"")}</textarea></div>
+    <div class="field"><label for="bpF">Formação</label><input id="bpF" maxlength="600" value="${esc(c.formacao||"")}" placeholder="Ex.: Ciências Contábeis — Universidade X (2015); MBA em Finanças"></div>
+    <div class="field"><label for="bpC">Currículo</label><textarea id="bpC" rows="5" maxlength="4000" placeholder="Experiência, empresas e segmentos atendidos, especialidades, ferramentas, certificações…">${esc(c.curriculo||"")}</textarea></div>
+    <div class="row3"><div class="field"><label for="bpTel">Telefone / WhatsApp de contato</label><input id="bpTel" maxlength="40" value="${esc(c.telefoneContato||c.telefone||"")}"></div>
+      <div class="field"><label for="bpMail">E-mail de contato</label><input id="bpMail" type="email" maxlength="160" value="${esc(c.emailContato||c.email||"")}"></div>
+      <div class="field"><label for="bpReg">Região de atendimento</label><input id="bpReg" maxlength="160" value="${esc(c.regiao||"")}" placeholder="Ex.: São Paulo e região / todo o Brasil (online)"></div></div>
+    <div class="field"><label for="bpLin">LinkedIn (opcional)</label><input id="bpLin" maxlength="300" value="${esc(c.linkedin||"")}" placeholder="https://www.linkedin.com/in/…"></div>
+    <p class="note" style="margin:0">Esses dados aparecem para os clientes na hora de escolher um BPO.</p>
     <div class="err" id="bpErr" role="alert"></div><div><button class="btn pri" type="submit">Salvar</button></div></form></div>`;
 }
 /* ---------- Manual do usuário: protegido por login e carimbado com quem baixou ---------- */
@@ -2227,6 +2245,41 @@ function painelCobrancas(){
 function planoCliente(nLojas){ const n=nLojas!=null?nLojas:lojasCmv().length; const p=n>=6?"Rede":n>=2?"Crescimento":"Essencial";
   const lim=(S.tenant&&S.tenant.limiteColab!=null&&S.tenant.limiteColab!=="")?+S.tenant.limiteColab:(p==="Essencial"?2:p==="Crescimento"?5:null); return {plano:p,lim,lojas:n}; }
 const colabsAtivos = () => (S.usr||[]).filter(u=>u.perfil!=="master"&&u.ativo!==false).length;
+/* ---------- conversa entre cliente e BPO (antes do contrato) ---------- */
+const CONV_ST={pedida:["Aguardando o BPO aceitar","st-vence"],aberta:["Conversa aberta","st-pago"],recusada:["Recusada pelo BPO","st-vencido"],encerrada:["Encerrada","st-aberto"]};
+const convNova = (c,parte) => c.status==="aberta"&&c.ultimaParte&&c.ultimaParte!==parte&&String(c.ultimaEm||"")>String(c["lida_"+parte]||"");
+let CONV_TIMER=null;
+async function convModal(c,parte){
+  const outra=parte==="cliente"?c.bpoNome:c.cliente;
+  openModal(`<h2>Conversa com ${esc(outra||"")}</h2><p class="note" style="margin-top:0"><span class="pill ${(CONV_ST[c.status]||[])[1]||""}">${(CONV_ST[c.status]||[c.status])[0]}</span> · iniciada em ${dtHora(c.pedidaEm)}</p>
+    <div class="conv-msgs" id="convMsgs"><div class="note">Carregando…</div></div>
+    ${c.status==="aberta"?`<div class="conv-in"><textarea id="convTxt" rows="2" maxlength="2000" placeholder="Escreva sua mensagem…"></textarea><button type="button" class="btn pri" id="convEnv">Enviar</button></div>`:""}
+    ${c.status==="pedida"&&parte==="bpo"?`<div class="conv-in"><button type="button" class="btn pri" data-act="conv-resp" data-id="${c.id}" data-v="1">Aceitar conversa</button><button type="button" class="btn" data-act="conv-resp" data-id="${c.id}" data-v="0">Recusar</button></div>`:""}
+    ${parte==="cliente"&&c.status==="aberta"?`<p class="note">Combinaram tudo? Feche a conversa e use <b>Contratar este BPO</b> — o BPO aceita o contrato e você libera o acesso.</p>`:""}
+    <div class="err" id="convErr" role="alert"></div>
+    <div class="foot"><div>${["pedida","aberta"].includes(c.status)?`<button type="button" class="icon-btn" data-act="conv-enc" data-id="${c.id}">Encerrar conversa</button>`:""}</div><div>${parte==="cliente"&&c.status==="aberta"&&!temBpo()&&!ctrAtual()?`<button type="button" class="btn" data-act="ctr-reativar" data-v="${c.bpoUid}">Contratar este BPO</button>`:""}<button type="button" class="btn" data-close>Fechar</button></div></div>`,true,()=>{
+    const carregar=async()=>{ const box=$("#convMsgs"); if(!box){ clearInterval(CONV_TIMER); CONV_TIMER=null; return; }
+      const {data}=await FB.sb.from("conversas_msgs").select("data,criado").eq("conversa_id",c.id).order("criado",{ascending:true}).limit(500);
+      const ms=(data||[]).map(r=>r.data);
+      box.innerHTML=ms.length?ms.map(m=>m.parte==="sistema"?`<div class="conv-sis">${esc(m.texto)} · ${dtHora(m.em)}</div>`:`<div class="conv-m ${m.parte===parte?"eu":""}"><div class="conv-b">${esc(m.texto).replace(/\n/g,"<br>")}</div><small>${esc(m.nome||"")} · ${dtHora(m.em)}</small></div>`).join(""):'<div class="note">Nenhuma mensagem.</div>';
+      box.scrollTop=box.scrollHeight; FB.sb.rpc("conv_lida",{p_id:c.id}); };
+    carregar(); clearInterval(CONV_TIMER); CONV_TIMER=setInterval(carregar,5000);
+    const env=$("#convEnv"); if(env) env.addEventListener("click",async()=>{ const t=$("#convTxt").value.trim(); if(!t) return; env.disabled=true;
+      const {error}=await FB.sb.rpc("conv_enviar",{p_id:c.id,p_texto:t}); env.disabled=false; if(error){ $("#convErr").textContent=msgErro(error); return; } $("#convTxt").value=""; carregar(); atualizarTabelas("conversas_bpo"); });
+  },"all");
+}
+function painelConversasCliente(){
+  if(!masterFranq()||plat()) return ""; const ls=(S.convT||[]); if(!ls.length) return "";
+  return `<div class="panel ctr-p"><h2>Conversas com BPOs<small>${ls.filter(c=>["pedida","aberta"].includes(c.status)).length} em andamento</small></h2>${ls.slice(0,8).map(c=>{ const [st,cl]=CONV_ST[c.status]||["",""];
+    return `<div class="ctr-item"><div><b>${esc(c.bpoNome||"")}</b>${convNova(c,"cliente")?' <span class="badge">nova mensagem</span>':""}<small class="note">desde ${dtHora(c.pedidaEm)}</small><span class="pill ${cl}">${st}</span></div>
+      <div class="ctr-acoes"><button class="btn sm ${convNova(c,"cliente")?"pri":""}" data-act="conv-abrir" data-id="${c.id}">Abrir conversa</button></div></div>`; }).join("")}</div>`;
+}
+function painelConversasBpo(){
+  if(!ehBpo()) return ""; const ls=(S.convRede||[]).filter(c=>["pedida","aberta"].includes(c.status)); if(!ls.length) return "";
+  return `<div class="panel ctr-p"><h2>Conversas com futuros clientes<small>${ls.filter(c=>c.status==="pedida").length} pedido(s) novo(s)</small></h2>${ls.map(c=>{ const [st,cl]=CONV_ST[c.status]||["",""];
+    return `<div class="ctr-item"><div><b>${esc(c.cliente||"")}</b>${convNova(c,"bpo")?' <span class="badge">nova mensagem</span>':""}<small class="note">pedido por ${esc(c.pedidaPorNome||"")} em ${dtHora(c.pedidaEm)}</small><span class="pill ${cl}">${st}</span></div>
+      <div class="ctr-acoes">${c.status==="pedida"?`<button class="btn sm" data-act="conv-abrir" data-id="${c.id}">Ler mensagem</button><button class="btn sm pri" data-act="conv-resp" data-id="${c.id}" data-v="1">Aceitar conversa</button><button class="icon-btn" data-act="conv-resp" data-id="${c.id}" data-v="0">Recusar</button>`:`<button class="btn sm ${convNova(c,"bpo")?"pri":""}" data-act="conv-abrir" data-id="${c.id}">Abrir conversa</button>`}</div></div>`; }).join("")}</div>`;
+}
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
   const tx=id.startsWith("_tx_"); const caixa=ui.d.regime==="caixa";
@@ -3885,7 +3938,7 @@ function nivel(mod){
   return 0;
 }
 let FB=null, UNSUB=[], UNSUB_REDE=[];
-S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.ctr=[]; S.ctrRede=[]; S.cobRede=[]; S.cobT=[]; S.empresas=[]; S.liberado=false; S.names={};
+S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.ctr=[]; S.ctrRede=[]; S.cobRede=[]; S.cobT=[]; S.empresas=[]; S.convT=[]; S.convRede=[]; S.liberado=false; S.names={};
 const plat = () => ["master_rede","observador","bpo"].includes(S.claims.papel);
 const ehBpo = () => S.claims.papel==="bpo";
 const temBpo = () => !!(S.tenant&&S.tenant.bpoUid);                              // este cliente tem BPO
@@ -4049,6 +4102,7 @@ function assinarRede(){
     UNSUB_REDE.push(vigiar("rede_diario",{cols:"id,data",ordem:["criado",false],limite:300},rows=>{ S.redeDiario=rows.map(r=>({...r.data,id:r.id})); if(!S.tid) render(); }));
   }
   UNSUB_REDE.push(vigiar("empresas_rede",{cols:"id,data"},rows=>{ S.empresas=rows.map(r=>({...r.data,id:r.id})).sort((a,b)=>String(a.nome).localeCompare(String(b.nome))); if(!S.tid) render(); }));
+  if(ehBpo()) UNSUB_REDE.push(vigiar("conversas_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:300},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._convSig) return; S._convSig=sig; S.convRede=novo; if(!S.tid) render(); else renderNav(); }));
   if(ehBpo()||masterRede()) UNSUB_REDE.push(vigiar("cobrancas_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:600},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._cobSig) return; S._cobSig=sig; S.cobRede=novo; if(!S.tid) render(); }));
   if(ehBpo()||masterRede()) UNSUB_REDE.push(vigiar("contratos_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:300},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._ctrSig) return; S._ctrSig=sig; S.ctrRede=novo; if(!S.tid) render(); else renderNav(); }));
   UNSUB_REDE.push(vigiar("envios",{cols:"id,tid,data",ordem:["criado",false],limite:800},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._envSig) return; S._envSig=sig; S.envRede=novo; if(!S.tid) render(); else renderNav(); }));
@@ -4077,6 +4131,7 @@ function abrirTenant(tid){
   sub(S.db.collection(COL.lojas),s=>{ S.lojas=s.docs.map(strip); render(); agendarAuto(); });
   sub(S.db.collection(COL.usr),s=>{ S.usr=s.docs.map(strip); S.names={}; S.usr.forEach(u=>S.names[u.id]=u.nome||u.email||""); if(S.me) S.names[S.me.id]=S.names[S.me.id]||S.me.name; render(); });
   if(gestorFranq()||plat()||(S.tenant&&S.tenant.bpoUid)){
+    if(masterFranq()) sub(S.db.collection("conversas_bpo").orderBy("ultimaEm","desc").limit(50),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._convSigT) return; S._convSigT=sig; S.convT=novo; render(); });
     if(masterFranq()) sub(S.db.collection("cobrancas_bpo").orderBy("emitidaEm","desc").limit(60),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._cobSigT) return; S._cobSigT=sig; S.cobT=novo; render(); });
     sub(S.db.collection("contratos_bpo").orderBy("propostoEm","desc").limit(50),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._ctrSigT) return; S._ctrSigT=sig; S.ctr=novo; render(); });
     sub(S.db.collection("envios").orderBy("enviadoEm","desc").limit(500),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._envSigT) return; S._envSigT=sig; S.envios=novo; render(); });
@@ -4100,7 +4155,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 86 · 29/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 87 · 29/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no cliente</span><select id="tenSel" aria-label="Trocar de cliente">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4222,7 +4277,7 @@ function vRede(){
      <td class="r" style="white-space:nowrap">${ehBpo()?`<button class="btn sm pri" data-act="entrar-tenant" data-id="${t.id}" title="Entrar no sistema do cliente para lançar e editar">Entrar</button>`:`<button class="btn sm" data-act="abrir-aba" data-id="${t.id}" title="Abre a página do cliente em outra aba, só para leitura">Abrir ↗</button>`}${masterRede()?` <button class="icon-btn" data-act="franq-ativo" data-id="${t.id}" data-v="${t.ativo===false?1:0}">${t.ativo===false?"Reativar":"Suspender"}</button>`:""}</td></tr>`; }).join(""):`<tr><td colspan="9" class="empty">${ts.length?"Nenhum cliente encontrado.":"Nenhum cliente cadastrado ainda."}</td></tr>`}
    </tbody></table></div>
    <p class="note" style="margin:10px 0 0">Suspender bloqueia o login de todos os usuários daquele cliente, sem apagar nenhum dado. "Último acesso" considera logins da equipe do cliente.</p>`;
-  return __h.replace(/(<\/div><\/div>)/,"$1"+painelContratosBpo())+painelCobrancas();
+  return __h.replace(/(<\/div><\/div>)/,"$1"+painelConversasBpo()+painelContratosBpo())+painelCobrancas();
 }
 function vEquipeRede(){
   const eq=[...S.redeEquipe].sort((a,b)=>(a.papel||"").localeCompare(b.papel||"")||(a.nome||"").localeCompare(b.nome||""));
@@ -4263,8 +4318,10 @@ function vMeuCadastro(){
 }
 function bindMeuCadastro(){
   const fb=$("#fBpoP"); if(fb) fb.addEventListener("submit",async e=>{ e.preventDefault(); const b=e.submitter; const v=parseMoney($("#bpV").value||""); if(!isFinite(v)||v<0){ $("#bpErr").textContent="Informe o valor mensal."; return; }
-    b.disabled=true; const {error}=await FB.sb.rpc("bpo_salvar_perfil",{p_valor:v,p_disponivel:$("#bpD").checked,p_apresentacao:$("#bpA").value}); b.disabled=false;
-    if(error){ $("#bpErr").textContent=msgErro(error); return; } Object.assign(S.conta,{valorBpo:v,disponivel:$("#bpD").checked,apresentacao:$("#bpA").value}); toast("Serviço de BPO salvo"); });
+    const dados={p_valor:v,p_disponivel:$("#bpD").checked,p_apresentacao:$("#bpA").value,p_formacao:$("#bpF").value,p_curriculo:$("#bpC").value,p_telefone:$("#bpTel").value,p_email:$("#bpMail").value,p_regiao:$("#bpReg").value,p_linkedin:$("#bpLin").value};
+    b.disabled=true; const {error}=await FB.sb.rpc("bpo_salvar_perfil",dados); b.disabled=false;
+    if(error){ $("#bpErr").textContent=msgErro(error); return; }
+    Object.assign(S.conta,{valorBpo:v,disponivel:dados.p_disponivel,apresentacao:dados.p_apresentacao,formacao:dados.p_formacao,curriculo:dados.p_curriculo,telefoneContato:dados.p_telefone,emailContato:dados.p_email,regiao:dados.p_regiao,linkedin:dados.p_linkedin}); toast("Perfil de BPO salvo"); });
   const f=$("#fMc"); if(!f) return;
   f.addEventListener("submit",async e=>{ e.preventDefault(); const err=$("#mcErr"); const d={nome:$("#mcN").value.trim(),empresa:$("#mcEmp").value.trim(),telefone:$("#mcT").value.trim(),email:$("#mcE").value.trim()};
     if(!d.nome){ err.textContent="Informe o nome."; return; } if(!/^\S+@\S+\.\S+$/.test(d.email)){ err.textContent="E-mail inválido."; return; }
@@ -4822,7 +4879,7 @@ function vUsuarios(){
   const us=[...S.usr].sort((a,b)=>(a.perfil==="master"?0:1)-(b.perfil==="master"?0:1)||(a.nome||"").localeCompare(b.nome||""));
   const PL=planoCliente(), nC=colabsAtivos(), cheio=PL.lim!=null&&nC>=PL.lim;
   return header("Usuários","Colaboradores deste cliente. Cada um entra com o próprio CPF e senha, e só vê as telas que o master liberar.",g&&!cheio?`<button class="btn pri" data-act="novo-usuario">+ Novo colaborador</button>`:"")
-   + banners() + `<div class="plano-faixa ${cheio?"cheio":""}"><span>Plano <b>${PL.plano}</b> · ${PL.lojas} loja(s) ativa(s) · <b>${nC}</b> ${PL.lim!=null?`de <b>${PL.lim}</b> colaboradores`:"colaboradores (ilimitado)"}</span>${cheio?'<span>Limite do plano atingido. Para incluir mais colaboradores, fale com a equipe Fluxxu ou ative mais lojas (2 a 5 lojas: até 5; 6 ou mais: ilimitado).</span>':""}</div>` + painelBpoUsuario()
+   + banners() + painelConversasCliente() + `<div class="plano-faixa ${cheio?"cheio":""}"><span>Plano <b>${PL.plano}</b> · ${PL.lojas} loja(s) ativa(s) · <b>${nC}</b> ${PL.lim!=null?`de <b>${PL.lim}</b> colaboradores`:"colaboradores (ilimitado)"}</span>${cheio?'<span>Limite do plano atingido. Para incluir mais colaboradores, fale com a equipe Fluxxu ou ative mais lojas (2 a 5 lojas: até 5; 6 ou mais: ilimitado).</span>':""}</div>` + painelBpoUsuario()
    + `<div class="tbl-wrap"><table class="usr-tab"><thead><tr><th>Nome</th><th>Login (CPF/CNPJ)</th><th>Contato</th><th>Aniversário</th><th>Acessos</th><th>Situação</th><th></th></tr></thead><tbody>
      ${us.map(u=>{ const eu=u.id===S.me.id; return `<tr>
        <td><div class="desc">${esc(u.nome||"")}${eu?' <span class="note">(você)</span>':""}</div><div class="meta">${esc(PAPEIS[u.perfil]||u.perfil||"")}</div></td>
@@ -5038,6 +5095,12 @@ document.addEventListener("click",async e=>{
     a.disabled=true; a.textContent="Publicando…";
     lerB64(f[0]).then(b64=>FB.sb.rpc("manual_publicar",{p_nome:f[0].name,p_versao:$("#manVer").value.trim(),p_conteudo:b64})).then(({error})=>{ a.disabled=false; a.textContent="Publicar manual";
       if(error){ err.textContent=msgErro(error); return; } toast("Manual publicado — os usuários já podem baixar"); render(); }); return; }
+  if(act==="conv-pedir"&&masterFranq()){ const txt=prompt(`Mensagem para ${a.dataset.n}:`,"Olá! Tenho interesse no seu serviço de BPO financeiro. Podemos conversar?"); if(txt===null) return;
+    a.disabled=true; FB.sb.rpc("conv_pedir",{p_bpo:a.dataset.v,p_texto:txt}).then(({error})=>{ a.disabled=false; if(error){ toast(msgErro(error)); return; } closeModal(); atualizarTabelas("conversas_bpo"); toast("Pedido de conversa enviado — você será avisado quando o BPO aceitar"); }); return; }
+  if(act==="conv-abrir"){ const c=(S.convT||[]).concat(S.convRede||[]).find(x=>x.id===id); if(c) convModal(c,ehBpo()?"bpo":"cliente"); return; }
+  if(act==="conv-resp"&&ehBpo()){ const ac=a.dataset.v==="1"; a.disabled=true; FB.sb.rpc("conv_responder",{p_id:id,p_aceita:ac}).then(({error})=>{ a.disabled=false; if(error){ toast(msgErro(error)); return; } atualizarTabelas("conversas_bpo"); toast(ac?"Conversa aceita — o cliente já pode falar com você":"Pedido recusado");
+      if(ac){ const c=(S.convRede||[]).find(x=>x.id===id); if(c){ c.status="aberta"; closeModal(); convModal(c,"bpo"); } } else closeModal(); }); return; }
+  if(act==="conv-enc"){ confirmBtn(a,"Confirmar: encerrar conversa",()=>FB.sb.rpc("conv_encerrar",{p_id:id}).then(({error})=>{ if(error){ toast(msgErro(error)); return; } closeModal(); atualizarTabelas("conversas_bpo"); toast("Conversa encerrada"); })); return; }
   if(act==="cob-baixar-cli"||act==="cob-recibo-cli"){ const c=(S.cobT||[]).find(x=>x.id===id); if(c) docCobranca(c,act==="cob-recibo-cli"?"recibo":"cobranca"); return; }
   if(act==="cob-ver-conta"){ const c=(S.cobT||[]).find(x=>x.id===id); ui.view="pagar"; ui.c=ui.c||{}; if(c&&c.venc) ui.c.mes=c.venc.slice(0,7); ui.c.status="abertos"; ui.c.q=""; render(); return; }
   if(act==="cob-nova"&&masterRede()){ cobrancaModal(id); return; }
