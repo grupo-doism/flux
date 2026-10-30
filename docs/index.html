@@ -1008,7 +1008,7 @@ function dreCalc(ini,fim,regime,cc){
     const k = regime==="caixa" ? mkey(dt) : compOf(l); if(k<ini||k>fim) continue;
     const cat=catBy(l.categoria); const g=cat?cat.grupo:(l.tipo==="receita"?"receita":"adm");
     if(g==="invest") continue;
-    if(S.cfg&&S.cfg.cmvPorCusto&&l.categoria==="cmv_merc") continue;   // opção B: compra vai para o estoque; o CMV vem do custo das vendas
+    if(l.categoria==="cmv_merc"&&cmvDesde()&&compOf(l)>=cmvDesde()) continue;   // opção B: compra vai para o estoque; o CMV vem do custo das vendas
     const v = sinal(l);
     const cid=l.categoria||"_"+l.tipo;
     const gg = g==="venda" ? "despop" : g;
@@ -1019,7 +1019,7 @@ function dreCalc(ini,fim,regime,cc){
     if(modal&&(l.taxaPct==null||l.taxaPct==="")&&pctEmLoja(l.centro,modal,compOf(l))==null){ const kk=(l.centro||"")+"|"+modal; (semTaxa[kk]=semTaxa[kk]||new Set()).add(compOf(l)); }
     if(modal){ const pc=(l.taxaPct!=null&&l.taxaPct!=="")?+l.taxaPct:taxaPct(modal,compOf(l),l.centro); if(pc){ const fee=-Math.round(l.valor*pc/100); const tid="_tx_"+modal;
       byCat[tid]=byCat[tid]||{g:"deducao",m:{},t:0,it:[]}; byCat[tid].m[k]=(byCat[tid].m[k]||0)+fee; byCat[tid].t+=fee; byCat[tid].it.push({l,k,v:fee,pc}); byCen[bc].gas+=-fee; } }
-    if(l.tipo==="receita"&&+l.custoMerc>0&&S.cfg&&S.cfg.cmvPorCusto){ const cv=-Math.round(+l.custoMerc);
+    if(l.tipo==="receita"&&+l.custoMerc>0&&cmvDesde()&&compOf(l)>=cmvDesde()){ const cv=-Math.round(+l.custoMerc);
       byCat.cmv_custo=byCat.cmv_custo||{g:"cmv",m:{},t:0,it:[]}; byCat.cmv_custo.m[k]=(byCat.cmv_custo.m[k]||0)+cv; byCat.cmv_custo.t+=cv; byCat.cmv_custo.it.push({l,k,v:cv}); byCen[bc].gas+=-cv; }
   }
   const gsum=(g,k)=>Object.values(byCat).filter(c=>c.g===g).reduce((a,c)=>a+(k?(c.m[k]||0):c.t),0);
@@ -2401,7 +2401,7 @@ function painelTipoNegocio(){
     <p class="note" style="margin-top:0">Define os nomes das telas (${Object.values(TIPOS_NEG).map(x=>x.uns).join(" · ")}), as categorias extras do plano de contas e as regras padrão de cada unidade.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"><div class="field" style="margin:0;min-width:280px"><label for="tipoNegSel">Tipo</label><select id="tipoNegSel" ${pode?"":"disabled"}>${Object.entries(TIPOS_NEG).map(([k,v])=>opt(k,v.nome,t)).join("")}</select></div>
     ${pode?'<button class="btn pri" data-act="tipo-salvar">Salvar</button>':'<span class="note">Só o master do cliente (sem BPO) ou o BPO alteram.</span>'}</div>
-    ${isAdm()?`<div class="flabel" style="margin-top:14px">CMV no DRE</div><label class="chkline"><input type="checkbox" id="cmvModo" ${S.cfg&&S.cfg.cmvPorCusto?"checked":""}> <span><b>Pelo custo das mercadorias vendidas</b> (importado das vendas). As compras de mercadorias viram “Compras para estoque”, fora do DRE.</span></label><button class="btn sm" data-act="cmv-modo">Salvar modo do CMV</button>`:""}</div>`;
+    ${isAdm()?`<div class="flabel" style="margin-top:14px">CMV no DRE</div><label class="chkline"><input type="checkbox" id="cmvModo" ${S.cfg&&S.cfg.cmvPorCusto?"checked":""}> <span><b>Pelo custo das mercadorias vendidas</b> (importado das vendas). As compras de mercadorias viram “Compras para estoque”, fora do DRE.${cmvDesde()?` <span class="note">Vale a partir de ${mlabel(cmvDesde())}; os meses anteriores continuam com as compras como CMV.</span>`:""}</span></label><button class="btn sm" data-act="cmv-modo">Salvar modo do CMV</button>`:""}</div>`;
 }
 /* ---------- Equipamentos das unidades ---------- */
 const EQ_VINC={proprio:"Próprio",comodato:"Comodato",locacao:"Locação"};
@@ -2485,7 +2485,7 @@ function vDesempenho(){
   const un=voc();
   return header(`Desempenho por ${un.un.toLowerCase()}`,`${esc(P.nome)} · quanto cada ${un.un.toLowerCase()} fatura, quanto custa e quanto sobra.`,"")
    + banners() + `<div class="toolbar dash-per">${periodoFiltro("dash")}</div>`
-   + (ls.length?`<div class="stats-row" style="margin-bottom:14px"><div><small>Faturamento</small><b class="tipo-r">${fmt(tot.fat)}</b></div><div><small>Resultado</small><b class="${tot.res<0?"neg":"pos"}">${fmt(tot.res)}</b></div><div><small>Margem</small><b>${tot.fat?pctTxt(Math.round(tot.res/tot.fat*1000)/10):"0"}%</b></div><div><small>${un.uns} no prejuízo</small><b class="${ls.some(r=>r.res<0)?"neg":""}">${ls.filter(r=>r.res<0).length}</b></div>${S.cfg&&S.cfg.cmvPorCusto?`<div><small>Estoque estimado (compras − custo vendido)</small><b>${fmt(S.lanc.filter(l=>l.categoria==="cmv_merc"&&compOf(l)<=P.fim).reduce((a,l)=>a+l.valor,0)-S.lanc.filter(l=>l.tipo==="receita"&&compOf(l)<=P.fim).reduce((a,l)=>a+(+l.custoMerc||0),0))}</b></div>`:""}</div>
+   + (ls.length?`<div class="stats-row" style="margin-bottom:14px"><div><small>Faturamento</small><b class="tipo-r">${fmt(tot.fat)}</b></div><div><small>Resultado</small><b class="${tot.res<0?"neg":"pos"}">${fmt(tot.res)}</b></div><div><small>Margem</small><b>${tot.fat?pctTxt(Math.round(tot.res/tot.fat*1000)/10):"0"}%</b></div><div><small>${un.uns} no prejuízo</small><b class="${ls.some(r=>r.res<0)?"neg":""}">${ls.filter(r=>r.res<0).length}</b></div>${S.cfg&&S.cfg.cmvPorCusto?`<div><small>Estoque estimado (compras − custo vendido)</small><b>${fmt(S.lanc.filter(l=>l.categoria==="cmv_merc"&&compOf(l)>=cmvDesde()&&compOf(l)<=P.fim).reduce((a,l)=>a+l.valor,0)-S.lanc.filter(l=>l.tipo==="receita"&&compOf(l)>=cmvDesde()&&compOf(l)<=P.fim).reduce((a,l)=>a+(+l.custoMerc||0),0))}</b></div>`:""}</div>
      <div class="panel"><div class="tbl-wrap"><table class="des-tab"><thead><tr><th>#</th>${th("nome",un.un)}${th("fat","Faturamento","r")}${th("dia","Média/dia","r")}${th("taxa","Taxas","r")}${th("rep","Repasse e aluguel","r")}${th("ener","Energia","r")}${th("ins","Insumos","r")}${th("out","Outras","r")}${th("res","Resultado","r")}${th("marg","Margem","r")}${th("eq","Equip.","r")}</tr></thead><tbody>
      ${ls.map(r=>{ const p=pos.indexOf(r.l.id)+1; return `<tr class="${r.res<0?"des-neg":""}"><td class="num"><span class="des-pos ${p<=3&&r.res>0?"top":""}">${p}º</span></td><td><b>${esc(lojaNome(r.l))}</b></td><td class="r num">${fmt(r.fat)}</td><td class="r num note">${fmt(Math.round(r.dia))}</td>
        <td class="r num">${fmt(r.taxa)}</td><td class="r num">${fmt(r.rep)}</td><td class="r num">${fmt(r.ener)}</td><td class="r num">${fmt(r.ins)}</td><td class="r num">${fmt(r.out)}</td>
@@ -2597,7 +2597,8 @@ function vendasModal(D){
       try{
         if(usaCmv!==!!(S.cfg&&S.cfg.cmvPorCusto)||locais.some(lc=>sel[lc]&&sel[lc]!=="_ign"&&mapa[nT(lc)]!==sel[lc])){
           const mp={...mapa}; locais.forEach(lc=>{ if(sel[lc]&&sel[lc]!=="_ign") mp[nT(lc)]=sel[lc]; });
-          await saveCfg({...(S.cfg||{}),mapaImport:mp,...(D.temCusto?{cmvPorCusto:usaCmv}:{})}); }
+          const mesIni=D.vendas.map(v=>v.data).sort()[0].slice(0,7);
+          await saveCfg({...(S.cfg||{}),mapaImport:mp,...(D.temCusto?{cmvPorCusto:usaCmv,cmvDesde:usaCmv?((S.cfg&&S.cfg.cmvPorCusto&&S.cfg.cmvDesde&&S.cfg.cmvDesde<mesIni)?S.cfg.cmvDesde:mesIni):null}:{})}); }
         let numero=Math.max(proxNumero(),S._numReserva||0);
         for(const g of gs){ b.textContent=`Lançando ${++n}/${gs.length}…`;
           const id=`vend_${g.lj}_${g.data.replace(/-/g,"")}_${g.forma.normalize("NFD").replace(/[^A-Za-z]/g,"").toLowerCase()}`; const ex=S.lanc.find(l=>l.id===id);
@@ -4415,14 +4416,18 @@ const TIPOS_NEG={
   lavanderia:{nome:"Lavanderia de autoatendimento",un:"Lavanderia",uns:"Lavanderias",nomeLbl:"Nome da lavanderia / ponto",docLbl:"CNPJ do local (opcional)",resp:"Responsável no local",repasse:"Repasse ao local",royOn:false,
     equip:["Lavadora","Secadora","Lava e seca","Dosadora de produtos","Totem / pagamento","Outro"]},
   cafe:{nome:"Máquinas de café automáticas",un:"Máquina",uns:"Máquinas",nomeLbl:"Nome do ponto / local da máquina",docLbl:"CNPJ do local (opcional)",resp:"Responsável no local",repasse:"Repasse ao local",royOn:false,
-    equip:["Máquina de café","Moedor","Leitor de pagamento","Refrigerador de leite","Outro"]}};
+    equip:["Máquina de café","Moedor","Leitor de pagamento","Refrigerador de leite","Outro"]},
+  outro:{nome:"Outro negócio",un:"Unidade",uns:"Unidades",nomeLbl:"Nome da unidade",docLbl:"CNPJ da unidade (opcional)",resp:"Responsável",repasse:"Repasse ao local",royOn:false,
+    equip:["Máquina","Equipamento","Computador / caixa","Veículo","Mobiliário","Outro"]}};
 const tipoNeg = () => (S.tenant&&TIPOS_NEG[S.tenant.tipoNegocio])?S.tenant.tipoNegocio:"mercado";
 const voc = () => TIPOS_NEG[tipoNeg()];
 const SEG_CATS={todos:[["seg_aluguel_local","Aluguel do ponto / repasse fixo ao local","custop"],["seg_manut_maq","Manutenção de equipamentos","custop"]],
   lavanderia:[["seg_lav_insumos","Insumos de lavagem (sabão, amaciante)","cmv"],["seg_agua","Água","custop"],["seg_gas","Gás","custop"]],
-  cafe:[["seg_cafe_insumos","Insumos (café, leite, açúcar, copos)","cmv"],["seg_locacao_maq","Locação ou comodato de máquinas","custop"]],mercado:[],
+  cafe:[["seg_cafe_insumos","Insumos (café, leite, açúcar, copos)","cmv"],["seg_locacao_maq","Locação ou comodato de máquinas","custop"]],mercado:[],outro:[["seg_agua","Água","custop"]],
   extra:[["cmv_custo","CMV — custo das mercadorias vendidas (importado)","cmv"]]};
 const SEG_ALL={}; Object.values(SEG_CATS).flat().forEach(([id,nome,g])=>SEG_ALL[id]={id,nome,tipo:"despesa",grupo:g,fixa:true,base:true,seg:true});
+const cmvDesde = () => { if(!(S.cfg&&S.cfg.cmvPorCusto)) return null; if(S.cfg.cmvDesde) return S.cfg.cmvDesde;
+  const ms=(S.lanc||[]).filter(l=>l.tipo==="receita"&&+l.custoMerc>0).map(compOf).sort(); return ms[0]||mkey(HOJE); };
 function vocLojaSt(){ const u=voc().uns; if(typeof LOJA_ST!=="undefined"){ LOJA_ST.ativa.plural=u+" ativas"; LOJA_ST.inativa.plural=u+" inativas"; } }
 // com BPO ativo, os usuários do cliente (master e colaboradores) acompanham e têm Agenda, Chamados e lojas do funil livres
 const obsTenant = () => !!S.tenant && !!S.tenant.bpoUid && ["master","colab"].includes(S.claims.papel);
@@ -4635,7 +4640,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 91 · 30/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 92 · 30/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no cliente</span><select id="tenSel" aria-label="Trocar de cliente">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -5598,7 +5603,7 @@ document.addEventListener("click",async e=>{
   if(act==="ext-ign"){ const m=(S.ext||[]).find(x=>x.id===id); if(m) marcarExt([m],{status:"ign",info:"Ignorado (ex.: transferência entre contas próprias)"}).then(()=>toast("Ignorado")); return; }
   if(act==="ext-desfazer"){ const m=(S.ext||[]).find(x=>x.id===id); if(m) confirmBtn(a,"Confirmar: desfazer",async()=>{ for(const lid of (m.lancIds||[])){ const l=S.lanc.find(y=>y.id===lid); if(l&&l.pago===m.data&&!/a partir do extrato/.test(l.obs||"")){ const d={...l,pago:null}; delete d.id; delete d.contaId; await save("lanc",lid,d); } } await marcarExt([m],{status:"novo",lancIds:[],info:""}); toast("Desfeito"); }); return; }
   if(act==="vend-importar"&&isAdm()){ const f=$("#vendFile"); if(f){ f.value=""; f.click(); } return; }
-  if(act==="cmv-modo"){ const on=$("#cmvModo").checked; a.disabled=true; saveCfg({...(S.cfg||{}),cmvPorCusto:on}).then(()=>{ a.disabled=false; toast(on?"CMV pelo custo das vendas ligado":"CMV pelas compras (como antes)"); }).catch(()=>{ a.disabled=false; }); return; }
+  if(act==="cmv-modo"){ const on=$("#cmvModo").checked; a.disabled=true; saveCfg({...(S.cfg||{}),cmvPorCusto:on,cmvDesde:on?((S.lanc||[]).filter(l=>l.tipo==="receita"&&+l.custoMerc>0).map(compOf).sort()[0]||mkey(HOJE)):null}).then(()=>{ a.disabled=false; toast(on?"CMV pelo custo das vendas ligado":"CMV pelas compras (como antes)"); }).catch(()=>{ a.disabled=false; }); return; }
   if(act==="rec-modelo"){ baixarModeloRec(a); return; }
   if(act==="rec-importar"&&isAdm()){ const f=$("#recFile"); if(f){ f.value=""; f.click(); } return; }
   if(act==="cob-baixar-cli"||act==="cob-recibo-cli"){ const c=(S.cobT||[]).find(x=>x.id===id); if(c) docCobranca(c,act==="cob-recibo-cli"?"recibo":"cobranca"); return; }
