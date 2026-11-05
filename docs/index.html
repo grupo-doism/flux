@@ -1462,7 +1462,10 @@ const chNaoLido = c => { const me=S.me&&S.me.id; if(!c||!c.ultima||c.ultimaTipo!
   if(c.ultimaUid) return c.ultimaUid!==me && c.ultima>lidoPor(c,me);
   const lado=plat()?"rede":"franq"; return !!c.ultimaDe&&c.ultimaDe!==lado&&c.ultima>(lado==="rede"?(c.lidoRede||""):(c.lidoFranq||"")); };
 const estrelas = n => n?`<span class="stars" title="${n} de 5">${"★".repeat(n)}<span class="off">${"★".repeat(5-n)}</span></span>`:"";
-function abrirAba(tid,leitura){ window.open(`${location.origin}${location.pathname}?t=${encodeURIComponent(tid)}${leitura?"&leitura=1":""}`,"_blank","noopener"); }
+const acessoLiberado = t => !!(t&&t.acessoMaster&&t.acessoMaster.ate&&Date.parse(t.acessoMaster.ate)>Date.now());
+function abrirAba(tid,leitura){ const t=(S.tenants||[]).find(x=>x.id===tid);
+  if(S.claims&&["master_rede","observador"].includes(S.claims.papel)&&!acessoLiberado(t)){ toast("O sistema do cliente só pode ser aberto com autorização dele. Peça acesso pelo chamado."); return; }
+  window.open(`${location.origin}${location.pathname}?t=${encodeURIComponent(tid)}${leitura?"&leitura=1":""}`,"_blank","noopener"); }
 const chamadoPor = id => S.cham.concat(S.chamRede||[]).find(c=>c.id===id);
 let lidoT={};
 function marcarLidoCh(c){ if(!c||!chNaoLido(c)) return; clearTimeout(lidoT[c.id]); lidoT[c.id]=setTimeout(()=>FB.sb.rpc("ch_lido",{p_id:c.id}).then(()=>atualizarTabelas("chamados")),500); }
@@ -4702,7 +4705,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 93 · 30/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 94 · 30/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no cliente</span><select id="tenSel" aria-label="Trocar de cliente">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4813,7 +4816,9 @@ function vRede(){
    <div class="tbl-wrap"><table><thead><tr><th>Empresa · regional</th><th>Cliente</th><th>CNPJ (login)</th><th>Sócios</th><th>Contato</th><th class="r">Lojas</th><th>Último acesso</th>${masterRede()?"<th>BPO financeiro</th>":""}<th>Situação</th><th></th></tr></thead><tbody>
    ${lista.length?lista.map(t=>{ const m=t.matriz||{}; const am=t.acessoMaster; const lib=am&&tsMs(am.ate)>Date.now(); const ua=tsMs(t.ultimoAcesso); const dias=ua?Math.floor((Date.now()-ua)/864e5):null; return `<tr>
      <td>${celulaEmpresa(t)}</td>
-     <td><button type="button" class="link-btn desc" data-act="${ehBpo()?"entrar-tenant":"abrir-aba"}" data-id="${t.id}" title="${ehBpo()?"Entrar para lançar e editar":"Abrir em outra aba, só para leitura"}">${esc(tNome(t))}${ehBpo()?"":" ↗"}</button>${t.nome&&t.nome!==m.razao?`<div class="meta">${esc(t.nome)}</div>`:""}</td>
+     <td>${ehBpo()?`<button type="button" class="link-btn desc" data-act="entrar-tenant" data-id="${t.id}" title="Entrar para lançar e editar">${esc(tNome(t))}</button>`
+       :acessoLiberado(t)?`<button type="button" class="link-btn desc" data-act="abrir-aba" data-id="${t.id}" title="Acesso autorizado pelo cliente">${esc(tNome(t))} ↗</button><div class="meta pos">Acesso autorizado até ${dBR(String(t.acessoMaster.ate).slice(0,10))}</div>`
+       :`<span class="desc"><b>${esc(tNome(t))}</b></span><div class="meta">🔒 Só com autorização do cliente (chamado)</div>`}${t.nome&&t.nome!==m.razao?`<div class="meta">${esc(t.nome)}</div>`:""}</td>
      <td class="num">${esc(m.cnpj||"—")}</td>
      <td>${esc([m.franq1,m.franq2,m.franq3].filter(Boolean).join(", ")||"—")}</td>
      <td>${esc(m.telefone||"")}${m.telefone2?`<div class="meta">${esc(m.telefone2)}</div>`:""}<div class="meta">${esc(m.email||"")}</div></td>
@@ -4934,6 +4939,7 @@ function vPainelRede(){
   const filtroPer=periodoFiltro("rede");
   return header("Painel da rede",`${P.modo==="mes"&&P.atual?new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}):"Vendo "+esc(P.nome)} · soma de ${tens.length} cliente(s)${ui.remp?" · "+esc(empNome(ui.remp)):""}${ui.rreg?" · regional "+esc(ui.rreg):""}`,
       `${filtrosEmpresa()}<button class="btn" data-act="recalc" title="Busca os números mais recentes de todos os clientes">Atualizar números</button>`)
+   + `<p class="note" style="margin:-6px 0 12px">🔒 Faturamento, despesas e contas somam só os clientes que autorizaram o acesso num chamado. Os dados dos demais são privados.</p>`
    + `<div class="toolbar dash-per">${filtroPer}</div>`
    + `<div class="sec-lbl">A rede</div><div class="kpis">
        ${card("Clientes ativos",`${ativos.length}<span class="val-sub">/${tens.length}</span>`,`${tens.length-ativos.length} suspenso(s)`,"",true)}
