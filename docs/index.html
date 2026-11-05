@@ -627,6 +627,7 @@ table.cmv select.cmv-cat{max-width:200px;font-size:12px}
 .tipo-sel{font:inherit;font-size:12px;padding:3px 6px;border:1px solid var(--line);border-radius:6px;max-width:170px;display:block}
 .des-tab td,.des-tab th{white-space:nowrap}.des-pos{display:inline-block;min-width:28px;text-align:center;font-size:11px;font-weight:700;border-radius:999px;padding:2px 6px;background:var(--surface-2);color:var(--muted)}.des-pos.top{background:#E3F8EC;color:#0B5A33}.des-neg td{background:#FFF6F5}
 .vend-sc{margin-top:10px;font-size:12.5px}.vend-sc summary{cursor:pointer;color:#8A5A00;font-weight:600}.vend-sc div{margin-top:6px;padding:8px 10px;background:#FFF8E6;border-radius:8px;line-height:1.7}.vend-map{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;min-width:220px}
+.ass-atraso{background:#FFF1F0!important;border-color:#F3B4AE!important;color:#8A1F17!important}
 .sec-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .biz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
 .kpi.fat{gap:10px}.fat-top{display:flex;justify-content:space-between;gap:12px}.fat-top>div{display:flex;flex-direction:column;gap:6px}
@@ -921,6 +922,7 @@ function agendarCodigos(){ clearTimeout(codT); codT=setTimeout(async()=>{
 
 /* ---------- nav ---------- */
 const ICONS = {
+  assinaturas:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
   conciliacao:'<path d="M4 7h11M4 7l3-3M4 7l3 3M20 17H9M20 17l-3-3M20 17l-3 3"/>',
   desempenho:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   envios:'<path d="M4 4h16v12H5.2L4 17.2z"/><path d="M8 9h8M8 12h5"/><path d="m15 18 2 2 4-4"/>',
@@ -952,7 +954,7 @@ const VIEWS_T = [
   ["painel","Dashboard"],["receber","Contas a receber"],["pagar","Contas a pagar"],["fluxo","Fluxo de caixa"],["dre","DRE financeiro"],["desempenho","Desempenho"],["conciliacao","Conciliação bancária"],
   ["sep"],["cmv","Rateio de despesas"],["lancamentos","Lançamentos"],["fornecedores","Fornecedores"],["agenda","Agenda"],["lojas","Lojas"],["sep"],["envios","Envio de contas"],["chamados","Chamados"],["usuarios","Usuários"],["config","Configurações"]
 ];
-function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["chamadosrede","Chamados"],["rede","Clientes"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Histórico da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus clientes"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Clientes"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]); }
+function viewsOk(){ if(plat()&&!S.tid){ return masterRede()?[["painelrede","Painel da rede"],["chamadosrede","Chamados"],["rede","Clientes"],["assinaturas","Assinaturas"],["planorede","Plano de contas da rede"],["sep"],["equiperede","Equipe da rede"],["diariorede","Histórico da rede"],["meucad","Meu cadastro"]]:(ehBpo()?[["rede","Meus clientes"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]:[["rede","Clientes"],["enviosrede","Envio de contas"],["chamadosrede","Chamados"],["sep"],["meucad","Meu cadastro"]]); }
   const v=[]; if(S.tid) VIEWS_T.map(x=>x[0]==="lojas"?[x[0],voc().uns]:x).forEach(x=>{ if(["chamados","diario"].includes(x[0])&&!(gestorFranq()||plat()||obsTenant())) return; if(x[0]==="usuarios"&&!(gestorFranq()||plat())) return; if(x[0]==="envios"&&!temBpo()) return; if(x[0]==="cmv"&&lojasCmv().length<2) return; if(VIEW_MOD[x[0]]&&nivel(VIEW_MOD[x[0]])<1) return; if(x[0]==="sep"&&(!v.length||v[v.length-1][0]==="sep")) return; v.push(x); }); while(v.length&&v[v.length-1][0]==="sep") v.pop(); return v; }
 function renderNav(){
   const VIEWS=viewsOk(); const ladoT=plat()?"rede":"franq";
@@ -1096,8 +1098,13 @@ function bannerCobranca(){
   return ab.map(c=>{ const venc=c.venc<HOJE?`<b class="neg">venceu em ${dBR(c.venc)}</b>`:`vence em <b>${dBR(c.venc)}</b>`;
     return `<div class="banner cob-banner"><span>💳 <b>Cobrança do serviço de BPO</b> · ${esc(c.bpoNome||"")} · referente a ${c.competencia?c.competencia.split("-").reverse().join("/"):""} · <b>${fmt(c.valor)}</b> · ${venc}</span>
       <span class="cob-b-acoes"><button class="btn sm" data-act="cob-baixar-cli" data-id="${c.id}">Baixar cobrança</button><button class="btn sm pri" data-act="cob-ver-conta" data-id="${c.id}">Ver em Contas a pagar</button></span></div>`; }).join(""); }
+function bannerAssinatura(){
+  if(!S.tid||plat()||!masterFranq()) return "";
+  return (S.assT||[]).filter(c=>c.status==="emitida").map(c=>{ const at=c.venc<HOJE?Math.round((Date.parse(HOJE)-Date.parse(c.venc))/864e5):0; const blq=addDays(c.venc,60);
+    return `<div class="banner cob-banner ${at>30?"ass-atraso":""}"><span>🧾 <b>Mensalidade Fluxxu</b> · ${c.competencia?c.competencia.split("-").reverse().join("/"):""} · ${c.lojas} ${voc().un.toLowerCase()}(s) · <b>${fmt(c.valor)}</b> · ${at?`<b class="neg">em atraso há ${at} dia(s)</b> — o acesso é bloqueado em ${dBR(blq)} se não for pago`:`vence em <b>${dBR(c.venc)}</b>`}</span>
+      <span class="cob-b-acoes"><button class="btn sm" data-act="ass-baixar" data-id="${c.id}">Baixar cobrança</button><button class="btn sm pri" data-act="ass-ver-conta" data-id="${c.id}">Ver em Contas a pagar</button></span></div>`; }).join(""); }
 function bannersBase(){
-  let b=bannerAcesso()+bannerCobranca();
+  let b=bannerAcesso()+bannerCobranca()+bannerAssinatura();
   if(false) b+=`<div class="banner info">Plano de contas ainda não criado. ${isAdm()?`<button class="btn sm" data-act="cfg-default" style="margin-left:8px">Criar plano de contas padrão</button>`:"Peça ao master do cliente para criar em Configurações."}</div>`;
   if([S.lanc,S.forn,S.ag,S.lojas].some(a=>a.some(x=>x.exemplo))) b+=`<div class="banner info">Há dados de exemplo (marcados com <span class="tag ex">exemplo</span>). Quando quiser começar de verdade, remova-os em Configurações.</div>`;
   return b;
@@ -1123,6 +1130,7 @@ function alertasDash(cc){
   const rasc=(S.div||[]).filter(d=>d.status!=="lancado"&&(+d.total||0)>0); if(rasc.length) add("aviso","⇄",`${rasc.length} rateio(s) de despesas não lançado(s)`,"","cmv","");
   const ch=(S.cham||[]).filter(c=>chNaoLido(c)||(c.status==="aberto"&&souAtCh(c))||(souDonoCh(c)&&c.status==="atendimento"&&c.acesso&&c.acesso.status==="pedido"));
   if(ch.length) add("info","✉",`${ch.length} chamado(s) aguardando você`,"mensagem nova ou pedido de acesso","chamados","");
+  const ass=(S.assT||[]).filter(c=>c.status==="emitida"); if(ass.length) add(ass.some(c=>c.venc<HOJE)?"perigo":"aviso","🧾",`Mensalidade Fluxxu em aberto: ${fmt(ass.reduce((a,c)=>a+(+c.valor||0),0))}`,`vence ${dBR(ass.map(c=>c.venc).sort()[0])}`,"pagar","abertos");
   const cobs=(S.cobT||[]).filter(c=>c.status==="emitida"); if(cobs.length) add(cobs.some(c=>c.venc<HOJE)?"perigo":"aviso","💳",`Cobrança do BPO em aberto: ${fmt(cobs.reduce((a,c)=>a+(+c.valor||0),0))}`,`vence ${dBR(cobs.map(c=>c.venc).sort()[0])}`,"pagar","abertos");
   const chip=a=>`<button type="button" class="al-chip al-${a.nivel}" data-act="alerta-ir" data-v="${a.view}" data-s="${a.status}"><span class="al-ico">${esc(a.ico)}</span><span><b>${esc(a.txt)}</b>${a.sub?`<small>${esc(a.sub)}</small>`:""}</span><span class="al-ir">›</span></button>`;
   return `<div class="sec-lbl">Precisa da sua atenção</div><div class="al-faixa">${al.length?al.map(chip).join(""):'<div class="al-chip al-ok"><span class="al-ico">✓</span><span><b>Tudo em dia</b><small>nenhuma pendência no momento</small></span></div>'}</div>`;
@@ -2222,25 +2230,25 @@ async function docCobranca(c,tipo){
   const ref=c.competencia?c.competencia.split("-").reverse().join("/"):""; const ee=c.emitente||{}; const em=ee.nome?{empresa:ee.nome,login:ee.doc,email:ee.email,nome:ee.responsavel||ee.nome}:(masterRede()?(S.conta||{}):{empresa:"Fluxxu · Controle Financeiro"});
   doc.setFillColor(30,30,30); doc.rect(0,0,W,34,"F"); try{ doc.addImage(LOGO_DARK,"PNG",M,12,30,9.8); }catch(e){}
   doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(17); doc.text(T(recibo?"RECIBO":"COBRANÇA"),M+38,17);
-  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.text(T(`Serviço de BPO financeiro · Nº ${c.numero}`),M+38,24);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.text(T(`${c.assin?"Assinatura Fluxxu":"Serviço de BPO financeiro"} · Nº ${c.numero}`),M+38,24);
   doc.setFontSize(8.5); doc.text(T(recibo?`Pago em ${dBR(c.pagaEm)}`:`Emitida em ${dBR(String(c.emitidaEm||"").slice(0,10))}`),W-M,17,{align:"right"});
   doc.setTextColor(30,30,30); let y=46;
   const bloco=(tit,linhas)=>{ doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(0,140,75); doc.text(T(tit),M,y); y+=5; doc.setTextColor(30,30,30); doc.setFont("helvetica","normal"); doc.setFontSize(10); linhas.filter(Boolean).forEach(l=>{ doc.text(T(l),M,y); y+=5.2; }); y+=4; };
   bloco(recibo?"RECEBEDOR":"EMITENTE",[em.empresa||em.razao||"Fluxxu · Controle Financeiro — equipe Fluxxu",em.login?`CPF/CNPJ: ${fmtDoc(em.login)}`:"",em.email||""]);
   bloco(recibo?"PAGADOR":"DESTINATÁRIO",[c.franqueado||"",c.cnpj?`CNPJ: ${fmtDoc(c.cnpj)}`:""]);
-  bloco("REFERENTE A",[`Serviço de BPO financeiro prestado por ${c.bpoNome||""}`,`Mês de referência: ${ref}`]);
+  bloco("REFERENTE A",[(c.assin?`Assinatura do sistema Fluxxu · plano ${c.plano==="anual"?"anual":"mensal"} · ${c.lojas} unidade(s) ativa(s) × ${brl(c.valorLoja)}${c.plano==="anual"?" × 10":""}`:`Serviço de BPO financeiro prestado por ${c.bpoNome||""}`),`Mês de referência: ${ref}`]);
   doc.setFillColor(242,251,246); doc.setDrawColor(189,239,211); doc.roundedRect(M,y,W-2*M,recibo?30:34,2,2,"FD"); y+=9;
   doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(11,90,51); doc.text(T(brl(c.valor)),M+6,y); doc.setFontSize(9.5); doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60);
   doc.text(T(`(${valorExtenso(c.valor)})`),M+6,y+7);
   doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30); doc.text(T(recibo?`Pago em ${dBR(c.pagaEm)}`:`Vencimento: ${dBR(c.venc)}`),M+6,y+15); y+=(recibo?30:34)+6;
   doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(30,30,30);
-  const texto=recibo?`Recebemos de ${c.franqueado||""}${c.cnpj?", CNPJ "+fmtDoc(c.cnpj):""}, a importância de ${brl(c.valor)} (${valorExtenso(c.valor)}), referente ao serviço de BPO financeiro do mês ${ref}, prestado por ${c.bpoNome||""}, dando plena quitação deste valor.`
-    :`Cobrança do serviço de BPO financeiro do mês ${ref}, conforme contrato firmado entre ${c.franqueado||"o cliente"} e ${c.bpoNome||"o BPO"}. A equipe Fluxxu recebe este valor e o repassa ao prestador do serviço.`;
+  const texto=recibo?`Recebemos de ${c.franqueado||""}${c.cnpj?", CNPJ "+fmtDoc(c.cnpj):""}, a importância de ${brl(c.valor)} (${valorExtenso(c.valor)}), ${c.assin?`referente à assinatura do sistema Fluxxu (${ref}),`:`referente ao serviço de BPO financeiro do mês ${ref}, prestado por ${c.bpoNome||""},`} dando plena quitação deste valor.`
+    :(c.assin?`Cobrança da assinatura do sistema Fluxxu referente a ${ref}: ${c.lojas} unidade(s) ativa(s) × ${brl(c.valorLoja)}${c.plano==="anual"?" × 10 meses (plano anual)":""}.`:`Cobrança do serviço de BPO financeiro do mês ${ref}, conforme contrato firmado entre ${c.franqueado||"o cliente"} e ${c.bpoNome||"o BPO"}. A equipe Fluxxu recebe este valor e o repassa ao prestador do serviço.`);
   doc.splitTextToSize(T(texto),W-2*M).forEach(l=>{ doc.text(l,M,y); y+=5.4; });
   if(c.obs){ y+=3; doc.setFontSize(9); doc.setTextColor(90,90,90); doc.text(T("Observação: "+c.obs),M,y); y+=6; }
   if(recibo){ y+=22; doc.setDrawColor(120,120,120); doc.line(W/2-45,y,W/2+45,y); doc.setFontSize(9); doc.setTextColor(60,60,60); doc.text(T(em.nome||"Equipe Fluxxu"),W/2,y+5,{align:"center"}); doc.text(T(`${dBR(c.pagaEm)}`),W/2,y+10,{align:"center"}); }
   doc.setFontSize(7.5); doc.setTextColor(140,140,140); doc.text(T("Fluxxu · Controle Financeiro · documento gerado pelo sistema"),M,287);
-  doc.save(`${recibo?"Recibo":"Cobranca"}-BPO-${String(c.numero).padStart(4,"0")}-${(c.franqueado||"").replace(/[^\w]+/g,"-").slice(0,40)}.pdf`);
+  doc.save(`${recibo?"Recibo":"Cobranca"}-${c.assin?"Fluxxu":"BPO"}-${String(c.numero).padStart(4,"0")}-${(c.franqueado||"").replace(/[^\w]+/g,"-").slice(0,40)}.pdf`);
 }
 function painelCobrancas(){
   if(!(masterRede()||ehBpo())) return ""; const ls=[...(S.cobRede||[])].sort((a,b)=>String(b.competencia||"").localeCompare(String(a.competencia||""))||(+b.numero||0)-(+a.numero||0));
@@ -2254,8 +2262,10 @@ function painelCobrancas(){
     :'<div class="empty">Nenhuma cobrança emitida ainda. Use “Emitir cobrança” na coluna BPO financeiro.</div>'}</div>`;
 }
 /* ---------- plano do cliente (pelo número de lojas ativas) ---------- */
-function planoCliente(nLojas){ const n=nLojas!=null?nLojas:lojasCmv().length; const p=n>=6?"Rede":n>=2?"Crescimento":"Essencial";
-  const lim=(S.tenant&&S.tenant.limiteColab!=null&&S.tenant.limiteColab!=="")?+S.tenant.limiteColab:(p==="Essencial"?2:p==="Crescimento"?5:null); return {plano:p,lim,lojas:n}; }
+function planoCliente(nLojas,ten){ ten=ten||S.tenant||{}; const n=nLojas!=null?nLojas:lojasCmv().length; const a=ten.assinatura||{};
+  const anual=a.plano==="anual", vl=+a.valorLoja||5000, dia=+a.dia||10, lj=Math.max(1,n);
+  const lim=(ten.limiteColab!=null&&ten.limiteColab!=="")?+ten.limiteColab:null;
+  return {plano:anual?"anual":"mensal",lim,lojas:n,valorLoja:vl,dia,valor:lj*vl*(anual?10:1),mensal:lj*vl}; }
 const colabsAtivos = () => (S.usr||[]).filter(u=>u.perfil!=="master"&&u.ativo!==false).length;
 /* ---------- conversa entre cliente e BPO (antes do contrato) ---------- */
 const CONV_ST={pedida:["Aguardando o BPO aceitar","st-vence"],aberta:["Conversa aberta","st-pago"],recusada:["Recusada pelo BPO","st-vencido"],encerrada:["Encerrada","st-aberto"]};
@@ -2734,6 +2744,56 @@ function extLancarModal(m){
       b.disabled=true; try{ const id=newId("lanc"); await save("lanc",id,{tipo,descricao:$("#xlD").value.trim()||m.memo,valor:Math.abs(m.valor),categoria:$("#xlC").value,centro:$("#xlL").value,dataLanc:m.data,venc:m.data,competencia:m.data.slice(0,7),forma:"Transferência",pago:m.data,contaId:m.contaId,numero:Math.max(proxNumero(),S._numReserva||0),parcela:"",obs:"Lançado a partir do extrato bancário."});
         S._numReserva=Math.max(proxNumero(),S._numReserva||0)+1; await marcarExt([m],{status:"ok",lancIds:[id],info:"Lançado a partir do extrato"}); closeModal(); toast("Lançado"); }
       catch(err){ $("#xlErr").textContent=msgErro(err); b.disabled=false; } }); },"all");
+}
+/* ---------- Assinaturas (mensalidade dos clientes) ---------- */
+function assLinha(t){ const P=planoCliente(+t.nLojasAtivas||0,t); const cobs=(S.assRede||[]).filter(c=>c.tid===t.id&&c.status!=="cancelada");
+  const ab=cobs.filter(c=>c.status==="emitida"); const venc=ab.map(c=>c.venc).sort()[0]; const atraso=venc&&venc<HOJE?Math.round((Date.parse(HOJE)-Date.parse(venc))/864e5):0;
+  const bloq=t.ativo===false&&t.bloqueioMotivo==="inadimplencia";
+  return {t,P,cobs,ab,aberto:ab.reduce((a,c)=>a+(+c.valor||0),0),atraso,bloq,situ:bloq?"bloq":atraso?"atraso":"emdia",venc}; }
+function vAssinaturas(){
+  if(!S._assVer){ S._assVer=true; FB.sb.rpc("ass_verificar").then(({data,error})=>{ if(!error&&data>0) toast(`${data} cliente(s) bloqueado(s) por inadimplência`); atualizarTabelas("tenants"); }); }
+  const mes=ui.assMes||mkey(HOJE); const L=(S.tenants||[]).map(assLinha); const f=ui.assF||"todos";
+  const vis=L.filter(x=>f==="todos"||x.situ===f).sort((a,b)=>b.atraso-a.atraso||String(tNome(a.t)).localeCompare(tNome(b.t)));
+  const mrr=L.filter(x=>!x.bloq).reduce((a,x)=>a+x.P.mensal,0), aberto=L.reduce((a,x)=>a+x.aberto,0);
+  const semMes=L.filter(x=>!x.bloq&&x.t.ativo!==false&&!x.cobs.some(c=>c.competencia===mes));
+  const SIT={emdia:["Em dia","st-pago"],atraso:["Em atraso","st-vence"],bloq:["Bloqueado","st-vencido"]};
+  return header("Assinaturas","Mensalidade de cada cliente: R$ por unidade ativa. Ativou unidade, a próxima cobrança já sai reajustada. Com 60 dias de atraso o acesso é bloqueado; pagou, libera.","")
+   + `<div class="stats-row" style="margin-bottom:14px"><div><small>Receita mensal (clientes ativos)</small><b class="tipo-r">${fmt(mrr)}</b></div><div><small>Em aberto</small><b>${fmt(aberto)}</b></div>
+      <div><small>Em dia</small><b class="pos">${L.filter(x=>x.situ==="emdia").length}</b></div><div><small>Em atraso</small><b>${L.filter(x=>x.situ==="atraso").length}</b></div><div><small>Bloqueados</small><b class="${L.some(x=>x.bloq)?"neg":""}">${L.filter(x=>x.bloq).length}</b></div></div>`
+   + `<div class="toolbar"><div class="seg">${[["todos","Todos"],["emdia","Em dia"],["atraso","Em atraso"],["bloq","Bloqueados"]].map(([k,t])=>`<button data-act="ass-f" data-v="${k}" aria-pressed="${f===k}">${t}</button>`).join("")}</div>
+      <label class="note" style="display:flex;gap:8px;align-items:center">Mês <input type="month" id="assMes" value="${mes}" style="font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px"></label>
+      ${semMes.length?`<button class="btn pri" data-act="ass-lote">Emitir mensalidades de ${mlabel(mes)} (${semMes.length})</button>`:`<span class="note">Todas as mensalidades de ${mlabel(mes)} já foram emitidas.</span>`}</div>`
+   + `<div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Cliente</th><th>Plano</th><th class="r">Unidades ativas</th><th class="r">Valor</th><th>Vence</th><th>${esc(mlabel(mes))}</th><th class="r">Em aberto</th><th>Situação</th><th></th></tr></thead><tbody>
+     ${vis.map(x=>{ const t=x.t, P=x.P, cm=x.cobs.find(c=>c.competencia===mes); const [st,cl]=SIT[x.situ];
+       return `<tr><td><b>${esc(tNome(t))}</b><div class="meta">${esc((TIPOS_NEG[t.tipoNegocio]||TIPOS_NEG.mercado).nome)}</div></td>
+       <td>${P.plano==="anual"?"Anual":"Mensal"}<div class="meta">${fmt(P.valorLoja)} por unidade</div></td><td class="r num">${+t.nLojasAtivas||0}</td>
+       <td class="r num"><b>${fmt(P.plano==="anual"?P.valor:P.mensal)}</b><div class="meta">${P.plano==="anual"?"por ano":"por mês"}</div></td><td>dia ${P.dia}</td>
+       <td>${cm?(cm.status==="paga"?`<span class="pill st-pago">Paga ${dBR(cm.pagaEm)}</span>`:`<span class="pill st-vence">Emitida · vence ${dBR(cm.venc)}</span>`):'<span class="note">—</span>'}</td>
+       <td class="r num">${x.aberto?fmt(x.aberto):"—"}${x.atraso?`<div class="meta neg">${x.atraso} dia(s) de atraso${x.bloq?"":` · bloqueia em ${dBR(addDays(x.venc,60))}`}</div>`:""}</td>
+       <td><span class="pill ${cl}">${st}</span></td>
+       <td class="r" style="white-space:nowrap">${!cm&&t.ativo!==false?`<button class="btn sm pri" data-act="ass-emitir" data-id="${t.id}">Emitir</button>`:""}${x.ab.map(c=>`<button class="btn sm" data-act="ass-pagar" data-id="${c.id}" title="${esc(c.competencia)}">Paga ${c.competencia.slice(5)}/${c.competencia.slice(2,4)}</button>`).join("")}
+         ${cm?`<button class="icon-btn" data-act="ass-pdf" data-id="${cm.id}" data-v="${cm.status==="paga"?"recibo":"cobranca"}">${cm.status==="paga"?"Recibo":"Cobrança"}</button>`:""}${cm&&cm.status==="emitida"?`<button class="icon-btn" data-act="ass-cancelar" data-id="${cm.id}">Cancelar</button>`:""}<button class="icon-btn" data-act="ass-config" data-id="${t.id}">Plano</button></td></tr>`; }).join("")||'<tr><td colspan="9" class="empty">Nenhum cliente.</td></tr>'}
+     </tbody></table></div></div>`;
+}
+function assConfigModal(t){ const a=t.assinatura||{};
+  openModal(`<h2>Plano de ${esc(tNome(t))}</h2><form id="fAss" class="fcol" novalidate>
+    <div class="row3"><div class="field"><label for="asP">Plano</label><select id="asP">${opt("mensal","Mensal",a.plano||"mensal")}${opt("anual","Anual (paga 10 meses)",a.plano||"mensal")}</select></div>
+      <div class="field"><label for="asV">Valor por unidade ativa (R$/mês)</label><input id="asV" inputmode="decimal" value="${moneyIn(+a.valorLoja||5000)}"></div>
+      <div class="field"><label for="asD">Vence todo dia</label><input id="asD" type="number" min="1" max="28" value="${+a.dia||10}"></div></div>
+    <p class="note">${+t.nLojasAtivas||0} unidade(s) ativa(s) hoje. O valor é recalculado a cada emissão pelo número de unidades ativas (mínimo 1).</p>
+    <div class="err" id="asErr" role="alert"></div>
+    <div class="foot"><div></div><div><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn pri">Salvar</button></div></div></form>`,false,()=>{
+    $("#fAss").addEventListener("submit",async ev=>{ ev.preventDefault(); const v=parseMoney($("#asV").value||""); if(!(v>0)){ $("#asErr").textContent="Informe o valor."; return; }
+      const {error}=await FB.sb.rpc("ass_definir",{p_tid:t.id,p_plano:$("#asP").value,p_valor_loja:v,p_dia:+$("#asD").value||10});
+      if(error){ $("#asErr").textContent=msgErro(error); return; } closeModal(); atualizarTabelas("tenants"); toast("Plano salvo"); }); },"all");
+}
+function assPagarModal(c){
+  openModal(`<h2>Registrar pagamento</h2><p class="note" style="margin-top:0">${esc(c.franqueado||"")} · ${esc(c.competencia||"")} · <b>${fmt(c.valor)}</b></p>
+    <div class="field"><label for="apD">Pago em</label><input type="date" id="apD" value="${HOJE}"></div><div class="err" id="apErr" role="alert"></div>
+    <div class="foot"><div></div><div><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn pri" id="apOk">Registrar e baixar recibo</button></div></div>`,false,()=>{
+    $("#apOk").addEventListener("click",async e=>{ e.currentTarget.disabled=true; const dt=$("#apD").value||HOJE; const {error}=await FB.sb.rpc("ass_pagar",{p_id:c.id,p_data:dt});
+      if(error){ $("#apErr").textContent=msgErro(error); e.currentTarget.disabled=false; return; } closeModal(); atualizarTabelas("assinatura_cob"); atualizarTabelas("tenants"); toast("Pagamento registrado — a conta foi baixada no sistema do cliente");
+      docCobranca({...c,status:"paga",pagaEm:dt,assin:true},"recibo"); }); },"all");
 }
 /* ---------- DRE: lançamentos de cada linha ---------- */
 function dreDetalhe(id,c){
@@ -3243,7 +3303,7 @@ function render(){
   if(S.tid&&!S.tenant&&ui.view!=="rede"){ main.innerHTML=`<div class="empty" style="padding-top:20vh">Abrindo o cliente…</div>`; return; }
   if(ui.cc&&ui.cc!=="matriz"&&ui.cc!=="lojas"&&S.lojas.length&&!lojaBy(ui.cc)) ui.cc="";
   if(S.role==="op"&&(ui.view==="receber"||ui.view==="pagar")) ui.view="painel";
-  const V={painel:vPainel,receber:()=>vContas("receita"),pagar:()=>vContas("despesa"),fluxo:vFluxo,dre:vDre,lancamentos:vLancamentos,cmv:vCmv,fornecedores:vFornecedores,agenda:vAgenda,lojas:vLojas,desempenho:vDesempenho,conciliacao:vConciliacao,usuarios:vUsuarios,config:vConfig,rede:vRede,chamados:vChamados,diario:vChamados,envios:vEnvios,enviosrede:vEnviosRede,taxas:vTaxas,painelrede:vPainelRede,chamadosrede:vChamadosRede,planorede:vPlanoRede,equiperede:vEquipeRede,diariorede:vDiarioRede,meucad:vMeuCadastro}[ui.view];
+  const V={painel:vPainel,receber:()=>vContas("receita"),pagar:()=>vContas("despesa"),fluxo:vFluxo,dre:vDre,lancamentos:vLancamentos,cmv:vCmv,fornecedores:vFornecedores,agenda:vAgenda,lojas:vLojas,assinaturas:vAssinaturas,desempenho:vDesempenho,conciliacao:vConciliacao,usuarios:vUsuarios,config:vConfig,rede:vRede,chamados:vChamados,diario:vChamados,envios:vEnvios,enviosrede:vEnviosRede,taxas:vTaxas,painelrede:vPainelRede,chamadosrede:vChamadosRede,planorede:vPlanoRede,equiperede:vEquipeRede,diariorede:vDiarioRede,meucad:vMeuCadastro}[ui.view];
   if(!V) ui.view="painel";
   main.innerHTML=(V||vPainel)()+RODAPE_LEGAL;
   if(ui.view==="lojas") bindMatriz();
@@ -4401,7 +4461,7 @@ function nivel(mod){
   return 0;
 }
 let FB=null, UNSUB=[], UNSUB_REDE=[];
-S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.ctr=[]; S.ctrRede=[]; S.cobRede=[]; S.cobT=[]; S.empresas=[]; S.convT=[]; S.convRede=[]; S.liberado=false; S.names={};
+S.claims={}; S.conta=null; S.tid=null; S.tenant=null; S.tenants=[]; S.cham=[]; S.diario=[]; S.redeEquipe=[]; S.redeDiario=[]; S.resumos=[]; S.chamRede=[]; S.envios=[]; S.envRede=[]; S.ctr=[]; S.ctrRede=[]; S.cobRede=[]; S.cobT=[]; S.empresas=[]; S.convT=[]; S.convRede=[]; S.assT=[]; S.assRede=[]; S.liberado=false; S.names={};
 const plat = () => ["master_rede","observador","bpo"].includes(S.claims.papel);
 const ehBpo = () => S.claims.papel==="bpo";
 const temBpo = () => !!(S.tenant&&S.tenant.bpoUid);                              // este cliente tem BPO
@@ -4543,7 +4603,7 @@ async function onAuth(u){
   if(!ac||!ac.papel){ S.me={id:u.id,name:u.email}; telaAviso("Conta sem perfil","Este login ainda não tem um perfil no ERP. Fale com o responsável pelo sistema.",true); return; }
   S.conta=ac; S.claims={papel:ac.papel,tid:ac.tid||null};
   S.me={id:u.id,name:ac.nome||u.email,email:u.email};
-  if(ac.ativo===false||ac.tenantAtivo===false){ S.msgLogin=ac.tenantAtivo===false?"Este cliente está suspenso. Fale com a equipe Fluxxu.":"Este acesso foi desativado."; await FB.sb.auth.signOut(); return; }
+  if(ac.ativo===false||ac.tenantAtivo===false){ S.msgLogin=ac.tenantAtivo===false?(ac.tenantMotivo==="inadimplencia"?"Acesso bloqueado por mensalidade do Fluxxu com mais de 60 dias de atraso. Fale com a equipe Fluxxu para regularizar — o acesso volta assim que o pagamento for registrado.":"Este cliente está suspenso. Fale com a equipe Fluxxu."):"Este acesso foi desativado."; await FB.sb.auth.signOut(); return; }
   if(S.recuperando||ac.trocarSenha){ telaTrocarSenha(); return; }
   entrarApp();
 }
@@ -4584,6 +4644,7 @@ function assinarRede(){
     UNSUB_REDE.push(vigiar("rede_diario",{cols:"id,data",ordem:["criado",false],limite:300},rows=>{ S.redeDiario=rows.map(r=>({...r.data,id:r.id})); if(!S.tid) render(); }));
   }
   UNSUB_REDE.push(vigiar("empresas_rede",{cols:"id,data"},rows=>{ S.empresas=rows.map(r=>({...r.data,id:r.id})).sort((a,b)=>String(a.nome).localeCompare(String(b.nome))); if(!S.tid) render(); }));
+  if(masterRede()) UNSUB_REDE.push(vigiar("assinatura_cob",{cols:"id,tid,data",ordem:["criado",false],limite:2000},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid,assin:true})); const sig=JSON.stringify(novo); if(sig===S._assSig) return; S._assSig=sig; S.assRede=novo; if(!S.tid) render(); }));
   if(ehBpo()) UNSUB_REDE.push(vigiar("conversas_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:300},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._convSig) return; S._convSig=sig; S.convRede=novo; if(!S.tid) render(); else renderNav(); }));
   if(ehBpo()||masterRede()) UNSUB_REDE.push(vigiar("cobrancas_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:600},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._cobSig) return; S._cobSig=sig; S.cobRede=novo; if(!S.tid) render(); }));
   if(ehBpo()||masterRede()) UNSUB_REDE.push(vigiar("contratos_bpo",{cols:"id,tid,data",ordem:["criado",false],limite:300},rows=>{ const novo=rows.map(r=>({...r.data,id:r.id,tid:r.tid})); const sig=JSON.stringify(novo); if(sig===S._ctrSig) return; S._ctrSig=sig; S.ctrRede=novo; if(!S.tid) render(); else renderNav(); }));
@@ -4616,6 +4677,7 @@ function abrirTenant(tid){
   sub(S.db.collection(COL.manut),s=>{ S.manut=s.docs.map(strip); render(); });
   sub(S.db.collection(COL.usr),s=>{ S.usr=s.docs.map(strip); S.names={}; S.usr.forEach(u=>S.names[u.id]=u.nome||u.email||""); if(S.me) S.names[S.me.id]=S.names[S.me.id]||S.me.name; render(); });
   if(gestorFranq()||plat()||(S.tenant&&S.tenant.bpoUid)){
+    if(masterFranq()) sub(S.db.collection("assinatura_cob").orderBy("emitidaEm","desc").limit(36),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._assSigT) return; S._assSigT=sig; S.assT=novo; render(); });
     if(masterFranq()) sub(S.db.collection("conversas_bpo").orderBy("ultimaEm","desc").limit(50),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._convSigT) return; S._convSigT=sig; S.convT=novo; render(); });
     if(masterFranq()) sub(S.db.collection("cobrancas_bpo").orderBy("emitidaEm","desc").limit(60),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._cobSigT) return; S._cobSigT=sig; S.cobT=novo; render(); });
     sub(S.db.collection("contratos_bpo").orderBy("propostoEm","desc").limit(50),s=>{ const novo=s.docs.map(strip); const sig=JSON.stringify(novo); if(sig===S._ctrSigT) return; S._ctrSigT=sig; S.ctr=novo; render(); });
@@ -4640,7 +4702,7 @@ function setConn(){
   const t=$("#connTxt"), dot=$("#connDot"); if(!t) return;
   dot.className="dot "+(S.me?"on":"");
   const th=S.me ? `<b>${esc(S.me.name)}</b><br>${esc(PAPEIS[S.claims.papel]||"")}` : ""; if(t.dataset.h!==th){ t.innerHTML=th; t.dataset.h=th; }
-  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 92 · 30/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
+  const mb=$("#meBox"); if(mb){ const h=S.me?`<button class="lnk" data-act="trocar-senha">Trocar senha</button><button class="lnk" data-act="sair">Sair</button><div id="versaoApp" class="versao-app">versão 93 · 30/10/2026</div>`:""; if(mb.dataset.h!==h){ mb.innerHTML=h; mb.dataset.h=h; } }
   const tb=$("#tenantBox");
   if(tb){ if(plat()){ const ts=[...S.tenants].sort((a,b)=>tNome(a).localeCompare(tNome(b)));
       const html=S.tid?`<span class="tb-l">Você está no cliente</span><select id="tenSel" aria-label="Trocar de cliente">${ts.map(t=>opt(t.id,tNome(t),S.tid)).join("")}</select><button class="btn sm tb-back" data-act="voltar-rede">← Voltar à área master</button>`:`<span class="tb-l">Área master</span><span class="tb-sub">${esc(PAPEIS[S.claims.papel])}</span>`;
@@ -4755,7 +4817,7 @@ function vRede(){
      <td class="num">${esc(m.cnpj||"—")}</td>
      <td>${esc([m.franq1,m.franq2,m.franq3].filter(Boolean).join(", ")||"—")}</td>
      <td>${esc(m.telefone||"")}${m.telefone2?`<div class="meta">${esc(m.telefone2)}</div>`:""}<div class="meta">${esc(m.email||"")}</div></td>
-     <td class="r num">${+t.nLojasAtivas||0}<span class="note">/${+t.nLojas||0}</span><div class="meta">${planoCliente(+t.nLojasAtivas||0).plano}</div></td>
+     <td class="r num">${+t.nLojasAtivas||0}<span class="note">/${+t.nLojas||0}</span><div class="meta">${fmt(planoCliente(+t.nLojasAtivas||0,t).mensal)}/mês</div></td>
      <td>${ua?`<div>${dtHora(t.ultimoAcesso)}</div><div class="meta ${dias>=30?"neg":""}">${dias===0?"hoje":dias===1?"ontem":`há ${dias} dias`}</div>`:'<span class="note">nunca acessou</span>'}</td>
      ${masterRede()?`<td>${celulaBpo(t)}</td>`:""}
      <td>${t.ativo===false?'<span class="pill st-vencido">Suspenso</span>':'<span class="pill st-pago">Ativo</span>'}${lib?`<div class="meta">edição liberada até ${dtHora(am.ate)}</div>`:""}${pend(t.id)?`<div class="meta" style="color:var(--warn);font-weight:600">${pend(t.id)} chamado(s) pendente(s)</div>`:""}</td>
@@ -5365,7 +5427,7 @@ function vUsuarios(){
   const us=[...S.usr].sort((a,b)=>(a.perfil==="master"?0:1)-(b.perfil==="master"?0:1)||(a.nome||"").localeCompare(b.nome||""));
   const PL=planoCliente(), nC=colabsAtivos(), cheio=PL.lim!=null&&nC>=PL.lim;
   return header("Usuários","Colaboradores deste cliente. Cada um entra com o próprio CPF e senha, e só vê as telas que o master liberar.",g&&!cheio?`<button class="btn pri" data-act="novo-usuario">+ Novo colaborador</button>`:"")
-   + banners() + painelConversasCliente() + `<div class="plano-faixa ${cheio?"cheio":""}"><span>Plano <b>${PL.plano}</b> · ${PL.lojas} loja(s) ativa(s) · <b>${nC}</b> ${PL.lim!=null?`de <b>${PL.lim}</b> colaboradores`:"colaboradores (ilimitado)"}</span>${cheio?'<span>Limite do plano atingido. Para incluir mais colaboradores, fale com a equipe Fluxxu ou ative mais lojas (2 a 5 lojas: até 5; 6 ou mais: ilimitado).</span>':""}</div>` + painelBpoUsuario()
+   + banners() + painelConversasCliente() + `<div class="plano-faixa ${cheio?"cheio":""}"><span>Assinatura Fluxxu <b>${PL.plano}</b> · ${Math.max(1,PL.lojas)} ${voc().un.toLowerCase()}(s) ativa(s) × ${fmt(PL.valorLoja)} = <b>${fmt(PL.mensal)}/mês</b>${PL.plano==="anual"?` (anual: ${fmt(PL.valor)})`:""} · vence todo dia ${PL.dia} · <b>${nC}</b> colaborador(es)${PL.lim!=null?` de ${PL.lim}`:""}</span>${cheio?'<span>Limite de colaboradores combinado com a equipe Fluxxu atingido.</span>':""}</div>` + painelBpoUsuario()
    + `<div class="tbl-wrap"><table class="usr-tab"><thead><tr><th>Nome</th><th>Login (CPF/CNPJ)</th><th>Contato</th><th>Aniversário</th><th>Acessos</th><th>Situação</th><th></th></tr></thead><tbody>
      ${us.map(u=>{ const eu=u.id===S.me.id; return `<tr>
        <td><div class="desc">${esc(u.nome||"")}${eu?' <span class="note">(você)</span>':""}</div><div class="meta">${esc(PAPEIS[u.perfil]||u.perfil||"")}</div></td>
@@ -5594,6 +5656,18 @@ document.addEventListener("click",async e=>{
   if(act==="manut-nova"){ const e_=(S.equip||[]).find(x=>x.id===id); if(e_) manutForm(e_); return; }
   if(act==="manut-hist"){ const e_=(S.equip||[]).find(x=>x.id===id); if(e_) manutHist(e_); return; }
   if(act==="des-ord"){ const k=a.dataset.k; if(ui.desOrd===k) ui.desDir=ui.desDir==="asc"?"desc":"asc"; else { ui.desOrd=k; ui.desDir=k==="nome"?"asc":"desc"; } render(); return; }
+  if(act==="ass-f"){ ui.assF=a.dataset.v; render(); return; }
+  if(act==="ass-config"&&masterRede()){ const t=(S.tenants||[]).find(x=>x.id===id); if(t) assConfigModal(t); return; }
+  if(act==="ass-emitir"&&masterRede()){ const mes=ui.assMes||mkey(HOJE); a.disabled=true; FB.sb.rpc("ass_emitir",{p_tid:id,p_comp:mes}).then(async({data,error})=>{ a.disabled=false; if(error){ toast(msgErro(error)); return; }
+      atualizarTabelas("assinatura_cob"); toast("Mensalidade emitida — o cliente já foi avisado no sistema dele"); const {data:row}=await FB.sb.from("assinatura_cob").select("id,tid,data").eq("id",data).single(); if(row) docCobranca({...row.data,id:row.id,tid:row.tid,assin:true},"cobranca"); }); return; }
+  if(act==="ass-lote"&&masterRede()){ const mes=ui.assMes||mkey(HOJE); const ls=(S.tenants||[]).map(assLinha).filter(x=>!x.bloq&&x.t.ativo!==false&&!x.cobs.some(c=>c.competencia===mes));
+    confirmBtn(a,`Confirmar: emitir ${ls.length} mensalidade(s)`,async()=>{ let n=0, er=0; for(const x of ls){ const {error}=await FB.sb.rpc("ass_emitir",{p_tid:x.t.id,p_comp:mes}); if(error) er++; else n++; }
+      atualizarTabelas("assinatura_cob"); toast(`${n} mensalidade(s) emitida(s)${er?` · ${er} com erro`:""}`); }); return; }
+  if(act==="ass-pagar"&&masterRede()){ const c=(S.assRede||[]).find(x=>x.id===id); if(c) assPagarModal(c); return; }
+  if(act==="ass-cancelar"&&masterRede()){ confirmBtn(a,"Confirmar cancelamento",()=>FB.sb.rpc("ass_cancelar",{p_id:id}).then(({error})=>{ if(error){ toast(msgErro(error)); return; } atualizarTabelas("assinatura_cob"); toast("Mensalidade cancelada"); })); return; }
+  if(act==="ass-pdf"){ const c=(S.assRede||[]).find(x=>x.id===id); if(c) docCobranca({...c,assin:true},a.dataset.v); return; }
+  if(act==="ass-baixar"){ const c=(S.assT||[]).find(x=>x.id===id); if(c) docCobranca({...c,assin:true},"cobranca"); return; }
+  if(act==="ass-ver-conta"){ const c=(S.assT||[]).find(x=>x.id===id); ui.view="pagar"; ui.c=ui.c||{}; if(c&&c.venc) ui.c.mes=c.venc.slice(0,7); ui.c.status="abertos"; ui.c.q=""; render(); return; }
   if(act==="ofx-importar"&&isAdm()){ const f=$("#ofxFile"); if(f){ f.value=""; f.click(); } return; }
   if(act==="ext-conta"){ ui.conta=a.dataset.v; render(); return; }
   if(act==="ext-f"){ ui.extF=a.dataset.v; render(); return; }
@@ -5713,6 +5787,7 @@ document.addEventListener("change",e=>{
   if(t.classList&&t.classList.contains("rota-ck")){ rotaCfg().st[t.dataset.st]=t.checked; ROTA=null; render(); return; }
   if(t.id==="rotaPart"){ rotaCfg().partida=t.value; return; }
   if(t.id==="rotaVolta"){ rotaCfg().volta=t.checked; return; }
+  if(t.id==="assMes"){ ui.assMes=t.value||mkey(HOJE); render(); return; }
   if(t.id==="ofxFile"&&t.files&&t.files[0]){ importarOFX(t.files[0]); return; }
   if(t.id==="vendFile"&&t.files&&t.files.length){ importarVendasArquivos([...t.files]); return; }
   if(t.id==="recFile"&&t.files&&t.files[0]){ importarRecArquivo(t.files[0]); return; }
